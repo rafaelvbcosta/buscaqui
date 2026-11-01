@@ -6,6 +6,6 @@
 //  NUNCA cole aqui a chave "secret" / "service_role".
 // =============================================================
 
-export const SUPABASE_URL = "COLE_AQUI_A_PROJECT_URL";
+export const SUPABASE_URL = "https://tjfzpobrqqoecktotlzy.supabase.co";
 
-export const SUPABASE_KEY = "COLE_AQUI_A_PUBLISHABLE_KEY";
+export const SUPABASE_KEY = "sb_publishable_WyWjrMPiFsQPdk-i68fDIg_ldIibDYG";
