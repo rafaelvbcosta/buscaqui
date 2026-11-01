@@ -27,15 +27,18 @@ candidatos a emprego, profissionais autônomos e empresas locais. Dono: Rafael (
 - `supabase/remover-exemplos.sql` — apaga os dados de exemplo.
 
 ## Status (1º de novembro de 2026)
-MVP pronto e enviado. Testado com servidor simulado (sem erros). **Configuração ainda pendente**, nesta ordem:
-1. Rodar `supabase/setup.sql` no SQL Editor do Supabase.
-2. Colar Project URL e Publishable key em `js/config.js` (pela edição do GitHub).
-3. Ativar GitHub Pages (Settings → Pages → Deploy from a branch → main / root).
-4. No Supabase, Authentication → URL Configuration → Site URL = endereço do GitHub Pages.
-5. Testar o site real com os três perfis (candidato, profissional, empresa).
+**Site no ar** em `https://rafaelvbcosta.github.io/buscaqui/`. Configuração concluída:
+`setup.sql` rodado, `js/config.js` preenchido (projeto `tjfzpobrqqoecktotlzy`), GitHub Pages ativo
+(main / root) e Site URL do Supabase configurada.
 
-Já feito no Supabase: projeto `buscaqui` criado (região São Paulo); "Confirm email" **desligado** para testes
-(religar antes de abrir ao público).
+Testado no site real com os três perfis (contas `rafaelvbcosta+candidato|profissional|empresa@gmail.com`):
+cadastro, currículo, candidatura, perfil profissional, cadastro de empresa, publicação de vaga e
+lista de candidatos — tudo funcionando.
+
+Pendências antes de abrir ao público:
+1. Religar "Confirm email" (Authentication → Sign In / Providers → Email).
+2. Rodar `supabase/remover-exemplos.sql` e apagar as contas/vaga de teste, se quiser.
+3. Lembrar que o Supabase gratuito pausa após 7 dias sem uso.
 
 ## Fora do MVP (próximas versões, aparecem como "Em breve")
 Chat, notificações push, avaliações, login social, vídeo de apresentação, planos pagos
