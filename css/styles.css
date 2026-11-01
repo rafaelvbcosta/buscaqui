@@ -266,6 +266,10 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .big-action small { opacity: .85; font-weight: 500; }
 .cta-band { display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 1.5rem 0 1rem; border-left: 5px solid var(--yellow); }
 .cta-band h3, .cta-band p { margin: 0; }
+.my-reqs { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin: 1rem 0 0; color: inherit; border-left: 5px solid var(--green); }
+.my-reqs:hover { text-decoration: none; box-shadow: var(--shadow); }
+.my-reqs > svg { width: 44px; height: 44px; padding: 10px; border-radius: 12px; background: var(--green-50); color: var(--green-600); flex: none; }
+.my-reqs b { display: block; }
 .pro-card { display: flex; flex-direction: column; gap: .6rem; }
 .pro-top { display: flex; gap: .85rem; align-items: center; color: inherit; }
 .pro-top:hover { text-decoration: none; }
