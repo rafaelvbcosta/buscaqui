@@ -31,15 +31,27 @@ function proCard(pr) {
 // SERVIÇOS (tela principal)
 // ============================================================
 export async function hub(el, _p, { alive }) {
-  const { data } = await sb.from('professionals').select('*').order('created_at', { ascending: false }).limit(6);
+  const [{ data }, { data: myReqs }] = await Promise.all([
+    sb.from('professionals').select('*').order('created_at', { ascending: false }).limit(6),
+    sb.from('service_requests').select('status').eq('user_id', state.user.id),
+  ]);
   if (!alive()) return;
   const mine = state.professional;
+  const reqs = myReqs || [];
+  const abertos = reqs.filter((r) => r.status === 'aberto').length;
   el.innerHTML = `
     <div class="page-head"><h1>Serviços</h1><p class="muted">Contrate profissionais da sua região ou ofereça o seu trabalho.</p></div>
     <div class="big-actions">
       <a href="#/profissionais" class="big-action">${ICON.search}<span><b>Encontrar profissional</b><small>Eletricista, diarista, pintor e mais</small></span></a>
       <a href="#/pedido-novo" class="big-action alt">${ICON.plus}<span><b>Publicar pedido de serviço</b><small>Descreva o que precisa e receba contatos</small></span></a>
     </div>
+    ${reqs.length ? `
+    <a href="#/pedidos" class="card my-reqs">
+      ${ICON.list}
+      <span class="grow"><b>Meus pedidos de serviço</b>
+        <small class="muted">${abertos ? `${abertos} pedido(s) aberto(s)` : 'Nenhum pedido aberto'} · ${reqs.length} no total</small></span>
+      <span class="btn btn-secondary btn-sm">Ver meus pedidos</span>
+    </a>` : ''}
     <div class="row-between section-title"><h2>Profissionais cadastrados</h2><a href="#/profissionais">Ver todos</a></div>
     <div class="grid">${(data || []).map(proCard).join('') || empty('users', 'Nenhum profissional ainda')}</div>
     <div class="card cta-band">
@@ -134,14 +146,21 @@ export async function requests(el, _p, ctx) {
   };
   const others = all.filter((r) => r.user_id !== state.user.id);
 
+  const mineHtml = mine.length
+    ? `<h2 class="section-title">Meus pedidos</h2><div class="grid">${mine.map((r) => reqCard(r, true)).join('')}</div>`
+    : '';
+  // Quem contrata vê os próprios pedidos primeiro; o profissional vê primeiro os pedidos dos clientes.
+  const othersTitle = isPro || !mine.length ? '' : '<h2 class="section-title">Pedidos de outras pessoas</h2>';
   el.innerHTML = `
     <div class="page-head row-between"><div><h1>Pedidos de serviço</h1>
       <p class="muted">${isPro ? 'Pessoas procurando profissionais. Entre em contato e ofereça seu trabalho!' : 'Pedidos publicados por quem precisa de um serviço.'}</p></div>
       <a href="#/pedido-novo" class="btn btn-primary">${ICON.plus} Publicar pedido</a></div>
     ${isPro && !state.professional ? `<div class="card cta-band"><div><h3>Complete seu perfil profissional</h3><p class="muted">Assim os clientes também encontram você.</p></div><a class="btn btn-secondary" href="#/meu-servico">Completar agora</a></div>` : ''}
+    ${isPro ? '' : mineHtml}
+    ${othersTitle}
     <div class="filters card"><select id="cat">${options(CATEGORIAS_SERVICO, '', 'Todas as categorias')}</select></div>
     <div class="grid" id="list"></div>
-    ${mine.length ? `<h2 class="section-title">Meus pedidos</h2><div class="grid">${mine.map((r) => reqCard(r, true)).join('')}</div>` : ''}`;
+    ${isPro ? mineHtml : ''}`;
   const cat = el.querySelector('#cat');
   const draw = () => {
     const res = others.filter((r) => !cat.value || r.category === cat.value);
