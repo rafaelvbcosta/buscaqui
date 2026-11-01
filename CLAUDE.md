@@ -35,6 +35,15 @@ Testado no site real com os três perfis (contas `rafaelvbcosta+candidato|profis
 cadastro, currículo, candidatura, perfil profissional, cadastro de empresa, publicação de vaga e
 lista de candidatos — tudo funcionando.
 
+Também testado: contratar serviço (encontrar profissional → WhatsApp; publicar pedido → profissional
+"Oferecer serviço" → cliente "Já resolvi"). Melhoria já publicada (PR #1): cartão "Meus pedidos de serviço"
+na tela Serviços e "Meus pedidos" no topo da tela Pedidos (para quem não é profissional).
+
+Rafael está fazendo mais testes por conta própria. Ideia para depois: domínio próprio (ex.: `buscaqui.com.br`
+no Registro.br, ~R$ 40/ano). Passos: verificar se está livre → DNS (CNAME `www` → `rafaelvbcosta.github.io`;
+registros A da raiz para os IPs do GitHub Pages) → Settings → Pages → Custom domain + Enforce HTTPS →
+atualizar Site URL no Supabase. O código não tem o endereço fixo, não precisa mudar nada nele.
+
 Pendências antes de abrir ao público:
 1. Religar "Confirm email" (Authentication → Sign In / Providers → Email).
 2. Rodar `supabase/remover-exemplos.sql` e apagar as contas/vaga de teste, se quiser.
