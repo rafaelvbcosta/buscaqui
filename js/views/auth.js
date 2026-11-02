@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611021829';
-import { state, homeFor } from '../store.js?v=202611021829';
-import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone } from '../ui.js?v=202611021829';
-import { afterLogin } from '../app.js?v=202611021829';
+import { sb } from '../supabase.js?v=202611021901';
+import { state, homeFor } from '../store.js?v=202611021901';
+import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone } from '../ui.js?v=202611021901';
+import { afterLogin } from '../app.js?v=202611021901';
 
 // ---------------- Tela inicial ----------------
 export function landing(el) {
