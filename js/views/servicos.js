@@ -2,23 +2,35 @@ import { sb } from '../supabase.js';
 import { state, loadUserData } from '../store.js';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, confirmBox, errMsg, setBusy, formData,
-  maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO,
+  maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA,
 } from '../ui.js';
 
 const cats = (pr) => [...new Set((pr.services || []).map((s) => s.categoria).filter(Boolean))];
 
+const isCompany = (pr) => Boolean(pr.company_id);
+
+// Todas as categorias, autônomos e empresas, para o filtro (sem repetir "Outros")
+const catOptions = (placeholder) => `<option value="">${esc(placeholder)}</option>
+  <optgroup label="Autônomos">${options(CATEGORIAS_SERVICO.filter((c) => c !== 'Outros'))}</optgroup>
+  <optgroup label="Empresas">${options(CATEGORIAS_EMPRESA.filter((c) => c !== 'Outros'))}</optgroup>
+  <option>Outros</option>`;
+
 function proCard(pr) {
-  const wa = waLink(pr.phone, `Olá, ${pr.name}! Vi seu perfil no BuscAqui e gostaria de um orçamento.`);
+  const emp = isCompany(pr);
+  const wa = waLink(pr.phone, emp
+    ? `Olá! Vi a ${pr.name} no BuscAqui e gostaria de mais informações.`
+    : `Olá, ${pr.name}! Vi seu perfil no BuscAqui e gostaria de um orçamento.`);
+  const where = emp ? [pr.address, pr.city].filter(Boolean).join(', ') : pr.city;
   return `
     <article class="card pro-card">
-      <a href="#/profissional/${pr.id}" class="pro-top">
-        ${avatar(pr.avatar_url, pr.name, 56)}
-        <div><h3>${esc(pr.name)}</h3><p class="muted small">${ICON.pin}${esc(pr.city || 'Cidade não informada')}</p></div>
+      <a href="#/${emp ? `empresa/${pr.company_id}` : `profissional/${pr.id}`}" class="pro-top">
+        ${avatar(pr.avatar_url, pr.name, 56, emp)}
+        <div><h3>${esc(pr.name)}</h3><p class="muted small">${ICON.pin}${esc(where || 'Cidade não informada')}</p></div>
       </a>
-      <div class="chips">${cats(pr).map((c) => `<span class="tag">${esc(c)}</span>`).join('')}</div>
+      <div class="chips">${emp ? `<span class="tag tag-company">${ICON.building} Empresa</span>` : ''}${cats(pr).map((c) => `<span class="tag">${esc(c)}</span>`).join('')}</div>
       ${pr.about ? `<p class="clamp">${esc(pr.about)}</p>` : ''}
       <div class="pro-bottom">
-        <span class="salary">${esc(pr.price || 'Valor a combinar')}</span>
+        ${emp ? `<a href="#/empresa/${pr.company_id}" class="link-more">Ver empresa</a>` : `<span class="salary">${esc(pr.price || 'Valor a combinar')}</span>`}
         <div class="row">
           ${pr.phone ? `<a class="btn btn-ghost btn-sm" href="tel:${esc(pr.phone.replace(/\D/g, ''))}" aria-label="Ligar">${ICON.phone}</a>` : ''}
           ${wa ? `<a class="btn btn-whats btn-sm" href="${wa}" target="_blank" rel="noopener">${ICON.chat} WhatsApp</a>` : ''}
@@ -42,7 +54,7 @@ export async function hub(el, _p, { alive }) {
   el.innerHTML = `
     <div class="page-head"><h1>Serviços</h1><p class="muted">Contrate profissionais da sua região ou ofereça o seu trabalho.</p></div>
     <div class="big-actions">
-      <a href="#/profissionais" class="big-action">${ICON.search}<span><b>Encontrar profissional</b><small>Eletricista, diarista, pintor e mais</small></span></a>
+      <a href="#/profissionais" class="big-action">${ICON.search}<span><b>Encontrar profissional</b><small>Eletricista, diarista, oficina, pet shop e mais</small></span></a>
       <a href="#/pedido-novo" class="big-action alt">${ICON.plus}<span><b>Publicar pedido de serviço</b><small>Descreva o que precisa e receba contatos</small></span></a>
     </div>
     ${reqs.length ? `
@@ -54,11 +66,15 @@ export async function hub(el, _p, { alive }) {
     </a>` : ''}
     <div class="row-between section-title"><h2>Profissionais cadastrados</h2><a href="#/profissionais">Ver todos</a></div>
     <div class="grid">${(data || []).map(proCard).join('') || empty('users', 'Nenhum profissional ainda')}</div>
-    <div class="card cta-band">
+    ${state.profile?.role === 'empresa' ? `<div class="card cta-band">
+      <div><h3>${mine ? 'Os serviços da empresa estão sendo divulgados' : 'Sua empresa também presta serviços?'}</h3>
+      <p class="muted">${mine ? 'Mantenha a descrição atualizada para receber mais contatos.' : 'Divulgue grátis e apareça para quem procura em Arcos.'}</p></div>
+      <a href="#/divulgar" class="btn btn-secondary">${mine ? 'Editar divulgação' : 'Divulgar serviços'}</a>
+    </div>` : `<div class="card cta-band">
       <div><h3>${mine ? 'Seu perfil de serviços está ativo' : 'Você também presta serviços?'}</h3>
       <p class="muted">${mine ? 'Mantenha seus dados atualizados para receber mais contatos.' : 'Cadastre-se como profissional e seja encontrado por quem precisa.'}</p></div>
       <a href="#/meu-servico" class="btn btn-secondary">${mine ? 'Editar meu perfil' : 'Oferecer meus serviços'}</a>
-    </div>
+    </div>`}
     <p class="center"><a href="#/pedidos">Ver pedidos de serviço publicados →</a></p>`;
 }
 
@@ -75,20 +91,32 @@ export async function professionals(el, _p, { alive }) {
     <div class="page-head"><h1>Encontrar profissional</h1></div>
     <div class="card filters">
       <div class="search-box">${ICON.search}<input id="q" type="search" placeholder="Buscar por nome, serviço ou cidade"></div>
-      <div class="filter-row"><select id="cat">${options(CATEGORIAS_SERVICO, '', 'Todos os serviços')}</select></div>
+      <div class="filter-row"><select id="cat">${catOptions('Todos os serviços')}</select></div>
+      <div class="seg" id="tipo" role="group" aria-label="Tipo">
+        <button type="button" data-t="" class="on">Todos</button>
+        <button type="button" data-t="autonomo">Autônomos</button>
+        <button type="button" data-t="empresa">Empresas</button>
+      </div>
     </div>
     <p class="muted small" id="count"></p>
     <div class="grid" id="list"></div>`;
   const q = el.querySelector('#q'), cat = el.querySelector('#cat');
+  let tipo = '';
   const draw = () => {
     const t = q.value.trim().toLowerCase();
     const res = all.filter((p) =>
+      (!tipo || (tipo === 'empresa') === isCompany(p)) &&
       (!cat.value || cats(p).includes(cat.value)) &&
-      (!t || [p.name, p.city, p.about, ...(p.services || []).map((s) => `${s.categoria} ${s.descricao}`)].join(' ').toLowerCase().includes(t)));
-    el.querySelector('#count').textContent = `${res.length} profissiona${res.length === 1 ? 'l' : 'is'}`;
+      (!t || [p.name, p.city, p.address, p.about, ...(p.services || []).map((s) => `${s.categoria} ${s.descricao}`)].join(' ').toLowerCase().includes(t)));
+    el.querySelector('#count').textContent = `${res.length} resultado${res.length === 1 ? '' : 's'}`;
     el.querySelector('#list').innerHTML = res.map(proCard).join('') ||
       empty('search', 'Nenhum profissional encontrado', 'Que tal publicar um pedido de serviço?', '<a class="btn btn-primary" href="#/pedido-novo">Publicar pedido</a>');
   };
+  el.querySelectorAll('#tipo [data-t]').forEach((btn) => (btn.onclick = () => {
+    tipo = btn.dataset.t;
+    el.querySelectorAll('#tipo [data-t]').forEach((x) => x.classList.toggle('on', x === btn));
+    draw();
+  }));
   q.oninput = draw; cat.onchange = draw; draw();
 }
 
@@ -96,6 +124,7 @@ export async function professionalDetail(el, [id], { alive }) {
   const { data: pr } = await sb.from('professionals').select('*').eq('id', id).maybeSingle();
   if (!alive()) return;
   if (!pr) { el.innerHTML = empty('user', 'Profissional não encontrado'); return; }
+  if (pr.company_id) { location.replace(`#/empresa/${pr.company_id}`); return; }
   const wa = waLink(pr.phone, `Olá, ${pr.name}! Vi seu perfil no BuscAqui e gostaria de um orçamento.`);
   el.innerHTML = `
     <a href="#/profissionais" class="back-link">${ICON.back} Profissionais</a>
@@ -158,7 +187,7 @@ export async function requests(el, _p, ctx) {
     ${isPro && !state.professional ? `<div class="card cta-band"><div><h3>Complete seu perfil profissional</h3><p class="muted">Assim os clientes também encontram você.</p></div><a class="btn btn-secondary" href="#/meu-servico">Completar agora</a></div>` : ''}
     ${isPro ? '' : mineHtml}
     ${othersTitle}
-    <div class="filters card"><select id="cat">${options(CATEGORIAS_SERVICO, '', 'Todas as categorias')}</select></div>
+    <div class="filters card"><select id="cat">${catOptions('Todas as categorias')}</select></div>
     <div class="grid" id="list"></div>
     ${isPro ? mineHtml : ''}`;
   const cat = el.querySelector('#cat');
@@ -191,7 +220,7 @@ export function newRequest(el, _p, { go }) {
       <p class="muted">Profissionais vão ver seu pedido e entrar em contato pelo WhatsApp.</p>
       <form id="f">
         <label>O que você precisa?<input name="title" required placeholder="Ex.: Trocar chuveiro elétrico"></label>
-        <label>Tipo de serviço<select name="category" required>${options(CATEGORIAS_SERVICO, '', 'Escolha uma categoria')}</select></label>
+        <label>Tipo de serviço<select name="category" required>${catOptions('Escolha uma categoria')}</select></label>
         <label>Detalhes<textarea name="description" rows="4" placeholder="Descreva o serviço, quando precisa, etc."></textarea></label>
         <div class="two">
           <label>Cidade / Bairro<input name="city" value="${esc(p.city)}" placeholder="Ex.: Centro, Belo Horizonte"></label>
@@ -219,6 +248,7 @@ export function newRequest(el, _p, { go }) {
 // MEU PERFIL PROFISSIONAL (cadastro em 4 etapas)
 // ============================================================
 export function myService(el, _p, { go }) {
+  if (state.profile?.role === 'empresa') { go('/divulgar'); return; }
   const p = state.profile || {};
   const cur = state.professional || {};
   const d = {
