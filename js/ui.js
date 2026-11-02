@@ -21,6 +21,23 @@ export const CATEGORIAS_EMPRESA = [
 
 export const MODALIDADES = ['Presencial', 'Híbrido', 'Remoto'];
 
+// Planos pagos (o preço que vale é o do banco: função plan_price no setup.sql)
+export const PLANOS = {
+  basico: {
+    nome: 'Básico', preco: 29.90, para: 'empresa',
+    itens: ['Até 5 vagas por mês', 'Serviços da empresa com selo "Destaque"'],
+  },
+  profissional: {
+    nome: 'Profissional', preco: 49.90, para: 'empresa',
+    itens: ['Vagas ilimitadas', 'Destaque no topo da lista de serviços', 'Relatórios (em breve)'],
+  },
+  autonomo_destaque: {
+    nome: 'Autônomo Destaque', preco: 14.90, para: 'profissional',
+    itens: ['Seu perfil no topo da lista da sua categoria', 'Selo "Destaque" no seu perfil'],
+  },
+};
+export const DIAS_TESTE_EMPRESA = 30;
+
 export const STATUS_CANDIDATURA = {
   enviada: { label: 'Enviada', cls: 'b-gray' },
   em_analise: { label: 'Em análise', cls: 'b-blue' },
@@ -43,6 +60,10 @@ export function nl2br(v) {
 export function money(v) {
   if (v === null || v === undefined || v === '') return '';
   return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+}
+
+export function moneyCents(v) {
+  return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 export function salaryRange(min, max) {
@@ -102,8 +123,68 @@ export function maskCNPJ(input) {
   });
 }
 
+// ---------- CPF / CNPJ ----------
+export function validCPF(v) {
+  const d = digits(v);
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  for (const k of [9, 10]) {
+    let s = 0;
+    for (let i = 0; i < k; i++) s += Number(d[i]) * (k + 1 - i);
+    const r = (s * 10) % 11 % 10;
+    if (r !== Number(d[k])) return false;
+  }
+  return true;
+}
+
+export function validCNPJ(v) {
+  const d = digits(v);
+  if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+  const calc = (n) => {
+    const w = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const s = w.reduce((t, x, i) => t + Number(d[i]) * x, 0) % 11;
+    return s < 2 ? 0 : 11 - s;
+  };
+  return calc(12) === Number(d[12]) && calc(13) === Number(d[13]);
+}
+
+export function maskCPF(input) {
+  input.addEventListener('input', () => {
+    const d = digits(input.value).slice(0, 11);
+    let o = d;
+    if (d.length > 3) o = d.slice(0, 3) + '.' + d.slice(3);
+    if (d.length > 6) o = o.slice(0, 7) + '.' + o.slice(7);
+    if (d.length > 9) o = o.slice(0, 11) + '-' + o.slice(11);
+    input.value = o;
+  });
+}
+
+// Consulta pública e gratuita do CNPJ (BrasilAPI). Nunca trava o site se a consulta falhar.
+export async function checkCNPJ(cnpj) {
+  try {
+    const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits(cnpj)}`);
+    if (r.status === 404) return { found: false };
+    if (!r.ok) return { error: true };
+    const j = await r.json();
+    return {
+      found: true,
+      situacao: String(j.descricao_situacao_cadastral || '').toUpperCase(),
+      municipio: String(j.municipio || '').toUpperCase(),
+      uf: String(j.uf || '').toUpperCase(),
+      razao: j.razao_social || '', fantasia: j.nome_fantasia || '',
+      checked_at: new Date().toISOString(),
+    };
+  } catch { return { error: true }; }
+}
+export const isArcos = (ck) => ck?.municipio === 'ARCOS' && ck?.uf === 'MG';
+
+// Código curto do pedido de plano, para a pessoa escrever na mensagem do Pix
+export function pixCode(sub) {
+  const pre = { basico: 'BA', profissional: 'PR', autonomo_destaque: 'AD' }[sub.plan] || 'BQ';
+  return `${pre}-${String(sub.id).replace(/-/g, '').slice(0, 4).toUpperCase()}`;
+}
+
 export function initials(name) {
-  const p = String(name || '?').trim().split(/\s+/);
+  const p = String(name || '?').trim().split(/\s+/).filter((w) => /^\p{L}/u.test(w));
   return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase() || '?';
 }
 
@@ -180,13 +261,17 @@ export function errMsg(error) {
     [/Email not confirmed/i, 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).'],
     [/rate limit|too many/i, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'],
     [/Unable to validate email|invalid format|valid email/i, 'E-mail inválido.'],
+    [/(?:PLANO_NECESSARIO|CNPJ_INVALIDO|CPF_INVALIDO|CPF_NECESSARIO):\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
+    [/companies_cnpj_uniq/i, 'Este CNPJ já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
+    [/profiles_cpf_uniq/i, 'Este CPF já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
+    [/LIMITE_VAGAS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1) + ' Para publicar mais, mude para o plano Profissional.'],
     [/duplicate key/i, 'Este registro já existe.'],
     [/row-level security/i, 'Você não tem permissão para fazer isso.'],
     [/Failed to fetch|NetworkError/i, 'Sem conexão com o servidor. Verifique sua internet.'],
     [/exceeded the maximum allowed size|Payload too large/i, 'Arquivo grande demais.'],
     [/relation .* does not exist|Could not find the table/i, 'O banco de dados ainda não foi configurado (rode o arquivo setup.sql no Supabase).'],
   ];
-  for (const [re, t] of map) if (re.test(m)) return t;
+  for (const [re, t] of map) { const x = m.match(re); if (x) return typeof t === 'function' ? t(x) : t; }
   return m || 'Algo deu errado. Tente novamente.';
 }
 
@@ -205,6 +290,10 @@ export function formData(form) {
 // ---------- Ícones ----------
 const svg = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 export const ICON = {
+  shield: svg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'),
+  card: svg('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'),
+  copy: svg('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  ban: svg('<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>'),
   briefcase: svg('<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/>'),
   tool: svg('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'),
   list: svg('<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>'),
