@@ -135,6 +135,7 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .chip svg { width: 16px; height: 16px; }
 .chip.on { background: var(--forest); border-color: var(--forest); color: #fff; }
 .avatar { object-fit: cover; flex: none; background: #fff; border: 1px solid var(--line); }
+.avatar-logo { object-fit: contain; }
 .avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--green-50); color: var(--green-600); font-weight: 800; border: 0; }
 .empty { text-align: center; padding: 2.5rem 1rem; color: var(--muted); grid-column: 1 / -1; }
 .empty svg { width: 44px; height: 44px; color: var(--green); background: var(--green-50); border-radius: 50%; padding: 10px; margin-bottom: .5rem; }
