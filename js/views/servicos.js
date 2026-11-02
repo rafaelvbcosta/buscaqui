@@ -1,9 +1,9 @@
-import { sb } from '../supabase.js?v=202611022217';
-import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611022217';
+import { sb } from '../supabase.js?v=202611022227';
+import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611022227';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, confirmBox, errMsg, setBusy, formData,
   maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA, maskCPF, validCPF, LIMITE_SERVICOS,
-} from '../ui.js?v=202611022217';
+} from '../ui.js?v=202611022227';
 
 const cats = (pr) => [...new Set((pr.services || []).map((s) => s.categoria).filter(Boolean))];
 
@@ -166,7 +166,6 @@ export async function professionalDetail(el, [id], { alive }) {
         <p class="muted small">Valor</p><p class="salary big">${esc(pr.price || 'A combinar')}</p>
         ${wa ? `<a class="btn btn-whats btn-block btn-lg" href="${wa}" target="_blank" rel="noopener">${ICON.chat} Chamar no WhatsApp</a>` : ''}
         ${pr.phone ? `<a class="btn btn-ghost btn-block" href="tel:${esc(pr.phone.replace(/\D/g, ''))}">${ICON.phone} Ligar ${esc(pr.phone)}</a>` : ''}
-        <p class="muted small">${ICON.star} Avaliações de clientes: em breve.</p>
       </aside>
     </div>`;
 }

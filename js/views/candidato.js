@@ -1,10 +1,10 @@
-import { sb } from '../supabase.js?v=202611022217';
-import { state, loadUserData } from '../store.js?v=202611022217';
+import { sb } from '../supabase.js?v=202611022227';
+import { state, loadUserData } from '../store.js?v=202611022227';
 import {
   ICON, esc, nl2br, salaryRange, timeAgo, dateBR, avatar, options, loading, empty, toast, modal,
   confirmBox, errMsg, setBusy, formData, badgeStatus, uploadFile, maskPhone, waLink,
   CATEGORIAS_VAGA,
-} from '../ui.js?v=202611022217';
+} from '../ui.js?v=202611022227';
 
 // ============================================================
 // Cartão de vaga (usado em várias telas)
@@ -208,8 +208,7 @@ export async function applications(el, _p, { alive }) {
           ${a.status === 'enviada' ? `<button class="link-btn danger small" data-cancel="${a.id}" data-job="${j.id}">Cancelar</button>` : ''}
         </div>
       </div>`; }).join('')}</div>`
-    : empty('list', 'Você ainda não se candidatou', 'Encontre uma vaga e toque em "Candidatar-se agora".', '<a class="btn btn-primary" href="#/vagas">Ver vagas</a>')}
-    <div class="card soon">${ICON.chat}<div><b>Chat com as empresas</b><p class="muted small">Em breve você poderá conversar direto com o recrutador por aqui.</p></div></div>`;
+    : empty('list', 'Você ainda não se candidatou', 'Encontre uma vaga e toque em "Candidatar-se agora".', '<a class="btn btn-primary" href="#/vagas">Ver vagas</a>')}`;
   el.querySelectorAll('[data-cancel]').forEach((b) => (b.onclick = async () => {
     if (!(await confirmBox('Cancelar candidatura', 'Tem certeza? A empresa não verá mais seu currículo nesta vaga.', 'Cancelar candidatura', true))) return;
     const { error } = await sb.from('applications').delete().eq('id', b.dataset.cancel);
@@ -289,8 +288,7 @@ export async function resumeForm(el, _p, { refreshShell }) {
       <section class="card"><h2>6. Currículo em PDF <small class="muted">(opcional)</small></h2>
         <p class="muted small">Já tem um currículo pronto? Envie o arquivo PDF (até 5 MB).</p>
         <div id="pdfbox"></div>
-        <label class="btn btn-ghost btn-sm file-btn">${ICON.upload} Enviar PDF<input type="file" id="pdf" accept="application/pdf" hidden></label>
-        <p class="muted small">Vídeo de apresentação: em breve.</p></section>
+        <label class="btn btn-ghost btn-sm file-btn">${ICON.upload} Enviar PDF<input type="file" id="pdf" accept="application/pdf" hidden></label></section>
       <div class="sticky-save"><button class="btn btn-primary btn-lg btn-block" type="submit">Salvar currículo</button></div>
     </form>`;
 

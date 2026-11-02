@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611022217';
-import { state, homeFor } from '../store.js?v=202611022217';
-import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone } from '../ui.js?v=202611022217';
-import { afterLogin } from '../app.js?v=202611022217';
+import { sb } from '../supabase.js?v=202611022227';
+import { state, homeFor } from '../store.js?v=202611022227';
+import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone } from '../ui.js?v=202611022227';
+import { afterLogin } from '../app.js?v=202611022227';
 
 // ---------------- Tela inicial ----------------
 export function landing(el) {
@@ -105,7 +105,6 @@ export function signup(el, _p, { go }) {
           <label class="check"><input type="checkbox" name="terms" required> Li e aceito os termos de uso e a política de privacidade.</label>
           <button class="btn btn-primary btn-block btn-lg" type="submit">Criar minha conta</button>
         </form>
-        <p class="muted small center">Login com Google e envio de currículo em vídeo: em breve.</p>
       </div></div>`;
     maskPhone(el.querySelector('[name=phone]'));
     el.querySelector('#back').onclick = step1;
