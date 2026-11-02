@@ -1,8 +1,8 @@
-import { sb } from '../supabase.js?v=202611022203';
+import { sb } from '../supabase.js?v=202611022217';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
   moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
-} from '../ui.js?v=202611022203';
+} from '../ui.js?v=202611022217';
 
 // ============================================================
 // ÁREA DO ADMINISTRADOR
