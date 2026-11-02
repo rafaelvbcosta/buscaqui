@@ -29,7 +29,7 @@ candidatos a emprego, profissionais autônomos e empresas locais. Dono: Rafael (
 - `js/views/admin.js` (área do admin), `js/views/planos.js` (planos e Pix), `tools/versao.py` (versão dos arquivos).
 
 ## Status (1º de novembro de 2026)
-**Site no ar** em `https://rafaelvbcosta.github.io/buscaqui/`. Configuração concluída:
+**Site no ar** em `https://www.buscaquiarcos.com.br/` (domínio próprio desde 02/11/2026). Configuração concluída:
 `setup.sql` rodado, `js/config.js` preenchido (projeto `tjfzpobrqqoecktotlzy`), GitHub Pages ativo
 (main / root) e Site URL do Supabase configurada.
 
