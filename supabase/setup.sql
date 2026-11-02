@@ -701,6 +701,18 @@ $$;
 alter table public.profiles  add column if not exists cpf text;
 alter table public.companies add column if not exists cnpj_check jsonb;   -- resultado da verificação (só o admin grava)
 
+-- Limpeza antes das regras de "um cadastro por documento": CNPJ inválido (ex.: 11.111.111/1111-11)
+-- ou repetido vira vazio. Nada é apagado; a empresa só precisa informar um CNPJ válido de novo.
+update public.companies set cnpj = null
+where coalesce(cnpj, '') <> '' and not public.valid_cnpj(cnpj);
+update public.companies c set cnpj = null
+where coalesce(c.cnpj, '') <> '' and exists (
+  select 1 from public.companies o
+  where o.id <> c.id and public.only_digits(o.cnpj) = public.only_digits(c.cnpj)
+    and (o.created_at, o.id) < (c.created_at, c.id));
+update public.profiles set cpf = null
+where coalesce(cpf, '') <> '' and not public.valid_cpf(cpf);
+
 create unique index if not exists profiles_cpf_uniq on public.profiles (public.only_digits(cpf))
   where cpf is not null and cpf <> '';
 create unique index if not exists companies_cnpj_uniq on public.companies (public.only_digits(cnpj))
@@ -757,6 +769,13 @@ $$;
 drop trigger if exists companies_guard on public.companies;
 create trigger companies_guard before insert or update on public.companies
   for each row execute function public.companies_guard();
+
+-- Empresas que já tinham CNPJ válido entram no registro do teste grátis (pela data do cadastro)
+insert into public.trial_registry (cnpj, started_at)
+select public.only_digits(cnpj), min(created_at) from public.companies
+where coalesce(cnpj, '') <> '' and public.valid_cnpj(cnpj)
+group by public.only_digits(cnpj)
+on conflict (cnpj) do nothing;
 
 -- Quando termina o teste grátis da empresa
 create or replace function public.company_trial_ends(cid uuid)
