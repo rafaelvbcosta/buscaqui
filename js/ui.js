@@ -191,7 +191,8 @@ export function initials(name) {
 
 export function avatar(url, name, size = 48, square = false) {
   const r = square ? '12px' : '50%';
-  if (url) return `<img class="avatar" src="${esc(url)}" alt="" style="width:${size}px;height:${size}px;border-radius:${r}">`;
+  // Logo (quadrado): mostra a imagem inteira, sem cortar. Foto (redondo): preenche o círculo.
+  if (url) return `<img class="avatar${square ? ' avatar-logo' : ''}" src="${esc(url)}" alt="" style="width:${size}px;height:${size}px;border-radius:${r}${square ? `;padding:${Math.max(2, Math.round(size * 0.08))}px` : ''}">`;
   return `<span class="avatar avatar-fallback" style="width:${size}px;height:${size}px;border-radius:${r};font-size:${Math.round(size / 2.6)}px">${esc(initials(name))}</span>`;
 }
 
