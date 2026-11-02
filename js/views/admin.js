@@ -1,8 +1,8 @@
-import { sb } from '../supabase.js';
+import { sb } from '../supabase.js?v=202611021809';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
   moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
-} from '../ui.js';
+} from '../ui.js?v=202611021809';
 
 // ============================================================
 // ÁREA DO ADMINISTRADOR
@@ -267,13 +267,13 @@ export async function payments(el, _p, ctx) {
 export async function moderation(el, _p, ctx) {
   const [jobs, pros, reqs] = await Promise.all([
     sb.from('jobs').select('id, title, status, created_at, companies(name)').order('created_at', { ascending: false }).limit(200),
-    sb.from('professionals').select('id, name, about, company_id, created_at').order('created_at', { ascending: false }).limit(200),
+    sb.from('professionals').select('id, name, about, services, company_id, created_at').order('created_at', { ascending: false }).limit(200),
     sb.from('service_requests').select('id, title, description, status, created_at').order('created_at', { ascending: false }).limit(200),
   ]);
   if (!ctx.alive()) return;
   const tabs = {
     vagas: { nome: 'Vagas', tabela: 'jobs', itens: (jobs.data || []).map((j) => ({ id: j.id, titulo: j.title, sub: `${j.companies?.name || ''} · ${j.status === 'aberta' ? 'Aberta' : 'Encerrada'}`, data: j.created_at, link: `#/vaga/${j.id}` })) },
-    servicos: { nome: 'Serviços', tabela: 'professionals', itens: (pros.data || []).map((p) => ({ id: p.id, titulo: p.name, sub: `${p.company_id ? 'Empresa' : 'Autônomo'} · ${p.about || ''}`, data: p.created_at, link: p.company_id ? `#/empresa/${p.company_id}` : `#/profissional/${p.id}` })) },
+    servicos: { nome: 'Serviços', tabela: 'professionals', itens: (pros.data || []).map((p) => ({ id: p.id, titulo: p.name, sub: `${p.company_id ? 'Empresa' : 'Autônomo'} · ${[p.about, ...(p.services || []).map((x) => [x.categoria, x.descricao].filter(Boolean).join(': '))].filter(Boolean).join(' · ')}`, data: p.created_at, link: p.company_id ? `#/empresa/${p.company_id}` : `#/profissional/${p.id}` })) },
     pedidos: { nome: 'Pedidos de serviço', tabela: 'service_requests', itens: (reqs.data || []).map((r) => ({ id: r.id, titulo: r.title, sub: `${r.status === 'aberto' ? 'Aberto' : 'Encerrado'} · ${r.description || ''}`, data: r.created_at })) },
   };
   let aba = 'vagas';

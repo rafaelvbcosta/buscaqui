@@ -1,6 +1,6 @@
-import { sb } from '../supabase.js';
-import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft } from '../store.js';
-import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode } from '../ui.js';
+import { sb } from '../supabase.js?v=202611021809';
+import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft } from '../store.js?v=202611021809';
+import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode } from '../ui.js?v=202611021809';
 
 // ============================================================
 // PLANOS (empresa e profissional autônomo) — pagamento por Pix manual
@@ -21,7 +21,7 @@ export async function plans(el, _p, ctx) {
       <p class="muted small">Válido até ${dateBR(ativo.ends_at)}. Para renovar, pague de novo antes dessa data: os dias são somados.</p></div></div>`;
   } else if (r === 'empresa' && dias > 0) {
     status = `<div class="card plan-status trial">${ICON.clock}<div><b>Teste grátis: falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}</b>
-      <p class="muted small">Durante o teste você usa tudo do plano Profissional. Depois, escolha um plano para continuar publicando vagas.</p></div></div>`;
+      <p class="muted small">Durante o teste: vagas ilimitadas e até 3 serviços divulgados. Depois, escolha um plano para continuar publicando vagas.</p></div></div>`;
   } else if (r === 'empresa') {
     status = `<div class="card plan-status warn">${ICON.ban}<div><b>Seu teste grátis terminou</b>
       <p class="muted small">Escolha um plano para publicar novas vagas e divulgar os serviços da empresa.</p></div></div>`;

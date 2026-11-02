@@ -829,6 +829,12 @@ begin
   if tg_op = 'INSERT' and public.company_can_publish(new.company_id) = 'sem_plano' then
     raise exception 'PLANO_NECESSARIO: o teste grátis de 30 dias terminou. Escolha um plano para divulgar os serviços.';
   end if;
+  -- Teste grátis e Básico: até 3 serviços. Profissional: sem limite.
+  if jsonb_array_length(coalesce(new.services, '[]'::jsonb)) > 3
+     and public.active_plan(new.user_id) is distinct from 'profissional'
+     and (tg_op = 'INSERT' or new.services is distinct from old.services) then
+    raise exception 'LIMITE_SERVICOS: seu plano permite até 3 serviços. No plano Profissional, são ilimitados.';
+  end if;
   return new;
 end;
 $$;

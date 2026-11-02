@@ -1,9 +1,9 @@
-import { sb } from '../supabase.js';
-import { state, loadUserData, activePlan, pendingSub } from '../store.js';
+import { sb } from '../supabase.js?v=202611021809';
+import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611021809';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, confirmBox, errMsg, setBusy, formData,
-  maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA, maskCPF, validCPF,
-} from '../ui.js';
+  maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA, maskCPF, validCPF, LIMITE_SERVICOS,
+} from '../ui.js?v=202611021809';
 
 const cats = (pr) => [...new Set((pr.services || []).map((s) => s.categoria).filter(Boolean))];
 
@@ -26,12 +26,24 @@ async function withFeatured(list) {
   return [...top, ...rows.filter((p) => !TOP.includes(p._plan))];
 }
 
-function proCard(pr) {
+// Empresas sem o plano Profissional mostram no máximo 3 serviços (o resto fica guardado)
+export function visibleServices(pr, plan = pr._plan) {
+  const list = pr.services || [];
+  return pr.company_id && plan !== 'profissional' ? list.slice(0, LIMITE_SERVICOS) : list;
+}
+
+// cat = categoria filtrada (o cartão mostra a descrição do serviço procurado)
+function proCard(pr, cat = '') {
   const emp = isCompany(pr);
+  const mine = state.user && pr.user_id === state.user.id;
   const wa = waLink(pr.phone, emp
     ? `Olá! Vi a ${pr.name} no BuscAqui e gostaria de mais informações.`
     : `Olá, ${pr.name}! Vi seu perfil no BuscAqui e gostaria de um orçamento.`);
   const where = emp ? [pr.address, pr.city].filter(Boolean).join(', ') : pr.city;
+  const svcs = visibleServices(pr);
+  const tags = [...new Set(svcs.map((x) => x.categoria).filter(Boolean))];
+  const alvo = (cat && svcs.find((x) => x.categoria === cat && x.descricao)) || svcs.find((x) => x.descricao);
+  const texto = emp ? (alvo?.descricao || pr.about) : pr.about;
   return `
     <article class="card pro-card ${pr._plan ? 'is-featured' : ''}">
       ${pr._plan ? `<span class="featured-flag">${ICON.star} Destaque</span>` : ''}
@@ -39,10 +51,11 @@ function proCard(pr) {
         ${avatar(pr.avatar_url, pr.name, 56, emp)}
         <div><h3>${esc(pr.name)}</h3><p class="muted small">${ICON.pin}${esc(where || 'Cidade não informada')}</p></div>
       </a>
-      <div class="chips">${emp ? `<span class="tag tag-company">${ICON.building} Empresa</span>` : ''}${cats(pr).map((c) => `<span class="tag">${esc(c)}</span>`).join('')}</div>
-      ${pr.about ? `<p class="clamp">${esc(pr.about)}</p>` : ''}
+      <div class="chips">${emp ? `<span class="tag tag-company">${ICON.building} Empresa</span>` : ''}${tags.map((c) => `<span class="tag ${c === cat ? 'tag-on' : ''}">${esc(c)}</span>`).join('')}</div>
+      ${texto ? `<p class="clamp">${esc(emp && alvo && tags.length > 1 ? `${alvo.categoria}: ${texto}` : texto)}</p>` : ''}
+      ${mine ? `<a href="#/${emp ? 'divulgar' : 'meu-servico'}" class="btn btn-secondary btn-sm btn-block owner-edit">${ICON.edit} ${emp ? 'Editar divulgação' : 'Editar meu perfil'}</a>` : ''}
       <div class="pro-bottom">
-        ${emp ? `<a href="#/empresa/${pr.company_id}" class="link-more">Ver empresa</a>` : `<span class="salary">${esc(pr.price || 'Valor a combinar')}</span>`}
+        ${emp ? `<a href="#/empresa/${pr.company_id}" class="link-more">Ver empresa${svcs.length > 1 ? ` (${svcs.length} serviços)` : ''}</a>` : `<span class="salary">${esc(pr.price || 'Valor a combinar')}</span>`}
         <div class="row">
           ${pr.phone ? `<a class="btn btn-ghost btn-sm" href="tel:${esc(pr.phone.replace(/\D/g, ''))}" aria-label="Ligar">${ICON.phone}</a>` : ''}
           ${wa ? `<a class="btn btn-whats btn-sm" href="${wa}" target="_blank" rel="noopener">${ICON.chat} WhatsApp</a>` : ''}
@@ -77,7 +90,7 @@ export async function hub(el, _p, { alive }) {
       <span class="btn btn-secondary btn-sm">Ver meus pedidos</span>
     </a>` : ''}
     <div class="row-between section-title"><h2>Profissionais cadastrados</h2><a href="#/profissionais">Ver todos</a></div>
-    <div class="grid">${(data || []).map(proCard).join('') || empty('users', 'Nenhum profissional ainda')}</div>
+    <div class="grid">${(data || []).map((x) => proCard(x)).join('') || empty('users', 'Nenhum profissional ainda')}</div>
     ${state.profile?.role === 'empresa' ? `<div class="card cta-band">
       <div><h3>${mine ? 'Os serviços da empresa estão sendo divulgados' : 'Sua empresa também presta serviços?'}</h3>
       <p class="muted">${mine ? 'Mantenha a descrição atualizada para receber mais contatos.' : 'Divulgue e apareça para quem procura em Arcos.'}</p></div>
@@ -119,10 +132,10 @@ export async function professionals(el, _p, { alive }) {
     const t = q.value.trim().toLowerCase();
     const res = all.filter((p) =>
       (!tipo || (tipo === 'empresa') === isCompany(p)) &&
-      (!cat.value || cats(p).includes(cat.value)) &&
-      (!t || [p.name, p.city, p.address, p.about, ...(p.services || []).map((s) => `${s.categoria} ${s.descricao}`)].join(' ').toLowerCase().includes(t)));
+      (!cat.value || visibleServices(p).some((x) => x.categoria === cat.value)) &&
+      (!t || [p.name, p.city, p.address, p.about, ...visibleServices(p).map((s) => `${s.categoria} ${s.descricao}`)].join(' ').toLowerCase().includes(t)));
     el.querySelector('#count').textContent = `${res.length} resultado${res.length === 1 ? '' : 's'}`;
-    el.querySelector('#list').innerHTML = res.map(proCard).join('') ||
+    el.querySelector('#list').innerHTML = res.map((x) => proCard(x, cat.value)).join('') ||
       empty('search', 'Nenhum profissional encontrado', 'Que tal publicar um pedido de serviço?', '<a class="btn btn-primary" href="#/pedido-novo">Publicar pedido</a>');
   };
   el.querySelectorAll('#tipo [data-t]').forEach((btn) => (btn.onclick = () => {
