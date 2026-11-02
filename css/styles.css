@@ -435,3 +435,12 @@ a.badge:hover { text-decoration: none; filter: brightness(.97); }
 .svc-offer { list-style: none; padding: 0; margin: .5rem 0 0; display: grid; gap: .75rem; }
 .svc-offer li { display: flex; gap: .6rem; align-items: baseline; flex-wrap: wrap; padding-bottom: .75rem; border-bottom: 1px solid var(--line); }
 .svc-offer li:last-child { border-bottom: 0; padding-bottom: 0; }
+
+/* ---------- Sugestões ---------- */
+.fb-row .fb-msg { font-size: 1.02rem; margin: .6rem 0; white-space: normal; }
+.fb-row textarea { min-height: 0; }
+.alert-band.quiet { border-left-color: var(--line); }
+.alert-band.quiet > svg { background: var(--bg); color: var(--muted); }
+.thanks > svg { width: 56px; height: 56px; padding: 12px; border-radius: 50%; background: var(--green-50); color: var(--green-600); }
+.center-row { justify-content: center; }
+.cta-band h3 svg { width: 20px; height: 20px; vertical-align: -3px; color: var(--green-600); }

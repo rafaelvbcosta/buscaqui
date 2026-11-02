@@ -1,6 +1,6 @@
-import { sb } from '../supabase.js?v=202611022227';
-import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft } from '../store.js?v=202611022227';
-import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode } from '../ui.js?v=202611022227';
+import { sb } from '../supabase.js?v=202611022235';
+import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft } from '../store.js?v=202611022235';
+import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode } from '../ui.js?v=202611022235';
 
 // ============================================================
 // PLANOS (empresa e profissional autônomo) — pagamento por Pix manual

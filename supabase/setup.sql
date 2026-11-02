@@ -852,6 +852,46 @@ drop policy if exists "professionals_select" on public.professionals;
 create policy "professionals_select" on public.professionals for select
   using (company_id is null or public.company_active(company_id) or user_id = auth.uid());
 
+-- ---------- Sugestões e feedbacks dos usuários ----------
+-- O usuário só ENVIA (não vê o histórico). Só o admin lê, anota e marca como lida/resolvida.
+create table if not exists public.feedbacks (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references public.profiles(id) on delete set null,
+  role        text,
+  kind        text not null default 'sugestao' check (kind in ('sugestao','problema','elogio','outro')),
+  message     text not null check (char_length(message) between 5 and 1000),
+  status      text not null default 'nova' check (status in ('nova','lida','resolvida')),
+  admin_note  text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists feedbacks_created_idx on public.feedbacks(created_at desc);
+
+create or replace function public.feedbacks_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or public.is_admin() then return new; end if;
+  -- quem envia é sempre o próprio usuário; status e anotação são do admin
+  new.user_id := auth.uid();
+  new.role := (select role from profiles where id = auth.uid());
+  new.status := 'nova'; new.admin_note := null; new.created_at := now();
+  if (select count(*) from feedbacks where user_id = auth.uid() and created_at > now() - interval '1 day') >= 5 then
+    raise exception 'LIMITE_SUGESTOES: você já enviou 5 mensagens hoje. Tente de novo amanhã.';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists feedbacks_guard on public.feedbacks;
+create trigger feedbacks_guard before insert on public.feedbacks
+  for each row execute function public.feedbacks_guard();
+
+alter table public.feedbacks enable row level security;
+drop policy if exists "feedbacks_insert" on public.feedbacks;
+create policy "feedbacks_insert" on public.feedbacks for insert
+  with check (auth.uid() is not null);
+drop policy if exists "feedbacks_admin" on public.feedbacks;
+create policy "feedbacks_admin" on public.feedbacks for all
+  using (public.is_admin()) with check (public.is_admin());
+
 -- PARA VIRAR ADMIN (rodar uma vez só, trocando o e-mail pelo da conta admin):
 --   update public.profiles set is_admin = true where email = 'SEU_EMAIL_AQUI';
 

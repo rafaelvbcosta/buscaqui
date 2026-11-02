@@ -267,6 +267,7 @@ export function errMsg(error) {
     [/companies_cnpj_uniq/i, 'Este CNPJ já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
     [/profiles_cpf_uniq/i, 'Este CPF já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
     [/LIMITE_SERVICOS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
+    [/LIMITE_SUGESTOES:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
     [/LIMITE_VAGAS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1) + ' Para publicar mais, mude para o plano Profissional.'],
     [/duplicate key/i, 'Este registro já existe.'],
     [/row-level security/i, 'Você não tem permissão para fazer isso.'],
