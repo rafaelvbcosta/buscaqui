@@ -1,13 +1,13 @@
-import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611022224';
-import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611022224';
-import { ICON, esc, avatar, toast, loading } from './ui.js?v=202611022224';
-import * as auth from './views/auth.js?v=202611022224';
-import * as cand from './views/candidato.js?v=202611022224';
-import * as serv from './views/servicos.js?v=202611022224';
-import * as emp from './views/empresa.js?v=202611022224';
-import * as perfil from './views/perfil.js?v=202611022224';
-import * as planos from './views/planos.js?v=202611022224';
-import * as admin from './views/admin.js?v=202611022224';
+import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611022227';
+import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611022227';
+import { ICON, esc, avatar, loading } from './ui.js?v=202611022227';
+import * as auth from './views/auth.js?v=202611022227';
+import * as cand from './views/candidato.js?v=202611022227';
+import * as serv from './views/servicos.js?v=202611022227';
+import * as emp from './views/empresa.js?v=202611022227';
+import * as perfil from './views/perfil.js?v=202611022227';
+import * as planos from './views/planos.js?v=202611022227';
+import * as admin from './views/admin.js?v=202611022227';
 
 // ---------------------------------------------------------------
 // Rotas (endereços das telas)
@@ -109,7 +109,6 @@ function renderShell() {
     <header class="topbar">
       <a href="#${homeFor(r)}" class="brand"><img src="assets/logo.png" alt="BuscAqui"></a>
       <div class="topbar-actions">
-        <button class="icon-btn" id="btn-bell" aria-label="Notificações">${ICON.bell}</button>
         <a href="#/perfil" class="me" data-nav="/perfil">${avatar(p.avatar_url, p.full_name, 36)}
           <span class="me-name">${esc((p.full_name || '').split(' ')[0] || 'Meu perfil')}</span></a>
       </div>
@@ -126,8 +125,6 @@ function renderShell() {
     </div>
     <nav class="bottomnav" aria-label="Menu">${items.map(link).join('')}</nav>`;
   document.getElementById('btn-logout').onclick = logout;
-  document.getElementById('btn-bell').onclick = () =>
-    toast('Notificações chegam em breve! Por enquanto, acompanhe tudo pelo app.', 'info');
 }
 
 function markNav(path) {

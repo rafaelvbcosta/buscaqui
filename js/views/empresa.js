@@ -1,12 +1,12 @@
-import { sb } from '../supabase.js?v=202611022224';
-import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js?v=202611022224';
+import { sb } from '../supabase.js?v=202611022227';
+import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js?v=202611022227';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
   CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos, LIMITE_SERVICOS,
-} from '../ui.js?v=202611022224';
-import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611022224';
-import { visibleServices } from './servicos.js?v=202611022224';
+} from '../ui.js?v=202611022227';
+import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611022227';
+import { visibleServices } from './servicos.js?v=202611022227';
 
 async function myJobsWithCounts() {
   const { data: jobs, error } = await sb.from('jobs').select('*')
@@ -63,10 +63,7 @@ export async function dashboard(el, _p, { alive }) {
       <p class="muted">${state.professional ? 'Sua empresa aparece em "Encontrar profissional".' : 'Apareça para quem procura uma oficina, um pet shop ou uma assistência técnica em Arcos. Incluído no teste grátis e nos planos.'}</p></div>
       <a href="#/divulgar" class="btn btn-secondary">${state.professional ? 'Editar divulgação' : 'Divulgar serviços'}</a>
     </div>
-    <div class="grid two-col">
-      <div class="card soon">${ICON.chart}<div><b>Relatórios avançados</b><p class="muted small">Em breve: gráficos de cliques por dia e origem dos candidatos.</p></div></div>
-      <a href="#/planos" class="card soon">${ICON.star}<div><b>Planos Básico e Profissional</b><p class="muted small">Mais vagas por mês e sua empresa em destaque. A partir de R$ 29,90/mês.</p></div></a>
-    </div>`;
+    <a href="#/planos" class="card soon">${ICON.star}<div><b>Planos Básico e Profissional</b><p class="muted small">Mais vagas por mês e sua empresa em destaque. A partir de R$ 29,90/mês.</p></div></a>`;
 }
 
 // Aviso do plano no topo do painel
@@ -376,8 +373,7 @@ export async function companyPage(el, [id], { alive }) {
     <div class="card company-hero">
       ${avatar(c.logo_url, c.name, 96, true)}
       <div class="grow"><h1>${esc(c.name)}</h1>
-        <p class="muted">${esc(c.segment || '')}${c.segment && c.city ? ' · ' : ''}${esc(c.city || '')}</p>
-        <p class="muted small">${ICON.star} Avaliações: em breve</p></div>
+        <p class="muted">${esc(c.segment || '')}${c.segment && c.city ? ' · ' : ''}${esc(c.city || '')}</p></div>
       <div class="row wrap">
         ${wa ? `<a class="btn btn-whats" href="${wa}" target="_blank" rel="noopener">${ICON.chat} Contato</a>` : ''}
         ${c.email ? `<a class="btn btn-ghost" href="mailto:${esc(c.email)}">${ICON.mail} E-mail</a>` : ''}

@@ -29,7 +29,7 @@ export const PLANOS = {
   },
   profissional: {
     nome: 'Profissional', preco: 49.90, para: 'empresa',
-    itens: ['Vagas ilimitadas', 'Serviços ilimitados, no topo da lista', 'Relatórios (em breve)'],
+    itens: ['Vagas ilimitadas', 'Serviços ilimitados, no topo da lista'],
   },
   autonomo_destaque: {
     nome: 'Autônomo Destaque', preco: 14.90, para: 'profissional',
