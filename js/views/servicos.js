@@ -1,5 +1,5 @@
 import { sb } from '../supabase.js';
-import { state, loadUserData } from '../store.js';
+import { state, loadUserData, activePlan, pendingSub } from '../store.js';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, confirmBox, errMsg, setBusy, formData,
   maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA,
@@ -15,6 +15,17 @@ const catOptions = (placeholder) => `<option value="">${esc(placeholder)}</optio
   <optgroup label="Empresas">${options(CATEGORIAS_EMPRESA.filter((c) => c !== 'Outros'))}</optgroup>
   <option>Outros</option>`;
 
+// Quem tem plano: "top" aparece primeiro (Profissional e Autônomo Destaque); Básico ganha só o selo
+const TOP = ['profissional', 'autonomo_destaque'];
+async function withFeatured(list) {
+  const { data } = await sb.rpc('featured_users');
+  const plan = Object.fromEntries((data || []).map((x) => [x.user_id, x.plan]));
+  const rows = list.map((p) => ({ ...p, _plan: plan[p.user_id] || null }));
+  // os destaques se revezam na ordem a cada visita
+  const top = rows.filter((p) => TOP.includes(p._plan)).sort(() => Math.random() - 0.5);
+  return [...top, ...rows.filter((p) => !TOP.includes(p._plan))];
+}
+
 function proCard(pr) {
   const emp = isCompany(pr);
   const wa = waLink(pr.phone, emp
@@ -22,7 +33,8 @@ function proCard(pr) {
     : `Olá, ${pr.name}! Vi seu perfil no BuscAqui e gostaria de um orçamento.`);
   const where = emp ? [pr.address, pr.city].filter(Boolean).join(', ') : pr.city;
   return `
-    <article class="card pro-card">
+    <article class="card pro-card ${pr._plan ? 'is-featured' : ''}">
+      ${pr._plan ? `<span class="featured-flag">${ICON.star} Destaque</span>` : ''}
       <a href="#/${emp ? `empresa/${pr.company_id}` : `profissional/${pr.id}`}" class="pro-top">
         ${avatar(pr.avatar_url, pr.name, 56, emp)}
         <div><h3>${esc(pr.name)}</h3><p class="muted small">${ICON.pin}${esc(where || 'Cidade não informada')}</p></div>
@@ -44,7 +56,7 @@ function proCard(pr) {
 // ============================================================
 export async function hub(el, _p, { alive }) {
   const [{ data }, { data: myReqs }] = await Promise.all([
-    sb.from('professionals').select('*').order('created_at', { ascending: false }).limit(6),
+    sb.from('professionals').select('*').order('created_at', { ascending: false }).limit(30).then(async (r) => ({ ...r, data: (await withFeatured(r.data || [])).slice(0, 6) })),
     sb.from('service_requests').select('status').eq('user_id', state.user.id),
   ]);
   if (!alive()) return;
@@ -68,7 +80,7 @@ export async function hub(el, _p, { alive }) {
     <div class="grid">${(data || []).map(proCard).join('') || empty('users', 'Nenhum profissional ainda')}</div>
     ${state.profile?.role === 'empresa' ? `<div class="card cta-band">
       <div><h3>${mine ? 'Os serviços da empresa estão sendo divulgados' : 'Sua empresa também presta serviços?'}</h3>
-      <p class="muted">${mine ? 'Mantenha a descrição atualizada para receber mais contatos.' : 'Divulgue grátis e apareça para quem procura em Arcos.'}</p></div>
+      <p class="muted">${mine ? 'Mantenha a descrição atualizada para receber mais contatos.' : 'Divulgue e apareça para quem procura em Arcos.'}</p></div>
       <a href="#/divulgar" class="btn btn-secondary">${mine ? 'Editar divulgação' : 'Divulgar serviços'}</a>
     </div>` : `<div class="card cta-band">
       <div><h3>${mine ? 'Seu perfil de serviços está ativo' : 'Você também presta serviços?'}</h3>
@@ -85,7 +97,8 @@ export async function professionals(el, _p, { alive }) {
   const { data, error } = await sb.from('professionals').select('*').order('created_at', { ascending: false });
   if (!alive()) return;
   if (error) { el.innerHTML = `<div class="card">${esc(errMsg(error))}</div>`; return; }
-  const all = data || [];
+  const all = await withFeatured(data || []);
+  if (!alive()) return;
   el.innerHTML = `
     <a href="#/servicos" class="back-link">${ICON.back} Serviços</a>
     <div class="page-head"><h1>Encontrar profissional</h1></div>
@@ -184,6 +197,9 @@ export async function requests(el, _p, ctx) {
     <div class="page-head row-between"><div><h1>Pedidos de serviço</h1>
       <p class="muted">${isPro ? 'Pessoas procurando profissionais. Entre em contato e ofereça seu trabalho!' : 'Pedidos publicados por quem precisa de um serviço.'}</p></div>
       <a href="#/pedido-novo" class="btn btn-primary">${ICON.plus} Publicar pedido</a></div>
+    ${isPro && state.professional && !activePlan() ? `<a href="#/planos" class="card cta-band">
+      <div><h3>${ICON.star} Apareça primeiro para os clientes</h3><p class="muted">${pendingSub() ? 'Seu pedido do Autônomo Destaque está aguardando a confirmação do Pix.' : 'Com o Autônomo Destaque (R$ 14,90/mês), seu perfil fica no topo da lista.'}</p></div>
+      <span class="btn btn-secondary">${pendingSub() ? 'Ver pedido' : 'Conhecer o plano'}</span></a>` : ''}
     ${isPro && !state.professional ? `<div class="card cta-band"><div><h3>Complete seu perfil profissional</h3><p class="muted">Assim os clientes também encontram você.</p></div><a class="btn btn-secondary" href="#/meu-servico">Completar agora</a></div>` : ''}
     ${isPro ? '' : mineHtml}
     ${othersTitle}

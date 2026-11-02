@@ -1,9 +1,9 @@
 import { sb } from '../supabase.js';
-import { state, loadUserData } from '../store.js';
+import { state, loadUserData, activePlan, pendingSub, trialDaysLeft } from '../store.js';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
-  CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA,
+  CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS,
 } from '../ui.js';
 import { jobCard, wireJobButtons, resumeHtml } from './candidato.js';
 
@@ -37,6 +37,7 @@ export async function dashboard(el, _p, { alive }) {
       <div class="row">${avatar(c.logo_url, c.name, 52, true)}<div><h1>Olá, ${esc(c.name)}</h1><p class="muted">Resumo das suas vagas</p></div></div>
       <a href="#/vaga-form" class="btn btn-primary">${ICON.plus} Publicar vaga</a>
     </div>
+    ${planBanner()}
     <div class="stats">
       <div class="stat">${ICON.briefcase}<b>${open.length}</b><span>Vagas abertas</span></div>
       <div class="stat">${ICON.eye}<b>${sum('views')}</b><span>Visualizações</span></div>
@@ -54,17 +55,30 @@ export async function dashboard(el, _p, { alive }) {
           <td>${j.novos ? `<span class="badge b-yellow">${j.novos}</span>` : '0'}</td>
           <td><a href="#/candidatos/${j.id}" class="btn btn-ghost btn-sm">Ver candidatos</a></td></tr>`).join('')}</tbody>
       </table></div>`
-      : empty('briefcase', 'Você ainda não publicou vagas', 'Publique sua primeira vaga gratuitamente.', '<a class="btn btn-primary" href="#/vaga-form">Publicar vaga</a>')}
+      : empty('briefcase', 'Você ainda não publicou vagas', 'Publique sua primeira vaga.', '<a class="btn btn-primary" href="#/vaga-form">Publicar vaga</a>')}
     </div>
     <div class="card cta-band">
       <div><h3>${state.professional ? 'Os serviços da empresa estão sendo divulgados' : 'Divulgue os serviços da sua empresa'}</h3>
-      <p class="muted">${state.professional ? 'Sua empresa aparece em "Encontrar profissional".' : 'Apareça para quem procura uma oficina, um pet shop ou uma assistência técnica em Arcos. É grátis.'}</p></div>
+      <p class="muted">${state.professional ? 'Sua empresa aparece em "Encontrar profissional".' : 'Apareça para quem procura uma oficina, um pet shop ou uma assistência técnica em Arcos. Incluído no teste grátis e nos planos.'}</p></div>
       <a href="#/divulgar" class="btn btn-secondary">${state.professional ? 'Editar divulgação' : 'Divulgar serviços'}</a>
     </div>
     <div class="grid two-col">
       <div class="card soon">${ICON.chart}<div><b>Relatórios avançados</b><p class="muted small">Em breve: gráficos de cliques por dia e origem dos candidatos.</p></div></div>
-      <div class="card soon">${ICON.star}<div><b>Planos e destaque de vagas</b><p class="muted small">Em breve: planos Básico e Profissional com vagas em destaque.</p></div></div>
+      <a href="#/planos" class="card soon">${ICON.star}<div><b>Planos Básico e Profissional</b><p class="muted small">Mais vagas por mês e sua empresa em destaque. A partir de R$ 29,90/mês.</p></div></a>
     </div>`;
+}
+
+// Aviso do plano no topo do painel
+function planBanner() {
+  const ativo = activePlan(), pend = pendingSub(), dias = trialDaysLeft();
+  if (pend) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Pagamento do plano ${esc(PLANOS[pend.plan]?.nome || '')} aguardando confirmação</b>
+    <p class="muted small">Assim que o Pix for confirmado, o plano é ativado.</p></div></a>`;
+  if (ativo) return `<a href="#/planos" class="card plan-status ok">${ICON.star}<div class="grow"><b>Plano ${esc(PLANOS[ativo.plan].nome)}</b>
+    <p class="muted small">Válido até ${dateBR(ativo.ends_at)}.</p></div><span class="btn btn-ghost btn-sm">Ver plano</span></a>`;
+  if (dias > 0) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Teste grátis: falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}</b>
+    <p class="muted small">Aproveite tudo do plano Profissional. Depois, escolha um plano para continuar.</p></div><span class="btn btn-secondary btn-sm">Ver planos</span></a>`;
+  return `<a href="#/planos" class="card plan-status warn">${ICON.ban}<div class="grow"><b>Seu teste grátis terminou</b>
+    <p class="muted small">Escolha um plano para publicar novas vagas e divulgar serviços.</p></div><span class="btn btn-primary btn-sm">Escolher plano</span></a>`;
 }
 
 // ============================================================
@@ -91,7 +105,7 @@ export async function myJobs(el, _p, ctx) {
           <button class="btn btn-ghost btn-sm danger" data-del="${j.id}" aria-label="Excluir">${ICON.trash}</button>
         </div>
       </div>`).join('')}</div>`
-    : empty('briefcase', 'Nenhuma vaga ainda', 'Publique sua primeira vaga gratuitamente.', '<a class="btn btn-primary" href="#/vaga-form">Publicar vaga</a>')}`;
+    : empty('briefcase', 'Nenhuma vaga ainda', 'Publique sua primeira vaga.', '<a class="btn btn-primary" href="#/vaga-form">Publicar vaga</a>')}`;
   el.querySelectorAll('[data-toggle]').forEach((b) => (b.onclick = async () => {
     const st = b.dataset.st === 'aberta' ? 'encerrada' : 'aberta';
     const { error } = await sb.from('jobs').update({ status: st }).eq('id', b.dataset.toggle);
@@ -149,7 +163,11 @@ export async function jobForm(el, [id], { go, alive }) {
     const btn = f.querySelector('button'); setBusy(btn, true, 'Salvando...');
     const { error } = id ? await sb.from('jobs').update(row).eq('id', id) : await sb.from('jobs').insert(row);
     setBusy(btn, false);
-    if (error) return toast(errMsg(error), 'err');
+    if (error) {
+      toast(errMsg(error), 'err');
+      if (/PLANO_NECESSARIO|LIMITE_VAGAS/.test(error.message || '')) go('/planos');
+      return;
+    }
     toast(id ? 'Vaga atualizada! ✅' : 'Vaga publicada! 🎉');
     go('/minhas-vagas');
   };
@@ -410,7 +428,11 @@ export function companyServices(el, _p, { go }) {
       ? await sb.from('professionals').update(row).eq('id', cur.id)
       : await sb.from('professionals').insert(row);
     setBusy(btn, false);
-    if (error) return toast(errMsg(error), 'err');
+    if (error) {
+      toast(errMsg(error), 'err');
+      if (/PLANO_NECESSARIO/.test(error.message || '')) go('/planos');
+      return;
+    }
     await loadUserData();
     toast(cur ? 'Divulgação atualizada! ✅' : 'Serviços divulgados! 🎉');
     go('/painel');

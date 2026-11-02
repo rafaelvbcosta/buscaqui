@@ -21,6 +21,23 @@ export const CATEGORIAS_EMPRESA = [
 
 export const MODALIDADES = ['Presencial', 'Híbrido', 'Remoto'];
 
+// Planos pagos (o preço que vale é o do banco: função plan_price no setup.sql)
+export const PLANOS = {
+  basico: {
+    nome: 'Básico', preco: 29.90, para: 'empresa',
+    itens: ['Até 5 vagas por mês', 'Serviços da empresa com selo "Destaque"'],
+  },
+  profissional: {
+    nome: 'Profissional', preco: 49.90, para: 'empresa',
+    itens: ['Vagas ilimitadas', 'Destaque no topo da lista de serviços', 'Relatórios (em breve)'],
+  },
+  autonomo_destaque: {
+    nome: 'Autônomo Destaque', preco: 14.90, para: 'profissional',
+    itens: ['Seu perfil no topo da lista da sua categoria', 'Selo "Destaque" no seu perfil'],
+  },
+};
+export const DIAS_TESTE_EMPRESA = 30;
+
 export const STATUS_CANDIDATURA = {
   enviada: { label: 'Enviada', cls: 'b-gray' },
   em_analise: { label: 'Em análise', cls: 'b-blue' },
@@ -43,6 +60,10 @@ export function nl2br(v) {
 export function money(v) {
   if (v === null || v === undefined || v === '') return '';
   return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+}
+
+export function moneyCents(v) {
+  return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 export function salaryRange(min, max) {
@@ -103,7 +124,7 @@ export function maskCNPJ(input) {
 }
 
 export function initials(name) {
-  const p = String(name || '?').trim().split(/\s+/);
+  const p = String(name || '?').trim().split(/\s+/).filter((w) => /^\p{L}/u.test(w));
   return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase() || '?';
 }
 
@@ -180,13 +201,15 @@ export function errMsg(error) {
     [/Email not confirmed/i, 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).'],
     [/rate limit|too many/i, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'],
     [/Unable to validate email|invalid format|valid email/i, 'E-mail inválido.'],
+    [/PLANO_NECESSARIO:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
+    [/LIMITE_VAGAS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1) + ' Para publicar mais, mude para o plano Profissional.'],
     [/duplicate key/i, 'Este registro já existe.'],
     [/row-level security/i, 'Você não tem permissão para fazer isso.'],
     [/Failed to fetch|NetworkError/i, 'Sem conexão com o servidor. Verifique sua internet.'],
     [/exceeded the maximum allowed size|Payload too large/i, 'Arquivo grande demais.'],
     [/relation .* does not exist|Could not find the table/i, 'O banco de dados ainda não foi configurado (rode o arquivo setup.sql no Supabase).'],
   ];
-  for (const [re, t] of map) if (re.test(m)) return t;
+  for (const [re, t] of map) { const x = m.match(re); if (x) return typeof t === 'function' ? t(x) : t; }
   return m || 'Algo deu errado. Tente novamente.';
 }
 
@@ -205,6 +228,10 @@ export function formData(form) {
 // ---------- Ícones ----------
 const svg = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 export const ICON = {
+  shield: svg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'),
+  card: svg('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'),
+  copy: svg('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  ban: svg('<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>'),
   briefcase: svg('<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/>'),
   tool: svg('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'),
   list: svg('<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>'),

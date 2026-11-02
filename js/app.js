@@ -1,11 +1,13 @@
 import { sb, configured, recoveryFromUrl } from './supabase.js';
-import { state, clearState, loadUserData, role, homeFor } from './store.js';
+import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js';
 import { ICON, esc, avatar, toast, loading } from './ui.js';
 import * as auth from './views/auth.js';
 import * as cand from './views/candidato.js';
 import * as serv from './views/servicos.js';
 import * as emp from './views/empresa.js';
 import * as perfil from './views/perfil.js';
+import * as planos from './views/planos.js';
+import * as admin from './views/admin.js';
 
 // ---------------------------------------------------------------
 // Rotas (endereços das telas)
@@ -39,6 +41,12 @@ const ROUTES = [
   { path: /^\/candidatos\/([\w-]+)$/, view: emp.candidates, roles: ['empresa'], needsCompany: true },
   { path: /^\/empresa$/, view: emp.companyForm, roles: ['empresa'] },
   { path: /^\/divulgar$/, view: emp.companyServices, roles: ['empresa'], needsCompany: true },
+  { path: /^\/planos$/, view: planos.plans, roles: ['empresa', 'profissional'] },
+  { path: /^\/admin$/, view: admin.overview, admin: true },
+  { path: /^\/admin\/usuarios$/, view: admin.users, admin: true },
+  { path: /^\/admin\/pagamentos$/, view: admin.payments, admin: true },
+  { path: /^\/admin\/moderacao$/, view: admin.moderation, admin: true },
+  { path: /^\/admin\/config$/, view: admin.settings, admin: true },
   { path: /^\/empresa\/([\w-]+)$/, view: emp.companyPage },
 ];
 
@@ -53,9 +61,16 @@ const NAV = {
   empresa: [
     ['/painel', 'Painel', 'chart'],
     ['/minhas-vagas', 'Minhas vagas', 'briefcase'],
-    ['/vaga-form', 'Nova vaga', 'plus'],
     ['/empresa', 'Empresa', 'building'],
+    ['/planos', 'Planos', 'star'],
     ['/servicos', 'Serviços', 'tool'],
+  ],
+  admin: [
+    ['/admin', 'Visão geral', 'chart'],
+    ['/admin/usuarios', 'Usuários', 'users'],
+    ['/admin/pagamentos', 'Pagamentos', 'card'],
+    ['/admin/moderacao', 'Moderação', 'shield'],
+    ['/admin/config', 'Configurações', 'settings'],
   ],
   profissional: [
     ['/pedidos', 'Pedidos', 'list'],
@@ -84,7 +99,7 @@ export function go(path) {
 // Moldura do app (cabeçalho + menu lateral + menu inferior)
 // ---------------------------------------------------------------
 function renderShell() {
-  const r = role();
+  const r = isAdmin() ? 'admin' : role();
   shellRole = r;
   const items = NAV[r] || NAV.candidato;
   const p = state.profile || {};
@@ -118,7 +133,7 @@ function renderShell() {
 function markNav(path) {
   document.querySelectorAll('[data-nav]').forEach((a) => {
     const n = a.dataset.nav;
-    const active = path === n || (n !== '/' && path.startsWith(n + '/')) ||
+    const active = path === n || (n !== '/' && n !== '/admin' && path.startsWith(n + '/')) ||
       (n === '/vagas' && path.startsWith('/vaga/')) ||
       (n === '/servicos' && /^\/(profissionais|profissional|pedido-novo)/.test(path)) ||
       (n === '/minhas-vagas' && path.startsWith('/candidatos/')) ||
@@ -160,10 +175,12 @@ export async function render() {
 
   const route = ROUTES.find((r) => r.path.test(path));
   if (!route) { location.hash = '#' + homeFor(); return; }
+  if (state.profile?.blocked) return blockedScreen();
+  if (route.admin && !isAdmin()) { location.hash = '#' + homeFor(); return; }
   if (route.roles && !route.roles.includes(role())) { location.hash = '#' + homeFor(); return; }
   if (route.needsCompany && !state.company) { location.hash = '#/empresa'; return; }
 
-  if (shellRole !== role() || !document.getElementById('view') || !document.querySelector('.shell')) renderShell();
+  if (shellRole !== (isAdmin() ? 'admin' : role()) || !document.getElementById('view') || !document.querySelector('.shell')) renderShell();
   markNav(path);
   const view = document.getElementById('view');
   view.innerHTML = loading();
@@ -174,6 +191,17 @@ export async function render() {
     console.error(e);
     if (alive()) view.innerHTML = `<div class="card"><h2>Ops!</h2><p>Não foi possível abrir esta tela.</p><p class="muted">${esc(e.message || e)}</p></div>`;
   }
+}
+
+function blockedScreen() {
+  shellRole = null;
+  app.innerHTML = `
+    <main class="public"><div class="auth-wrap"><div class="card auth-card center">
+      ${ICON.ban}<h1>Conta bloqueada</h1>
+      <p>Sua conta foi bloqueada pela administração do BuscAqui. Se acha que foi um engano, entre em contato com o suporte.</p>
+      <button class="btn btn-primary" id="out">Sair</button>
+    </div></div></main>`;
+  document.getElementById('out').onclick = logout;
 }
 
 function setupScreen() {
