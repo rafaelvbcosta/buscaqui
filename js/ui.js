@@ -40,6 +40,7 @@ export function money(v) {
 }
 
 export function salaryRange(min, max) {
+  if (min && max && Number(min) === Number(max)) return money(min);
   if (min && max) return `${money(min)} a ${money(max)}`;
   if (min) return `A partir de ${money(min)}`;
   if (max) return `Até ${money(max)}`;
