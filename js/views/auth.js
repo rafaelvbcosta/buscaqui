@@ -9,8 +9,9 @@ export function landing(el) {
     <section class="hero">
       <div class="hero-text">
         <img src="assets/logo.png" alt="BuscAqui — Encontre. Conecte. Trabalhe." class="hero-logo">
-        <h1>Oportunidades de trabalho <span class="hl">perto de você</span>.</h1>
-        <p class="lead">Vagas de emprego, profissionais autônomos e empresas locais em um só lugar. Simples, rápido e gratuito.</p>
+        <span class="city-badge">${ICON.pin} Exclusivo para Arcos - MG</span>
+        <h1>Oportunidades de trabalho <span class="hl">aqui em Arcos</span>.</h1>
+        <p class="lead">Vagas de emprego, profissionais autônomos e empresas de Arcos em um só lugar. Simples, rápido e gratuito.</p>
         <div class="hero-cta">
           <a href="#/entrar" class="btn btn-primary btn-lg">Entrar</a>
           <a href="#/cadastro" class="btn btn-outline btn-lg">Cadastrar-se</a>
@@ -18,12 +19,12 @@ export function landing(el) {
       </div>
       <div class="hero-cards">
         <div class="feature">${ICON.briefcase}<div><h3>Vagas de emprego</h3><p>Busque por categoria, salário e modalidade e candidate-se com um toque.</p></div></div>
-        <div class="feature">${ICON.tool}<div><h3>Serviços</h3><p>Encontre eletricistas, diaristas, pintores e outros profissionais da sua região.</p></div></div>
+        <div class="feature">${ICON.tool}<div><h3>Serviços</h3><p>Encontre eletricistas, diaristas, pintores e outros profissionais da cidade.</p></div></div>
         <div class="feature">${ICON.file}<div><h3>Currículo fácil</h3><p>Monte seu currículo pelo celular e baixe em PDF.</p></div></div>
-        <div class="feature">${ICON.building}<div><h3>Para empresas</h3><p>Publique vagas, receba candidatos e marque entrevistas.</p></div></div>
+        <div class="feature">${ICON.building}<div><h3>Para empresas</h3><p>Publique vagas, receba candidatos de Arcos e marque entrevistas.</p></div></div>
       </div>
     </section>
-    <footer class="public-foot">BuscAqui · Encontre. Conecte. Trabalhe.</footer>`;
+    <footer class="public-foot">BuscAqui · Feito para Arcos - MG · Encontre. Conecte. Trabalhe.</footer>`;
 }
 
 // ---------------- Entrar ----------------
