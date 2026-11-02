@@ -77,6 +77,16 @@ Pendências antes de abrir ao público:
 2. Rodar `supabase/remover-exemplos.sql` e apagar as contas/vaga de teste, se quiser.
 3. Lembrar que o Supabase gratuito pausa após 7 dias sem uso.
 
+## Ideias aprovadas para depois (LEMBRAR o Rafael de vez em quando, no começo das conversas)
+O Rafael pediu para ser lembrado de forma esporádica destas melhorias (aprovadas em 02/11/2026):
+1. **Relatórios do plano Profissional** (gráficos de visualizações e candidatos por vaga).
+2. **Estatísticas do autônomo** (quantas pessoas viram o perfil e clicaram no WhatsApp).
+3. **Domínio próprio** (ex.: `www.buscaqui.com.br`, passos na seção Status).
+4. **Pagamento automático** (Mercado Pago ou similar) no lugar do Pix manual, quando houver muitos clientes.
+Em discussão: monetizar o currículo em PDF (R$ 6,90). Opções apresentadas: PDF grátis com rodapé de
+propaganda; "Currículo em Destaque" pago; ou PDF pago só depois do pagamento automático (o PDF é gerado no
+navegador e pode ser burlado pelo "Imprimir").
+
 ## Fora do MVP (próximas versões, aparecem como "Em breve")
 Chat, notificações push, avaliações, login social, vídeo de apresentação, relatórios avançados (plano
 Profissional) e estatísticas do autônomo, pagamento automático (Mercado Pago), IA e cursos.
