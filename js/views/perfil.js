@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611022217';
-import { state, loadUserData } from '../store.js?v=202611022217';
-import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile } from '../ui.js?v=202611022217';
-import { logout } from '../app.js?v=202611022217';
+import { sb } from '../supabase.js?v=202611022224';
+import { state, loadUserData } from '../store.js?v=202611022224';
+import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile } from '../ui.js?v=202611022224';
+import { logout } from '../app.js?v=202611022224';
 
 const ROLE_LABEL = { candidato: 'Candidato', empresa: 'Empresa', profissional: 'Profissional autônomo' };
 
@@ -29,17 +29,6 @@ export function profile(el, _p, { refreshShell }) {
         <label>Nova senha<input name="p1" type="password" minlength="6" autocomplete="new-password"></label>
         <button class="btn btn-ghost" type="submit">Alterar senha</button>
       </form>
-
-      <div class="card">
-        <h2>Em breve no BuscAqui</h2>
-        <ul class="soon-list">
-          <li>${ICON.chat} Chat entre empresa e candidato</li>
-          <li>${ICON.bell} Notificações de novas vagas e mensagens</li>
-          <li>${ICON.star} Avaliação de empresas e profissionais</li>
-          <li>${ICON.globe} Login com Google</li>
-          <li>${ICON.briefcase} Sugestão de vagas com inteligência artificial</li>
-        </ul>
-      </div>
 
       <button class="btn btn-ghost btn-block danger" id="out">${ICON.logout} Sair da conta</button>
     </div>`;

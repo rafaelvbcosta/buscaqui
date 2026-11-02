@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm';
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=202611022217';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=202611022224';
 
 // Guardado antes do Supabase ler o endereço (link de "esqueci minha senha")
 export const recoveryFromUrl = location.hash.includes('type=recovery');

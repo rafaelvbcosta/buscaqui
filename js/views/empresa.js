@@ -1,12 +1,12 @@
-import { sb } from '../supabase.js?v=202611022217';
-import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js?v=202611022217';
+import { sb } from '../supabase.js?v=202611022224';
+import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js?v=202611022224';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
   CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos, LIMITE_SERVICOS,
-} from '../ui.js?v=202611022217';
-import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611022217';
-import { visibleServices } from './servicos.js?v=202611022217';
+} from '../ui.js?v=202611022224';
+import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611022224';
+import { visibleServices } from './servicos.js?v=202611022224';
 
 async function myJobsWithCounts() {
   const { data: jobs, error } = await sb.from('jobs').select('*')
