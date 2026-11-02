@@ -13,6 +13,12 @@ export const CATEGORIAS_SERVICO = [
   'Cuidador(a)', 'Cozinheiro(a) / Buffet', 'Fotógrafo(a)', 'Outros',
 ];
 
+// Categorias de serviço para empresas (ex.: oficina divulgando seus serviços)
+export const CATEGORIAS_EMPRESA = [
+  'Oficina mecânica', 'Autopeças', 'Assistência técnica', 'Pet shop', 'Barbearia',
+  'Oficina elétrica', 'Locação de equipamentos', 'Salão de beleza', 'TI', 'Outros',
+];
+
 export const MODALIDADES = ['Presencial', 'Híbrido', 'Remoto'];
 
 export const STATUS_CANDIDATURA = {

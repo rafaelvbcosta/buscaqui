@@ -38,6 +38,7 @@ const ROUTES = [
   { path: /^\/vaga-form(?:\/([\w-]+))?$/, view: emp.jobForm, roles: ['empresa'], needsCompany: true },
   { path: /^\/candidatos\/([\w-]+)$/, view: emp.candidates, roles: ['empresa'], needsCompany: true },
   { path: /^\/empresa$/, view: emp.companyForm, roles: ['empresa'] },
+  { path: /^\/divulgar$/, view: emp.companyServices, roles: ['empresa'], needsCompany: true },
   { path: /^\/empresa\/([\w-]+)$/, view: emp.companyPage },
 ];
 

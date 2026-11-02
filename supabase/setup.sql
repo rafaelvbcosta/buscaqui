@@ -107,6 +107,12 @@ create table if not exists public.professionals (
   created_at  timestamptz not null default now()
 );
 
+-- Empresas também podem divulgar serviços (ex.: oficina mecânica). Nesse caso
+-- o registro fica ligado à empresa e usa o nome, a logo e o endereço dela.
+alter table public.professionals add column if not exists company_id uuid unique
+  references public.companies(id) on delete cascade;
+alter table public.professionals add column if not exists address text;
+
 -- Pedidos de serviço publicados por qualquer usuário
 create table if not exists public.service_requests (
   id           uuid primary key default gen_random_uuid(),
@@ -283,10 +289,10 @@ drop policy if exists "professionals_select" on public.professionals;
 create policy "professionals_select" on public.professionals for select using (true);
 drop policy if exists "professionals_insert" on public.professionals;
 create policy "professionals_insert" on public.professionals for insert
-  with check (user_id = auth.uid());
+  with check (user_id = auth.uid() and (company_id is null or public.is_company_owner(company_id)));
 drop policy if exists "professionals_update" on public.professionals;
 create policy "professionals_update" on public.professionals for update
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
+  using (user_id = auth.uid()) with check (user_id = auth.uid() and (company_id is null or public.is_company_owner(company_id)));
 drop policy if exists "professionals_delete" on public.professionals;
 create policy "professionals_delete" on public.professionals for delete
   using (user_id = auth.uid());

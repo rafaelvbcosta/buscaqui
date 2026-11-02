@@ -3,7 +3,7 @@ import { state, loadUserData } from '../store.js';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
-  CATEGORIAS_VAGA, MODALIDADES,
+  CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA,
 } from '../ui.js';
 import { jobCard, wireJobButtons, resumeHtml } from './candidato.js';
 
@@ -55,6 +55,11 @@ export async function dashboard(el, _p, { alive }) {
           <td><a href="#/candidatos/${j.id}" class="btn btn-ghost btn-sm">Ver candidatos</a></td></tr>`).join('')}</tbody>
       </table></div>`
       : empty('briefcase', 'Você ainda não publicou vagas', 'Publique sua primeira vaga gratuitamente.', '<a class="btn btn-primary" href="#/vaga-form">Publicar vaga</a>')}
+    </div>
+    <div class="card cta-band">
+      <div><h3>${state.professional ? 'Os serviços da empresa estão sendo divulgados' : 'Divulgue os serviços da sua empresa'}</h3>
+      <p class="muted">${state.professional ? 'Sua empresa aparece em "Encontrar profissional".' : 'Apareça para quem procura uma oficina, um pet shop ou uma assistência técnica em Arcos. É grátis.'}</p></div>
+      <a href="#/divulgar" class="btn btn-secondary">${state.professional ? 'Editar divulgação' : 'Divulgar serviços'}</a>
     </div>
     <div class="grid two-col">
       <div class="card soon">${ICON.chart}<div><b>Relatórios avançados</b><p class="muted small">Em breve: gráficos de cliques por dia e origem dos candidatos.</p></div></div>
@@ -297,6 +302,10 @@ export function companyForm(el, _p, { go, refreshShell }) {
     const { error } = isNew ? await sb.from('companies').insert(row) : await sb.from('companies').update(row).eq('id', c.id);
     setBusy(btn, false);
     if (error) return toast(errMsg(error), 'err');
+    if (!isNew && state.professional?.company_id === c.id) {
+      // Mantém a divulgação de serviços com o nome, a logo e o contato atualizados
+      await sb.from('professionals').update(companyListingFields({ ...c, ...row })).eq('id', state.professional.id);
+    }
     await loadUserData();
     refreshShell();
     toast(isNew ? 'Empresa cadastrada! Agora publique sua primeira vaga 🎉' : 'Dados salvos! ✅');
@@ -308,9 +317,10 @@ export function companyForm(el, _p, { go, refreshShell }) {
 // PÁGINA PÚBLICA DA EMPRESA
 // ============================================================
 export async function companyPage(el, [id], { alive }) {
-  const [{ data: c }, { data: jobs }] = await Promise.all([
+  const [{ data: c }, { data: jobs }, { data: listing }] = await Promise.all([
     sb.from('companies').select('*').eq('id', id).maybeSingle(),
     sb.from('jobs').select('*, companies(id, name, logo_url, city)').eq('company_id', id).eq('status', 'aberta').order('created_at', { ascending: false }),
+    sb.from('professionals').select('*').eq('company_id', id).maybeSingle(),
   ]);
   if (!alive()) return;
   if (!c) { el.innerHTML = empty('building', 'Empresa não encontrada'); return; }
@@ -330,6 +340,11 @@ export async function companyPage(el, [id], { alive }) {
         ${c.email ? `<a class="btn btn-ghost" href="mailto:${esc(c.email)}">${ICON.mail} E-mail</a>` : ''}
       </div>
     </div>
+    ${listing ? `<div class="card">
+      <h2>Serviços oferecidos</h2>
+      <div class="chips">${(listing.services || []).map((x) => `<span class="tag">${esc(x.categoria)}</span>`).join('')}</div>
+      ${listing.about ? `<p>${nl2br(listing.about)}</p>` : ''}
+    </div>` : ''}
     <div class="detail">
       <div>
         <h2 class="section-title">Vagas abertas (${(jobs || []).length})</h2>
@@ -347,4 +362,65 @@ export async function companyPage(el, [id], { alive }) {
     </div>`;
   if (isCompany) el.querySelectorAll('[data-apply],[data-fav]').forEach((b) => b.remove());
   else wireJobButtons(el.querySelector('#jobs'), () => companyPage(el, [id], { alive }));
+}
+
+// ============================================================
+// DIVULGAR SERVIÇOS DA EMPRESA
+// ============================================================
+// Campos que vêm do cadastro da empresa (não são digitados de novo)
+function companyListingFields(c) {
+  return {
+    name: c.name, phone: c.phone || null, city: c.city || null,
+    address: c.address || null, avatar_url: c.logo_url || null,
+  };
+}
+
+export function companyServices(el, _p, { go }) {
+  const c = state.company;
+  const cur = state.professional?.company_id === c.id ? state.professional : null;
+  const chosen = new Set((cur?.services || []).map((x) => x.categoria));
+  el.innerHTML = `
+    <div class="page-head"><h1>Divulgar serviços da empresa</h1>
+      <p class="muted">Sua empresa aparece em "Encontrar profissional", com a etiqueta "Empresa", para quem procura esse tipo de serviço.</p></div>
+    <form id="f" class="card narrow">
+      <div class="row">${avatar(c.logo_url, c.name, 56, true)}
+        <div><b>${esc(c.name)}</b><p class="muted small">${ICON.pin}${esc([c.address, c.city].filter(Boolean).join(', ') || 'Endereço não informado')}</p></div></div>
+      <p class="muted small">Nome, logo, telefone e endereço vêm do <a href="#/empresa">cadastro da empresa</a>.</p>
+      <h3>Quais serviços a empresa oferece?</h3>
+      <div class="check-grid">${CATEGORIAS_EMPRESA.map((cat) => `
+        <label class="check-chip"><input type="checkbox" name="cat" value="${esc(cat)}" ${chosen.has(cat) ? 'checked' : ''}><span>${esc(cat)}</span></label>`).join('')}</div>
+      <label>Descreva os serviços<textarea name="about" rows="4" placeholder="Ex.: Mecânica em geral, suspensão, freios e troca de óleo. Atendemos carros e motos.">${esc(cur?.about || '')}</textarea></label>
+      <p class="muted small">Não é preciso informar valores.</p>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">${cur ? 'Salvar alterações' : 'Divulgar serviços'}</button>
+      ${cur ? `<button type="button" class="btn btn-ghost btn-block danger" id="stop">${ICON.trash} Parar de divulgar</button>` : ''}
+    </form>`;
+  const f = el.querySelector('#f');
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const cats = [...f.querySelectorAll('[name=cat]:checked')].map((x) => x.value);
+    const about = f.about.value.trim();
+    if (!cats.length) return toast('Escolha pelo menos um serviço.', 'err');
+    if (about.length < 10) return toast('Descreva os serviços em pelo menos uma frase.', 'err');
+    const row = {
+      ...companyListingFields(c), user_id: state.user.id, company_id: c.id,
+      services: cats.map((categoria) => ({ categoria, descricao: '' })), about, price: null,
+    };
+    const btn = f.querySelector('[type=submit]'); setBusy(btn, true, 'Salvando...');
+    const { error } = cur
+      ? await sb.from('professionals').update(row).eq('id', cur.id)
+      : await sb.from('professionals').insert(row);
+    setBusy(btn, false);
+    if (error) return toast(errMsg(error), 'err');
+    await loadUserData();
+    toast(cur ? 'Divulgação atualizada! ✅' : 'Serviços divulgados! 🎉');
+    go('/painel');
+  };
+  el.querySelector('#stop')?.addEventListener('click', async () => {
+    if (!(await confirmBox('Parar de divulgar', 'Sua empresa vai sair da lista de serviços. Você pode divulgar de novo quando quiser.', 'Parar de divulgar', true))) return;
+    const { error } = await sb.from('professionals').delete().eq('id', cur.id);
+    if (error) return toast(errMsg(error), 'err');
+    await loadUserData();
+    toast('Divulgação encerrada.', 'info');
+    go('/painel');
+  });
 }
