@@ -122,11 +122,8 @@ export async function jobForm(el, [id], { go, alive }) {
           <label>Categoria<select name="category" required>${options(CATEGORIAS_VAGA, j.category, 'Escolha')}</select></label>
           <label>Modalidade<select name="modality" required>${options(MODALIDADES, j.modality || 'Presencial')}</select></label>
         </div>
-        <div class="two">
-          <label>Salário de (R$)<input name="salary_min" type="number" min="0" step="50" value="${esc(j.salary_min)}" placeholder="Ex.: 1800"></label>
-          <label>Salário até (R$)<input name="salary_max" type="number" min="0" step="50" value="${esc(j.salary_max)}" placeholder="Ex.: 2200"></label>
-        </div>
-        <p class="muted small">Deixe os dois em branco para mostrar "Salário a combinar".</p>
+        <label>Salário (R$)<input name="salary" type="number" min="0" step="1" value="${esc(j.salary_min ?? j.salary_max)}" placeholder="Ex.: 1800"></label>
+        <p class="muted small">Deixe em branco para mostrar "Salário a combinar".</p>
         <label>Localização<input name="location" value="${esc(j.location || state.company.city)}" placeholder="Ex.: Centro, Belo Horizonte - MG"></label>
         <label>Descrição da vaga<textarea name="description" rows="5" required placeholder="O que a pessoa vai fazer no dia a dia?">${esc(j.description)}</textarea></label>
         <label>Requisitos<textarea name="requirements" rows="3" placeholder="Escolaridade, experiência, CNH...">${esc(j.requirements)}</textarea></label>
@@ -139,12 +136,11 @@ export async function jobForm(el, [id], { go, alive }) {
     e.preventDefault();
     const d = formData(f);
     if (!d.title || !d.category || !d.description) return toast('Preencha título, categoria e descrição.', 'err');
-    const row = {
-      ...d, company_id: state.company.id,
-      salary_min: d.salary_min ? Number(d.salary_min) : null,
-      salary_max: d.salary_max ? Number(d.salary_max) : null,
-    };
-    if (row.salary_min && row.salary_max && row.salary_min > row.salary_max) return toast('O salário "de" está maior que o "até".', 'err');
+    // Um só campo de salário: guardado em salary_min e salary_max com o mesmo valor
+    // (as colunas do banco continuam as mesmas; vagas antigas com faixa seguem aparecendo).
+    const { salary, ...rest } = d;
+    const valor = salary ? Number(salary) : null;
+    const row = { ...rest, company_id: state.company.id, salary_min: valor, salary_max: valor };
     const btn = f.querySelector('button'); setBusy(btn, true, 'Salvando...');
     const { error } = id ? await sb.from('jobs').update(row).eq('id', id) : await sb.from('jobs').insert(row);
     setBusy(btn, false);
