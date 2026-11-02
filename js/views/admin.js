@@ -1,8 +1,8 @@
-import { sb } from '../supabase.js?v=202611022227';
+import { sb } from '../supabase.js?v=202611022235';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
   moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
-} from '../ui.js?v=202611022227';
+} from '../ui.js?v=202611022235';
 
 // ============================================================
 // ÁREA DO ADMINISTRADOR
@@ -15,12 +15,13 @@ const isActive = (s) => s.status === 'ativa' && Date.parse(s.starts_at) <= now()
 
 // ---------- Visão geral ----------
 export async function overview(el, _p, { alive }) {
-  const [pr, jobs, pros, reqs, subs] = await Promise.all([
+  const [pr, jobs, pros, reqs, subs, fbs] = await Promise.all([
     sb.from('profiles').select('id, role, blocked, created_at'),
     sb.from('jobs').select('id, status'),
     sb.from('professionals').select('id, company_id'),
     sb.from('service_requests').select('id, status'),
     sb.from('subscriptions').select('id, plan, status, price, starts_at, ends_at, confirmed_at'),
+    sb.from('feedbacks').select('id', { count: 'exact', head: true }).eq('status', 'nova'),
   ]);
   if (!alive()) return;
   const err = [pr, jobs, pros, reqs, subs].find((x) => x.error);
@@ -35,6 +36,8 @@ export async function overview(el, _p, { alive }) {
     <div class="page-head"><h1>Visão geral</h1><p class="muted">Resumo do BuscAqui hoje.</p></div>
     ${pend ? `<a href="#/admin/pagamentos" class="card alert-band">${ICON.card}<span class="grow"><b>${pend} pagamento(s) aguardando confirmação</b>
       <small class="muted">Confira o Pix na sua conta e confirme.</small></span><span class="btn btn-secondary btn-sm">Ver pagamentos</span></a>` : ''}
+    <a href="#/admin/sugestoes" class="card alert-band ${fbs.count ? '' : 'quiet'}">${ICON.chat}<span class="grow"><b>${fbs.count ? `${fbs.count} sugestão(ões) nova(s)` : 'Sugestões dos usuários'}</b>
+      <small class="muted">${fbs.count ? 'Mensagens enviadas pelos usuários esperando sua leitura.' : 'Nenhuma mensagem nova. Veja as anteriores.'}</small></span><span class="btn btn-${fbs.count ? 'secondary' : 'ghost'} btn-sm">Ver sugestões</span></a>
     <h2 class="section-title">Usuários</h2>
     <div class="stats">
       <div class="stat">${ICON.users}<b>${P.length}</b><span>Total de contas</span></div>
@@ -278,7 +281,8 @@ export async function moderation(el, _p, ctx) {
   };
   let aba = 'vagas';
   el.innerHTML = `
-    <div class="page-head"><h1>Moderação</h1><p class="muted">Remova conteúdo impróprio, falso ou repetido. A remoção não pode ser desfeita.</p></div>
+    <div class="page-head row-between"><div><h1>Moderação</h1><p class="muted">Remova conteúdo impróprio, falso ou repetido. A remoção não pode ser desfeita.</p></div>
+      <a href="#/admin/sugestoes" class="btn btn-ghost">${ICON.chat} Ver sugestões</a></div>
     <div class="seg" id="abas" role="group" aria-label="Tipo de conteúdo">${Object.entries(tabs).map(([k, t]) =>
       `<button type="button" data-a="${k}" class="${k === aba ? 'on' : ''}">${esc(t.nome)} (${t.itens.length})</button>`).join('')}</div>
     <div class="stack" id="list" style="margin-top:1rem"></div>`;

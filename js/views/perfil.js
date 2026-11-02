@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611022227';
-import { state, loadUserData } from '../store.js?v=202611022227';
-import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile } from '../ui.js?v=202611022227';
-import { logout } from '../app.js?v=202611022227';
+import { sb } from '../supabase.js?v=202611022235';
+import { state, loadUserData } from '../store.js?v=202611022235';
+import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile } from '../ui.js?v=202611022235';
+import { logout } from '../app.js?v=202611022235';
 
 const ROLE_LABEL = { candidato: 'Candidato', empresa: 'Empresa', profissional: 'Profissional autônomo' };
 
@@ -23,6 +23,10 @@ export function profile(el, _p, { refreshShell }) {
         <label>E-mail<input value="${esc(state.user.email)}" disabled></label>
         <button class="btn btn-primary" type="submit">Salvar</button>
       </form>
+
+      ${state.profile?.is_admin ? '' : `<a href="#/sugestao" class="card cta-band">
+        <div><h3>${ICON.chat} Tem uma ideia ou encontrou um problema?</h3><p class="muted">Envie sua sugestão para a equipe do BuscAqui.</p></div>
+        <span class="btn btn-secondary">Enviar sugestão</span></a>`}
 
       <form id="fp" class="card">
         <h2>Trocar senha</h2>

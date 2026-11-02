@@ -1,13 +1,14 @@
-import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611022227';
-import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611022227';
-import { ICON, esc, avatar, loading } from './ui.js?v=202611022227';
-import * as auth from './views/auth.js?v=202611022227';
-import * as cand from './views/candidato.js?v=202611022227';
-import * as serv from './views/servicos.js?v=202611022227';
-import * as emp from './views/empresa.js?v=202611022227';
-import * as perfil from './views/perfil.js?v=202611022227';
-import * as planos from './views/planos.js?v=202611022227';
-import * as admin from './views/admin.js?v=202611022227';
+import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611022235';
+import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611022235';
+import { ICON, esc, avatar, loading } from './ui.js?v=202611022235';
+import * as auth from './views/auth.js?v=202611022235';
+import * as cand from './views/candidato.js?v=202611022235';
+import * as serv from './views/servicos.js?v=202611022235';
+import * as emp from './views/empresa.js?v=202611022235';
+import * as perfil from './views/perfil.js?v=202611022235';
+import * as planos from './views/planos.js?v=202611022235';
+import * as admin from './views/admin.js?v=202611022235';
+import * as sugestoes from './views/sugestoes.js?v=202611022235';
 
 // ---------------------------------------------------------------
 // Rotas (endereços das telas)
@@ -47,6 +48,8 @@ const ROUTES = [
   { path: /^\/admin\/pagamentos$/, view: admin.payments, admin: true },
   { path: /^\/admin\/moderacao$/, view: admin.moderation, admin: true },
   { path: /^\/admin\/config$/, view: admin.settings, admin: true },
+  { path: /^\/admin\/sugestoes$/, view: sugestoes.adminList, admin: true },
+  { path: /^\/sugestao$/, view: sugestoes.sendForm },
   { path: /^\/empresa\/([\w-]+)$/, view: emp.companyPage },
 ];
 
@@ -117,6 +120,8 @@ function renderShell() {
       <nav class="sidenav" aria-label="Menu principal">
         ${items.map(link).join('')}
         <div class="sidenav-sep"></div>
+        ${isAdmin() ? `<a href="#/admin/sugestoes" data-nav="/admin/sugestoes">${ICON.chat}<span>Sugestões</span></a>`
+          : `<a href="#/sugestao" data-nav="/sugestao">${ICON.chat}<span>Enviar sugestão</span></a>`}
         <a href="#/perfil" data-nav="/perfil">${ICON.settings}<span>Meu perfil</span></a>
         <button id="btn-logout" class="sidenav-logout">${ICON.logout}<span>Sair</span></button>
         <div class="sidenav-foot">Encontre. Conecte. Trabalhe.</div>
