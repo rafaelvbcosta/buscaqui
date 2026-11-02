@@ -345,7 +345,9 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .cv-date { display: block; color: var(--muted); font-size: 12.5px; }
 .cv-skills { display: flex; flex-wrap: wrap; gap: .35rem; }
 .cv-skills span { background: var(--green-50); color: var(--green-600); border-radius: 6px; padding: .1rem .5rem; font-weight: 600; font-size: 12.5px; }
-.cv-foot { color: #a0aba4; font-size: 11px; text-align: right; margin-top: 1.5rem; }
+.cv-foot { display: flex; gap: .6rem; align-items: center; justify-content: center; margin-top: 1.75rem; padding-top: .75rem; border-top: 1px solid var(--line); color: #5e6b63; font-size: 11.5px; line-height: 1.45; text-align: left; page-break-inside: avoid; }
+.cv-foot img { width: 28px; height: 28px; flex: none; }
+.cv-foot b { color: var(--forest); }
 @media (max-width: 600px) { .cv { padding: 1.25rem; } .cv-head { flex-direction: column; align-items: flex-start; } }
 
 /* ---------- Modal e aviso ---------- */

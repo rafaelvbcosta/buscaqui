@@ -1,10 +1,10 @@
-import { sb } from '../supabase.js?v=202611021809';
-import { state, loadUserData } from '../store.js?v=202611021809';
+import { sb } from '../supabase.js?v=202611021829';
+import { state, loadUserData } from '../store.js?v=202611021829';
 import {
   ICON, esc, nl2br, salaryRange, timeAgo, dateBR, avatar, options, loading, empty, toast, modal,
   confirmBox, errMsg, setBusy, formData, badgeStatus, uploadFile, maskPhone, waLink,
   CATEGORIAS_VAGA, MODALIDADES,
-} from '../ui.js?v=202611021809';
+} from '../ui.js?v=202611021829';
 
 // ============================================================
 // Cartão de vaga (usado em várias telas)
@@ -377,6 +377,9 @@ export async function resumeForm(el, _p, { refreshShell }) {
 // ============================================================
 // PRÉVIA E PDF
 // ============================================================
+// Endereço do site (muda sozinho se um dia usarmos domínio próprio)
+const siteUrl = () => (location.host + location.pathname).replace(/\/$/, '').replace(/\/index\.html$/, '');
+
 export function resumeHtml(p, r) {
   r = r || {};
   const sec = (t, body) => (body ? `<section><h3>${t}</h3>${body}</section>` : '');
@@ -399,7 +402,11 @@ export function resumeHtml(p, r) {
       ${sec('Habilidades', (r.skills || []).length ? `<p class="cv-skills">${r.skills.map((s) => `<span>${esc(s)}</span>`).join('')}</p>` : '')}
       ${sec('Certificados', (r.certificates || []).map((x) => `
         <div class="cv-item"><b>${esc(x.nome)}</b>${x.instituicao ? ` — ${esc(x.instituicao)}` : ''}${x.ano ? ` (${esc(x.ano)})` : ''}</div>`).join(''))}
-      <footer class="cv-foot">Currículo gerado pelo BuscAqui</footer>
+      <footer class="cv-foot">
+        <img src="assets/icone.png" alt="">
+        <span><b>Currículo feito no BuscAqui</b> · Vagas e serviços em Arcos - MG<br>
+        Monte o seu grátis em <b>${esc(siteUrl())}</b></span>
+      </footer>
     </div>`;
 }
 
