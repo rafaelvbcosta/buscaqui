@@ -4,7 +4,7 @@
 
 Plataforma web (celular e computador) que conecta pessoas em busca de emprego, profissionais autônomos e empresas locais.
 
-- Site: `https://rafaelvbcosta.github.io/buscaqui/`
+- Site: `https://www.buscaquiarcos.com.br/` (antes: `rafaelvbcosta.github.io/buscaqui/`, que redireciona)
 - Hospedagem: GitHub Pages (gratuito)
 - Banco de dados, login e arquivos: Supabase (plano gratuito)
 
@@ -46,7 +46,7 @@ Isso cria as tabelas, as regras de segurança, as pastas de arquivos e alguns da
 3. Aguarde 1 a 2 minutos. O endereço aparece no topo da página.
 
 ### 4. Endereço do site no Supabase
-**Authentication** → **URL Configuration** → *Site URL*: `https://rafaelvbcosta.github.io/buscaqui/` → **Save**.
+**Authentication** → **URL Configuration** → *Site URL*: `https://www.buscaquiarcos.com.br/` → **Save**.
 
 ---
 

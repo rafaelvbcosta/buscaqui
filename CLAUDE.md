@@ -12,7 +12,8 @@ candidatos a emprego, profissionais autônomos e empresas locais. Dono: Rafael (
 
 ## Tecnologia (tudo gratuito)
 - Site estático (HTML + CSS + JavaScript em módulos ES), **sem etapa de build**.
-- Hospedagem: **GitHub Pages** (branch `main`, pasta raiz) → `https://rafaelvbcosta.github.io/buscaqui/`
+- Hospedagem: **GitHub Pages** (branch `main`, pasta raiz) → **`https://www.buscaquiarcos.com.br/`** (domínio próprio,
+  Registro.br; o endereço antigo `rafaelvbcosta.github.io/buscaqui/` redireciona). O arquivo `CNAME` na raiz guarda o domínio: não apagar.
 - Backend: **Supabase** plano gratuito (Auth e-mail/senha, Postgres com RLS, Storage).
 - Bibliotecas por CDN: `@supabase/supabase-js@2.49.4` (jsdelivr) e `html2pdf.js@0.10.1` (cdnjs, carregado só na tela de PDF).
 - Rotas por hash (`#/vagas`, `#/painel`...), definidas em `js/app.js`.
@@ -28,7 +29,7 @@ candidatos a emprego, profissionais autônomos e empresas locais. Dono: Rafael (
 - `js/views/admin.js` (área do admin), `js/views/planos.js` (planos e Pix), `tools/versao.py` (versão dos arquivos).
 
 ## Status (1º de novembro de 2026)
-**Site no ar** em `https://rafaelvbcosta.github.io/buscaqui/`. Configuração concluída:
+**Site no ar** em `https://www.buscaquiarcos.com.br/` (domínio próprio desde 02/11/2026). Configuração concluída:
 `setup.sql` rodado, `js/config.js` preenchido (projeto `tjfzpobrqqoecktotlzy`), GitHub Pages ativo
 (main / root) e Site URL do Supabase configurada.
 
@@ -81,7 +82,8 @@ Pendências antes de abrir ao público:
 O Rafael pediu para ser lembrado de forma esporádica destas melhorias (aprovadas em 02/11/2026):
 1. **Relatórios do plano Profissional** (gráficos de visualizações e candidatos por vaga).
 2. **Estatísticas do autônomo** (quantas pessoas viram o perfil e clicaram no WhatsApp).
-3. **Domínio próprio** (ex.: `www.buscaqui.com.br`, passos na seção Status).
+3. ~~Domínio próprio~~ **FEITO em 02/11/2026:** `www.buscaquiarcos.com.br` (DNS no Registro.br: CNAME `www` →
+   `rafaelvbcosta.github.io` + 4 registros A 185.199.108-111.153; Custom domain no GitHub Pages; Site URL do Supabase).
 4. **Pagamento automático** (Mercado Pago ou similar) no lugar do Pix manual, quando houver muitos clientes.
 Em discussão: monetizar o currículo em PDF (R$ 6,90). Opções apresentadas: PDF grátis com rodapé de
 propaganda; "Currículo em Destaque" pago; ou PDF pago só depois do pagamento automático (o PDF é gerado no
