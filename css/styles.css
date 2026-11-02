@@ -139,7 +139,7 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .hero { max-width: 1100px; margin: auto; width: 100%; display: grid; gap: 2rem; align-items: center; padding: 1.5rem 0; }
 .hero-logo { display: block; width: 220px; margin-bottom: 1rem; }
 .hero h1 { font-size: clamp(1.9rem, 5vw, 3rem); }
-.hero .hl { white-space: nowrap; color: var(--green); background: linear-gradient(transparent 62%, var(--yellow-50) 62%); }
+.hero .hl { white-space: nowrap; color: var(--green); }
 .lead { font-size: 1.1rem; color: var(--muted); max-width: 520px; }
 .hero-cta { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.5rem; }
 .hero-cta .btn { flex: 1 1 160px; }
