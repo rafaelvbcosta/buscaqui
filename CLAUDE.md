@@ -66,6 +66,11 @@ PR #8 (publicado): Admin + planos + Pix manual + controle contra fraude.
 - CNPJ obrigatório/único/travado (consulta BrasilAPI no cadastro), CPF obrigatório/único/travado para autônomo.
 - Testado no site real: CNPJ de teste via Admin › Documento, pedido do Básico, confirmação e plano ativo.
 
+Publicado depois do PR #8 (PRs #9 a #16): vários serviços por empresa (até 3 no teste/Básico), botões de editar
+para o dono, rodapé do PDF no pé de cada página A4, logo encaixada no quadro, Bairro na vaga, sem Cidade no
+candidato, sem filtro de modalidade, sem nenhum aviso de "em breve" (nem o sino), e **Sugestões**: tabela
+`feedbacks` (usuário só envia, máx. 5/dia), tela `#/sugestao` (menu lateral + Meu perfil) e `#/admin/sugestoes`.
+
 Fluxo combinado: o Claude mostra prévia (prints) → Rafael aprova → PR → Rafael faz o merge. Mudança no banco:
 rodar o `setup.sql` da branch ANTES do merge. Testes do banco: Postgres 16 local com stubs de `auth`/`storage`.
 
