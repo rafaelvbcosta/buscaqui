@@ -10,7 +10,7 @@ export function landing(el) {
       <div class="hero-text">
         <img src="assets/logo.png" alt="BuscAqui — Encontre. Conecte. Trabalhe." class="hero-logo">
         <span class="city-badge">${ICON.pin} Exclusivo para Arcos - MG</span>
-        <h1><span class="hl">Arcos BuscAqui</span>: vagas e serviços da cidade.</h1>
+        <h1>Oportunidades de vagas e serviços <span class="hl">em Arcos</span>.</h1>
         <p class="lead">Encontre emprego, contrate profissionais autônomos e divulgue as vagas da sua empresa. Simples, rápido e gratuito.</p>
         <div class="hero-cta">
           <a href="#/entrar" class="btn btn-primary btn-lg">Entrar</a>
