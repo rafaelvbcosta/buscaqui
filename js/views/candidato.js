@@ -1,10 +1,10 @@
-import { sb } from '../supabase.js?v=202611021829';
-import { state, loadUserData } from '../store.js?v=202611021829';
+import { sb } from '../supabase.js?v=202611021901';
+import { state, loadUserData } from '../store.js?v=202611021901';
 import {
   ICON, esc, nl2br, salaryRange, timeAgo, dateBR, avatar, options, loading, empty, toast, modal,
   confirmBox, errMsg, setBusy, formData, badgeStatus, uploadFile, maskPhone, waLink,
   CATEGORIAS_VAGA, MODALIDADES,
-} from '../ui.js?v=202611021829';
+} from '../ui.js?v=202611021901';
 
 // ============================================================
 // Cartão de vaga (usado em várias telas)
@@ -410,6 +410,35 @@ export function resumeHtml(p, r) {
     </div>`;
 }
 
+// Ícone em formato que o PDF entende (data URL). Se falhar, o rodapé sai sem o ícone.
+async function imageData(src) {
+  try {
+    const blob = await (await fetch(src)).blob();
+    return await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = () => ok(null); fr.readAsDataURL(blob); });
+  } catch { return null; }
+}
+
+// Rodapé desenhado no pé de CADA página A4 do PDF (com numeração quando há mais de uma)
+function drawPdfFooter(pdf, icon) {
+  const n = pdf.internal.getNumberOfPages();
+  const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
+  const left = 12, y1 = H - 13, y2 = H - 8.8;
+  for (let i = 1; i <= n; i++) {
+    pdf.setPage(i);
+    pdf.setDrawColor(227, 232, 228); pdf.setLineWidth(0.3); pdf.line(left, H - 19, W - left, H - 19);
+    const tx = icon ? left + 10 : left;
+    if (icon) pdf.addImage(icon, 'PNG', left, H - 16.6, 8, 8);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5); pdf.setTextColor(0, 53, 21);
+    const t1 = 'Currículo feito no BuscAqui';
+    pdf.text(t1, tx, y1);
+    const w1 = pdf.getTextWidth(t1); // medir ainda com a fonte em negrito
+    pdf.setFont('helvetica', 'normal'); pdf.setTextColor(94, 107, 99);
+    pdf.text('  ·  Vagas e serviços em Arcos - MG', tx + w1, y1);
+    pdf.text(`Monte o seu grátis em ${siteUrl()}`, tx, y2);
+    if (n > 1) pdf.text(`Página ${i} de ${n}`, W - left, y1, { align: 'right' });
+  }
+}
+
 function loadHtml2pdf() {
   if (window.html2pdf) return Promise.resolve();
   return new Promise((ok, fail) => {
@@ -436,13 +465,21 @@ export async function resumePreview(el) {
     const btn = e.currentTarget;
     setBusy(btn, true, 'Gerando PDF...');
     try {
-      await loadHtml2pdf();
+      const [, icon] = await Promise.all([loadHtml2pdf(), imageData('assets/icone.png')]);
       const name = (p.full_name || 'curriculo').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\W+/g, '-').toLowerCase();
-      await window.html2pdf().set({
-        margin: [10, 10, 10, 10], filename: `curriculo-${name}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'] },
-      }).from(el.querySelector('#paper .cv')).save();
+      const paper = el.querySelector('#paper .cv');
+      paper.classList.add('pdf-mode'); // o rodapé da tela some; no PDF ele é desenhado no pé de cada página
+      try {
+        await window.html2pdf().set({
+          margin: [12, 12, 24, 12], filename: `curriculo-${name}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          // não corta um item (uma experiência, um curso) no meio; as seções podem continuar na página seguinte
+          pagebreak: { mode: ['css', 'legacy'], avoid: ['.cv-head', '.cv-item', '.cv section h3', '.cv p'] },
+        }).from(paper).toPdf().get('pdf').then((pdf) => drawPdfFooter(pdf, icon)).save();
+      } finally {
+        paper.classList.remove('pdf-mode');
+      }
       toast('PDF baixado! 📄');
     } catch (err) {
       console.error(err);
