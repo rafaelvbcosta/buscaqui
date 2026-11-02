@@ -1,4 +1,4 @@
-import { sb } from './supabase.js';
+import { sb } from './supabase.js?v=202611021809';
 
 export const state = {
   session: null,

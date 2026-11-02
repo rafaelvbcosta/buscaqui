@@ -1,13 +1,13 @@
-import { sb, configured, recoveryFromUrl } from './supabase.js';
-import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js';
-import { ICON, esc, avatar, toast, loading } from './ui.js';
-import * as auth from './views/auth.js';
-import * as cand from './views/candidato.js';
-import * as serv from './views/servicos.js';
-import * as emp from './views/empresa.js';
-import * as perfil from './views/perfil.js';
-import * as planos from './views/planos.js';
-import * as admin from './views/admin.js';
+import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611021809';
+import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611021809';
+import { ICON, esc, avatar, toast, loading } from './ui.js?v=202611021809';
+import * as auth from './views/auth.js?v=202611021809';
+import * as cand from './views/candidato.js?v=202611021809';
+import * as serv from './views/servicos.js?v=202611021809';
+import * as emp from './views/empresa.js?v=202611021809';
+import * as perfil from './views/perfil.js?v=202611021809';
+import * as planos from './views/planos.js?v=202611021809';
+import * as admin from './views/admin.js?v=202611021809';
 
 // ---------------------------------------------------------------
 // Rotas (endereços das telas)

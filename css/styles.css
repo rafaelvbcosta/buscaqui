@@ -422,3 +422,9 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .pix-code { font-size: 1.05rem; letter-spacing: .05em; color: var(--forest); background: var(--yellow-50); padding: .1rem .45rem; border-radius: 6px; }
 input[readonly] { background: var(--bg); color: var(--muted); }
 a.badge:hover { text-decoration: none; filter: brightness(.97); }
+
+.tag-on { background: var(--green); color: #fff; }
+.owner-edit { margin: .25rem 0 .5rem; }
+.svc-offer { list-style: none; padding: 0; margin: .5rem 0 0; display: grid; gap: .75rem; }
+.svc-offer li { display: flex; gap: .6rem; align-items: baseline; flex-wrap: wrap; padding-bottom: .75rem; border-bottom: 1px solid var(--line); }
+.svc-offer li:last-child { border-bottom: 0; padding-bottom: 0; }

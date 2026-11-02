@@ -1,11 +1,12 @@
-import { sb } from '../supabase.js';
-import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js';
+import { sb } from '../supabase.js?v=202611021809';
+import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js?v=202611021809';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
-  CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos,
-} from '../ui.js';
-import { jobCard, wireJobButtons, resumeHtml } from './candidato.js';
+  CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos, LIMITE_SERVICOS,
+} from '../ui.js?v=202611021809';
+import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611021809';
+import { visibleServices } from './servicos.js?v=202611021809';
 
 async function myJobsWithCounts() {
   const { data: jobs, error } = await sb.from('jobs').select('*')
@@ -76,7 +77,7 @@ function planBanner() {
   if (ativo) return `<a href="#/planos" class="card plan-status ok">${ICON.star}<div class="grow"><b>Plano ${esc(PLANOS[ativo.plan].nome)}</b>
     <p class="muted small">Válido até ${dateBR(ativo.ends_at)}.</p></div><span class="btn btn-ghost btn-sm">Ver plano</span></a>`;
   if (dias > 0) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Teste grátis: falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}</b>
-    <p class="muted small">Aproveite tudo do plano Profissional. Depois, escolha um plano para continuar.</p></div><span class="btn btn-secondary btn-sm">Ver planos</span></a>`;
+    <p class="muted small">Vagas ilimitadas e até ${LIMITE_SERVICOS} serviços divulgados. Depois, escolha um plano para continuar.</p></div><span class="btn btn-secondary btn-sm">Ver planos</span></a>`;
   const venceu = state.subs.some((x) => x.status === 'ativa');
   return `<a href="#/planos" class="card plan-status warn">${ICON.ban}<div class="grow"><b>${venceu ? 'Seu plano venceu' : 'Seu teste grátis terminou'}: vagas e divulgação pausadas</b>
     <p class="muted small">Nada foi apagado. Suas vagas e candidatos estão guardados e voltam a aparecer assim que o pagamento for confirmado.</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
@@ -358,6 +359,14 @@ export async function companyPage(el, [id], { alive }) {
   ]);
   if (!alive()) return;
   if (!c) { el.innerHTML = empty('building', 'Empresa não encontrada'); return; }
+  const dono = state.user && c.owner_id === state.user.id;
+  let svcs = [];
+  if (listing) {
+    const { data: plano } = await sb.rpc('active_plan', { uid: c.owner_id });
+    if (!alive()) return;
+    svcs = visibleServices(listing, plano);
+    if (!svcs.some((x) => x.descricao) && listing.about && svcs[0]) svcs = [{ ...svcs[0], descricao: listing.about }, ...svcs.slice(1)];
+  }
   const wa = waLink(c.phone, `Olá! Vi a ${c.name} no BuscAqui.`);
   const insta = c.instagram ? `https://instagram.com/${c.instagram.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '')}` : '';
   const url = (u) => (u && !/^https?:\/\//.test(u) ? 'https://' + u : u);
@@ -375,10 +384,10 @@ export async function companyPage(el, [id], { alive }) {
       </div>
     </div>
     ${listing ? `<div class="card">
-      <h2>Serviços oferecidos</h2>
-      <div class="chips">${(listing.services || []).map((x) => `<span class="tag">${esc(x.categoria)}</span>`).join('')}</div>
-      ${listing.about ? `<p>${nl2br(listing.about)}</p>` : ''}
-    </div>` : ''}
+      <div class="row-between"><h2>Serviços oferecidos</h2>
+        ${dono ? `<a href="#/divulgar" class="btn btn-secondary btn-sm">${ICON.edit} Editar divulgação</a>` : ''}</div>
+      <ul class="svc-offer">${svcs.map((x) => `<li><span class="tag">${esc(x.categoria)}</span>${x.descricao ? `<span>${esc(x.descricao)}</span>` : ''}</li>`).join('')}</ul>
+    </div>` : dono ? `<a href="#/divulgar" class="card cta-band"><div><h3>Divulgue os serviços da sua empresa</h3><p class="muted">Apareça para quem procura em Arcos.</p></div><span class="btn btn-secondary">Divulgar serviços</span></a>` : ''}
     <div class="detail">
       <div>
         <h2 class="section-title">Vagas abertas (${(jobs || []).length})</h2>
@@ -412,53 +421,81 @@ function companyListingFields(c) {
 export function companyServices(el, _p, { go }) {
   const c = state.company;
   const cur = state.professional?.company_id === c.id ? state.professional : null;
-  const chosen = new Set((cur?.services || []).map((x) => x.categoria));
-  el.innerHTML = `
-    <div class="page-head"><h1>Divulgar serviços da empresa</h1>
-      <p class="muted">Sua empresa aparece em "Encontrar profissional", com a etiqueta "Empresa", para quem procura esse tipo de serviço.</p></div>
-    <form id="f" class="card narrow">
-      <div class="row">${avatar(c.logo_url, c.name, 56, true)}
-        <div><b>${esc(c.name)}</b><p class="muted small">${ICON.pin}${esc([c.address, c.city].filter(Boolean).join(', ') || 'Endereço não informado')}</p></div></div>
-      <p class="muted small">Nome, logo, telefone e endereço vêm do <a href="#/empresa">cadastro da empresa</a>.</p>
-      <h3>Quais serviços a empresa oferece?</h3>
-      <div class="check-grid">${CATEGORIAS_EMPRESA.map((cat) => `
-        <label class="check-chip"><input type="checkbox" name="cat" value="${esc(cat)}" ${chosen.has(cat) ? 'checked' : ''}><span>${esc(cat)}</span></label>`).join('')}</div>
-      <label>Descreva os serviços<textarea name="about" rows="4" placeholder="Ex.: Mecânica em geral, suspensão, freios e troca de óleo. Atendemos carros e motos.">${esc(cur?.about || '')}</textarea></label>
-      <p class="muted small">Não é preciso informar valores.</p>
-      <button class="btn btn-primary btn-block btn-lg" type="submit">${cur ? 'Salvar alterações' : 'Divulgar serviços'}</button>
-      ${cur ? `<button type="button" class="btn btn-ghost btn-block danger" id="stop">${ICON.trash} Parar de divulgar</button>` : ''}
-    </form>`;
-  const f = el.querySelector('#f');
-  f.onsubmit = async (e) => {
-    e.preventDefault();
-    const cats = [...f.querySelectorAll('[name=cat]:checked')].map((x) => x.value);
-    const about = f.about.value.trim();
-    if (!cats.length) return toast('Escolha pelo menos um serviço.', 'err');
-    if (about.length < 10) return toast('Descreva os serviços em pelo menos uma frase.', 'err');
-    const row = {
-      ...companyListingFields(c), user_id: state.user.id, company_id: c.id,
-      services: cats.map((categoria) => ({ categoria, descricao: '' })), about, price: null,
-    };
-    const btn = f.querySelector('[type=submit]'); setBusy(btn, true, 'Salvando...');
-    const { error } = cur
-      ? await sb.from('professionals').update(row).eq('id', cur.id)
-      : await sb.from('professionals').insert(row);
-    setBusy(btn, false);
-    if (error) {
-      toast(errMsg(error), 'err');
-      if (/PLANO_NECESSARIO/.test(error.message || '')) go('/planos');
-      return;
-    }
-    await loadUserData();
-    toast(cur ? 'Divulgação atualizada! ✅' : 'Serviços divulgados! 🎉');
-    go('/painel');
+  const limite = servicesLimit();
+  // Cada serviço = categoria + descrição. Divulgações antigas (uma descrição só) viram o 1º serviço.
+  let rows = (cur?.services || []).map((x) => ({ categoria: x.categoria || '', descricao: x.descricao || '' }));
+  if (rows.length && cur?.about && !rows.some((r) => r.descricao)) rows[0].descricao = cur.about;
+  if (!rows.length) rows = [{ categoria: '', descricao: '' }];
+
+  const read = () => {
+    rows = [...el.querySelectorAll('.svc')].map((r) => ({
+      categoria: r.querySelector('select').value, descricao: r.querySelector('input').value.trim(),
+    }));
   };
-  el.querySelector('#stop')?.addEventListener('click', async () => {
-    if (!(await confirmBox('Parar de divulgar', 'Sua empresa vai sair da lista de serviços. Você pode divulgar de novo quando quiser.', 'Parar de divulgar', true))) return;
-    const { error } = await sb.from('professionals').delete().eq('id', cur.id);
-    if (error) return toast(errMsg(error), 'err');
-    await loadUserData();
-    toast('Divulgação encerrada.', 'info');
-    go('/painel');
-  });
+  const draw = () => {
+    const cheio = limite && rows.length >= limite;
+    el.innerHTML = `
+      <div class="page-head"><h1>${cur ? 'Editar divulgação' : 'Divulgar serviços da empresa'}</h1>
+        <p class="muted">Sua empresa aparece em "Encontrar profissional", com a etiqueta "Empresa", para quem procura esses serviços.</p></div>
+      <form id="f" class="card narrow">
+        <div class="row">${avatar(c.logo_url, c.name, 56, true)}
+          <div><b>${esc(c.name)}</b><p class="muted small">${ICON.pin}${esc([c.address, c.city].filter(Boolean).join(', ') || 'Endereço não informado')}</p></div></div>
+        <p class="muted small">Nome, logo, telefone e endereço vêm do <a href="#/empresa">cadastro da empresa</a>.</p>
+        <h3>Quais serviços a empresa oferece?</h3>
+        <p class="muted small">${limite ? `Seu plano permite até <b>${limite} serviços</b>. No plano <a href="#/planos">Profissional</a>, são ilimitados.` : 'Seu plano permite serviços ilimitados.'}</p>
+        <div id="svcs">${rows.map((r, i) => `
+          <div class="svc repeat">
+            <label>Serviço ${i + 1}<select>${options(CATEGORIAS_EMPRESA, r.categoria, 'Escolha a categoria')}</select></label>
+            <label>Descrição<input value="${esc(r.descricao)}" maxlength="200" placeholder="Ex.: Freios, suspensão e troca de óleo para carros e motos"></label>
+            ${rows.length > 1 ? `<button type="button" class="link-btn danger small" data-del="${i}">Remover este serviço</button>` : ''}
+          </div>`).join('')}</div>
+        ${cheio ? `<p class="muted small">${ICON.star} Para divulgar mais serviços, mude para o plano <a href="#/planos">Profissional</a>.</p>`
+          : `<button type="button" class="btn btn-ghost btn-sm" id="add">${ICON.plus} Adicionar outro serviço</button>`}
+        <p class="muted small">Não é preciso informar valores.</p>
+        <button class="btn btn-primary btn-block btn-lg" type="submit">${cur ? 'Salvar alterações' : 'Divulgar serviços'}</button>
+        ${cur ? `<button type="button" class="btn btn-ghost btn-block danger" id="stop">${ICON.trash} Parar de divulgar</button>` : ''}
+      </form>`;
+    el.querySelector('#add')?.addEventListener('click', () => { read(); rows.push({ categoria: '', descricao: '' }); draw(); });
+    el.querySelectorAll('[data-del]').forEach((b) => (b.onclick = () => { read(); rows.splice(Number(b.dataset.del), 1); draw(); }));
+    const f = el.querySelector('#f');
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      read();
+      const lista = rows.filter((r) => r.categoria);
+      if (!lista.length) return toast('Escolha a categoria de pelo menos um serviço.', 'err');
+      if (lista.some((r) => r.descricao.length < 5)) return toast('Escreva uma descrição curta para cada serviço.', 'err');
+      if (limite && lista.length > limite) return toast(`Seu plano permite até ${limite} serviços.`, 'err');
+      const row = {
+        ...companyListingFields(c), user_id: state.user.id, company_id: c.id,
+        services: lista, about: null, price: null,
+      };
+      const btn = f.querySelector('[type=submit]'); setBusy(btn, true, 'Salvando...');
+      const { error } = cur
+        ? await sb.from('professionals').update(row).eq('id', cur.id)
+        : await sb.from('professionals').insert(row);
+      setBusy(btn, false);
+      if (error) {
+        toast(errMsg(error), 'err');
+        if (/PLANO_NECESSARIO|LIMITE_SERVICOS/.test(error.message || '')) go('/planos');
+        return;
+      }
+      await loadUserData();
+      toast(cur ? 'Divulgação atualizada! ✅' : 'Serviços divulgados! 🎉');
+      go('/painel');
+    };
+    el.querySelector('#stop')?.addEventListener('click', async () => {
+      if (!(await confirmBox('Parar de divulgar', 'Sua empresa vai sair da lista de serviços. Você pode divulgar de novo quando quiser.', 'Parar de divulgar', true))) return;
+      const { error } = await sb.from('professionals').delete().eq('id', cur.id);
+      if (error) return toast(errMsg(error), 'err');
+      await loadUserData();
+      toast('Divulgação encerrada.', 'info');
+      go('/painel');
+    });
+  };
+  draw();
+}
+
+// Quantos serviços a empresa pode divulgar: Profissional = sem limite; teste grátis e Básico = 3
+function servicesLimit() {
+  return activePlan()?.plan === 'profissional' ? 0 : LIMITE_SERVICOS;
 }

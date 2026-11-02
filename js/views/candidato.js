@@ -1,10 +1,10 @@
-import { sb } from '../supabase.js';
-import { state, loadUserData } from '../store.js';
+import { sb } from '../supabase.js?v=202611021809';
+import { state, loadUserData } from '../store.js?v=202611021809';
 import {
   ICON, esc, nl2br, salaryRange, timeAgo, dateBR, avatar, options, loading, empty, toast, modal,
   confirmBox, errMsg, setBusy, formData, badgeStatus, uploadFile, maskPhone, waLink,
   CATEGORIAS_VAGA, MODALIDADES,
-} from '../ui.js';
+} from '../ui.js?v=202611021809';
 
 // ============================================================
 // Cartão de vaga (usado em várias telas)

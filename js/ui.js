@@ -25,11 +25,11 @@ export const MODALIDADES = ['Presencial', 'Híbrido', 'Remoto'];
 export const PLANOS = {
   basico: {
     nome: 'Básico', preco: 29.90, para: 'empresa',
-    itens: ['Até 5 vagas por mês', 'Serviços da empresa com selo "Destaque"'],
+    itens: ['Até 5 vagas por mês', 'Até 3 serviços divulgados, com selo "Destaque"'],
   },
   profissional: {
     nome: 'Profissional', preco: 49.90, para: 'empresa',
-    itens: ['Vagas ilimitadas', 'Destaque no topo da lista de serviços', 'Relatórios (em breve)'],
+    itens: ['Vagas ilimitadas', 'Serviços ilimitados, no topo da lista', 'Relatórios (em breve)'],
   },
   autonomo_destaque: {
     nome: 'Autônomo Destaque', preco: 14.90, para: 'profissional',
@@ -37,6 +37,7 @@ export const PLANOS = {
   },
 };
 export const DIAS_TESTE_EMPRESA = 30;
+export const LIMITE_SERVICOS = 3; // teste grátis e Básico (Profissional = ilimitado)
 
 export const STATUS_CANDIDATURA = {
   enviada: { label: 'Enviada', cls: 'b-gray' },
@@ -264,6 +265,7 @@ export function errMsg(error) {
     [/(?:PLANO_NECESSARIO|CNPJ_INVALIDO|CPF_INVALIDO|CPF_NECESSARIO):\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
     [/companies_cnpj_uniq/i, 'Este CNPJ já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
     [/profiles_cpf_uniq/i, 'Este CPF já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
+    [/LIMITE_SERVICOS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
     [/LIMITE_VAGAS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1) + ' Para publicar mais, mude para o plano Profissional.'],
     [/duplicate key/i, 'Este registro já existe.'],
     [/row-level security/i, 'Você não tem permissão para fazer isso.'],

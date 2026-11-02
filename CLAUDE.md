@@ -25,6 +25,7 @@ candidatos a emprego, profissionais autônomos e empresas locais. Dono: Rafael (
 - `js/views/` — `auth.js`, `candidato.js`, `servicos.js`, `empresa.js`, `perfil.js`.
 - `supabase/setup.sql` — tabelas, trigger de perfil, RLS, buckets (`avatars`, `logos` públicos; `curriculos` privado) e dados de exemplo. Pode ser rodado de novo sem perder dados.
 - `supabase/remover-exemplos.sql` — apaga os dados de exemplo.
+- `js/views/admin.js` (área do admin), `js/views/planos.js` (planos e Pix), `tools/versao.py` (versão dos arquivos).
 
 ## Status (1º de novembro de 2026)
 **Site no ar** em `https://rafaelvbcosta.github.io/buscaqui/`. Configuração concluída:
@@ -53,8 +54,23 @@ Publicado depois (PRs #2 a #7, todos com merge feito pelo Rafael):
   `CATEGORIAS_EMPRESA` em `js/ui.js`, etiqueta "Empresa" e filtro Todos/Autônomos/Empresas. O `setup.sql`
   novo já foi rodado no Supabase e testado no site real.
 
+PR #8 (publicado): Admin + planos + Pix manual + controle contra fraude.
+- Conta admin: `rafaelvbcosta+admin@gmail.com` (perfil candidato, `profiles.is_admin = true`, marcado no SQL Editor).
+  Telas `#/admin`, `/admin/usuarios`, `/admin/pagamentos`, `/admin/moderacao`, `/admin/config` (chave Pix já cadastrada).
+- Planos (preço vale o do banco, `plan_price`): Básico R$ 29,90 (5 vagas/mês do calendário, até 3 serviços, selo
+  Destaque), Profissional R$ 49,90 (ilimitado, topo da lista), Autônomo Destaque R$ 14,90 (topo + selo).
+  Empresa: 30 dias grátis uma vez por CNPJ (`trial_registry`), com vagas ilimitadas e até 3 serviços.
+  Pix manual: usuário pede (código ex. BA-7F3K) → admin confirma → 30 dias (renovação soma).
+  Vencido: vagas e divulgação da empresa ficam pausadas (RLS `company_active`), nada é apagado.
+- CNPJ obrigatório/único/travado (consulta BrasilAPI no cadastro), CPF obrigatório/único/travado para autônomo.
+- Testado no site real: CNPJ de teste via Admin › Documento, pedido do Básico, confirmação e plano ativo.
+
 Fluxo combinado: o Claude mostra prévia (prints) → Rafael aprova → PR → Rafael faz o merge. Mudança no banco:
-rodar o `setup.sql` da branch ANTES do merge.
+rodar o `setup.sql` da branch ANTES do merge. Testes do banco: Postgres 16 local com stubs de `auth`/`storage`.
+
+**Versão dos arquivos (cache do navegador):** todos os imports de `js/` e o `index.html` levam `?v=AAAAMMDDHHMM`.
+Antes de cada publicação, rode `python3 tools/versao.py` (troca a versão em todos ao mesmo tempo). Todos os
+arquivos precisam ter a MESMA versão, senão o navegador carrega o `store.js` duas vezes (estado duplicado).
 
 Pendências antes de abrir ao público:
 1. Religar "Confirm email" (Authentication → Sign In / Providers → Email).
@@ -62,8 +78,8 @@ Pendências antes de abrir ao público:
 3. Lembrar que o Supabase gratuito pausa após 7 dias sem uso.
 
 ## Fora do MVP (próximas versões, aparecem como "Em breve")
-Chat, notificações push, avaliações, login social, vídeo de apresentação, planos pagos
-(Básico R$ 49,90 / Profissional R$ 99,90), relatórios avançados, IA, cursos e painel administrativo.
+Chat, notificações push, avaliações, login social, vídeo de apresentação, relatórios avançados (plano
+Profissional) e estatísticas do autônomo, pagamento automático (Mercado Pago), IA e cursos.
 
 ## Regras ao alterar o código
 - Manter sem build e sem frameworks; textos da interface em português.
