@@ -1,6 +1,6 @@
 import { sb } from '../supabase.js';
 import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft } from '../store.js';
-import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS } from '../ui.js';
+import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode } from '../ui.js';
 
 // ============================================================
 // PLANOS (empresa e profissional autônomo) — pagamento por Pix manual
@@ -30,11 +30,12 @@ export async function plans(el, _p, ctx) {
       <p class="muted small">Seu perfil continua aparecendo para todos. Com o Destaque, ele aparece primeiro.</p></div></div>`;
   }
 
-  const pixBox = (p) => pix.pix_chave ? `
+  const pixBox = (p, sub) => pix.pix_chave ? `
     <div class="pix-box">
-      <p class="muted small">Faça um Pix de <b>${moneyCents(p.preco)}</b> para a chave abaixo${pix.pix_nome ? ` (${esc(pix.pix_nome)})` : ''}:</p>
+      <p class="muted small">1. Faça um Pix de <b>${moneyCents(p.preco)}</b> para a chave abaixo${pix.pix_nome ? ` (${esc(pix.pix_nome)})` : ''}:</p>
       <div class="pix-key"><code id="pixkey">${esc(pix.pix_chave)}</code>
         <button type="button" class="btn btn-ghost btn-sm" id="copy">${ICON.copy} Copiar</button></div>
+      <p class="muted small">2. Na mensagem do Pix, escreva o código do seu pedido: <b class="pix-code">${esc(pixCode(sub))}</b></p>
       <p class="muted small">Depois do pagamento, a equipe do BuscAqui confirma e o plano é ativado por 30 dias (normalmente em até 1 dia útil).</p>
     </div>` : '<p class="muted small">O pagamento por Pix ainda não foi configurado. Tente novamente mais tarde.</p>';
 
@@ -43,8 +44,8 @@ export async function plans(el, _p, ctx) {
     ${status}
     ${pend ? `<div class="card pend">
       <h3>${ICON.clock} Pedido aguardando confirmação</h3>
-      <p>Plano <b>${esc(PLANOS[pend.plan]?.nome || pend.plan)}</b> · ${moneyCents(pend.price)} · pedido em ${dateBR(pend.created_at)}</p>
-      ${pixBox(PLANOS[pend.plan])}
+      <p>Pedido <b>${esc(pixCode(pend))}</b> · Plano <b>${esc(PLANOS[pend.plan]?.nome || pend.plan)}</b> · ${moneyCents(pend.price)} · pedido em ${dateBR(pend.created_at)}</p>
+      ${pixBox(PLANOS[pend.plan], pend)}
       <button class="btn btn-ghost btn-sm danger" id="cancel">Cancelar pedido</button>
     </div>` : ''}
     <div class="grid plans">${lista.map(([id, p]) => `

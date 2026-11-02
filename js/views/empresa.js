@@ -1,9 +1,9 @@
 import { sb } from '../supabase.js';
-import { state, loadUserData, activePlan, pendingSub, trialDaysLeft } from '../store.js';
+import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
-  CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS,
+  CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos,
 } from '../ui.js';
 import { jobCard, wireJobButtons, resumeHtml } from './candidato.js';
 
@@ -50,7 +50,7 @@ export async function dashboard(el, _p, { alive }) {
         <thead><tr><th>Vaga</th><th>Status</th><th>Visualizações</th><th>Candidatos</th><th>Novos</th><th></th></tr></thead>
         <tbody>${jobs.map((j) => `<tr>
           <td><b>${esc(j.title)}</b></td>
-          <td>${j.status === 'aberta' ? '<span class="badge b-green">Aberta</span>' : '<span class="badge b-gray">Encerrada</span>'}</td>
+          <td>${j.status !== 'aberta' ? '<span class="badge b-gray">Encerrada</span>' : companyActive() ? '<span class="badge b-green">Aberta</span>' : '<span class="badge b-yellow">Pausada</span>'}</td>
           <td>${j.views}</td><td>${j.total}</td>
           <td>${j.novos ? `<span class="badge b-yellow">${j.novos}</span>` : '0'}</td>
           <td><a href="#/candidatos/${j.id}" class="btn btn-ghost btn-sm">Ver candidatos</a></td></tr>`).join('')}</tbody>
@@ -77,8 +77,9 @@ function planBanner() {
     <p class="muted small">Válido até ${dateBR(ativo.ends_at)}.</p></div><span class="btn btn-ghost btn-sm">Ver plano</span></a>`;
   if (dias > 0) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Teste grátis: falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}</b>
     <p class="muted small">Aproveite tudo do plano Profissional. Depois, escolha um plano para continuar.</p></div><span class="btn btn-secondary btn-sm">Ver planos</span></a>`;
-  return `<a href="#/planos" class="card plan-status warn">${ICON.ban}<div class="grow"><b>Seu teste grátis terminou</b>
-    <p class="muted small">Escolha um plano para publicar novas vagas e divulgar serviços.</p></div><span class="btn btn-primary btn-sm">Escolher plano</span></a>`;
+  const venceu = state.subs.some((x) => x.status === 'ativa');
+  return `<a href="#/planos" class="card plan-status warn">${ICON.ban}<div class="grow"><b>${venceu ? 'Seu plano venceu' : 'Seu teste grátis terminou'}: vagas e divulgação pausadas</b>
+    <p class="muted small">Nada foi apagado. Suas vagas e candidatos estão guardados e voltam a aparecer assim que o pagamento for confirmado.</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
 }
 
 // ============================================================
@@ -94,7 +95,7 @@ export async function myJobs(el, _p, ctx) {
       <div class="card myjob">
         <div class="grow">
           <div class="row"><h3><a href="#/vaga/${j.id}">${esc(j.title)}</a></h3>
-            ${j.status === 'aberta' ? '<span class="badge b-green">Aberta</span>' : '<span class="badge b-gray">Encerrada</span>'}</div>
+            ${j.status !== 'aberta' ? '<span class="badge b-gray">Encerrada</span>' : companyActive() ? '<span class="badge b-green">Aberta</span>' : '<a href="#/planos" class="badge b-yellow">Pausada: renove o plano</a>'}</div>
           <p class="muted small">${esc(j.modality || '')} · ${esc(j.location || '')} · ${salaryRange(j.salary_min, j.salary_max)} · publicada em ${dateBR(j.created_at)}</p>
           <p class="small">${ICON.eye} ${j.views} visualizações · ${ICON.users} ${j.total} candidatos ${j.novos ? `· <b class="hl">${j.novos} novo(s)</b>` : ''}</p>
         </div>
@@ -281,7 +282,8 @@ export function companyForm(el, _p, { go, refreshShell }) {
         <label class="btn btn-ghost btn-sm file-btn">${ICON.upload} Enviar logo<input type="file" id="logo" accept="image/*" hidden></label></div>
       <label>Nome da empresa<input name="name" value="${esc(c.name)}" required></label>
       <div class="two">
-        <label>CNPJ<input name="cnpj" value="${esc(c.cnpj)}" inputmode="numeric" placeholder="00.000.000/0000-00"></label>
+        <label>CNPJ ${c.cnpj ? '' : '<small class="muted">(obrigatório)</small>'}<input name="cnpj" value="${esc(c.cnpj)}" inputmode="numeric" placeholder="00.000.000/0000-00" ${c.cnpj ? 'readonly' : 'required'}>
+          ${c.cnpj ? '<small class="muted">Para corrigir o CNPJ, fale com o suporte do BuscAqui.</small>' : ''}</label>
         <label>Segmento<select name="segment">${options(CATEGORIAS_VAGA, c.segment, 'Escolha')}</select></label>
       </div>
       <label>Endereço<input name="address" value="${esc(c.address)}" placeholder="Rua, número, bairro"></label>
@@ -315,8 +317,22 @@ export function companyForm(el, _p, { go, refreshShell }) {
     e.preventDefault();
     const d = formData(f);
     if (!d.name) return toast('Informe o nome da empresa.', 'err');
+    if (!validCNPJ(d.cnpj)) return toast('Informe um CNPJ válido (14 números).', 'err');
+    const btn = f.querySelector('[type=submit]'); setBusy(btn, true, 'Conferindo o CNPJ...');
+    if (!c.cnpj) {
+      const ck = await checkCNPJ(d.cnpj);
+      if (ck.found === false) { setBusy(btn, false); return toast('Este CNPJ não foi encontrado na Receita Federal. Confira os números.', 'err'); }
+      if (ck.found && ck.situacao && ck.situacao !== 'ATIVA') { setBusy(btn, false); return toast(`Este CNPJ não está ativo na Receita Federal (situação: ${ck.situacao}).`, 'err'); }
+      if (ck.found && !isArcos(ck)) {
+        setBusy(btn, false);
+        const ok = await confirmBox('CNPJ de outra cidade', `Este CNPJ é de ${ck.municipio || '?'} - ${ck.uf || '?'}. O BuscAqui é exclusivo para empresas de Arcos - MG. Deseja continuar mesmo assim? A equipe do BuscAqui vai analisar o cadastro.`, 'Continuar');
+        if (!ok) return;
+        setBusy(btn, true, 'Salvando...');
+      }
+    }
     const row = { ...d, logo_url: logo || null, owner_id: state.user.id };
-    const btn = f.querySelector('[type=submit]'); setBusy(btn, true, 'Salvando...');
+    if (c.cnpj) delete row.cnpj;
+    setBusy(btn, true, 'Salvando...');
     const { error } = isNew ? await sb.from('companies').insert(row) : await sb.from('companies').update(row).eq('id', c.id);
     setBusy(btn, false);
     if (error) return toast(errMsg(error), 'err');

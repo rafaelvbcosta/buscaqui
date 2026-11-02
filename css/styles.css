@@ -418,3 +418,7 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .user-row .chips { margin: .35rem 0 0; }
 .user-row.is-blocked { opacity: .7; border-left: 5px solid var(--red); }
 .tag svg { width: 13px; height: 13px; vertical-align: -2px; }
+
+.pix-code { font-size: 1.05rem; letter-spacing: .05em; color: var(--forest); background: var(--yellow-50); padding: .1rem .45rem; border-radius: 6px; }
+input[readonly] { background: var(--bg); color: var(--muted); }
+a.badge:hover { text-decoration: none; filter: brightness(.97); }

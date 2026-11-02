@@ -38,6 +38,11 @@ export async function loadUserData() {
   state.favorites = new Set((f.data || []).map((x) => x.job_id));
   state.applied = new Set((a.data || []).map((x) => x.job_id));
   state.subs = s.data || [];
+  state.trialEnds = null;
+  if (state.company) {
+    const t = await sb.rpc('company_trial_ends', { cid: state.company.id });
+    state.trialEnds = t.data || null;
+  }
   if (p.error) console.error(p.error);
 }
 
@@ -62,10 +67,14 @@ export function activePlan() {
 
 export const pendingSub = () => state.subs.find((x) => x.status === 'pendente') || null;
 
+// Empresa em dia (teste grátis ou plano ativo). Fora disso, vagas e divulgação ficam pausadas.
+export const companyActive = () => trialDaysLeft() > 0 || Boolean(activePlan());
+
 // Teste grátis da empresa: dias que faltam (0 = acabou)
 export function trialDaysLeft() {
   if (!state.company?.created_at) return 0;
-  const fim = Date.parse(state.company.created_at) + 30 * 864e5;
+  // o teste conta pelo CNPJ (o banco guarda quando cada CNPJ começou o teste)
+  const fim = state.trialEnds ? Date.parse(state.trialEnds) : Date.parse(state.company.created_at) + 30 * 864e5;
   return Math.max(0, Math.ceil((fim - Date.now()) / 864e5));
 }
 

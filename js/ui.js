@@ -123,6 +123,66 @@ export function maskCNPJ(input) {
   });
 }
 
+// ---------- CPF / CNPJ ----------
+export function validCPF(v) {
+  const d = digits(v);
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  for (const k of [9, 10]) {
+    let s = 0;
+    for (let i = 0; i < k; i++) s += Number(d[i]) * (k + 1 - i);
+    const r = (s * 10) % 11 % 10;
+    if (r !== Number(d[k])) return false;
+  }
+  return true;
+}
+
+export function validCNPJ(v) {
+  const d = digits(v);
+  if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+  const calc = (n) => {
+    const w = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const s = w.reduce((t, x, i) => t + Number(d[i]) * x, 0) % 11;
+    return s < 2 ? 0 : 11 - s;
+  };
+  return calc(12) === Number(d[12]) && calc(13) === Number(d[13]);
+}
+
+export function maskCPF(input) {
+  input.addEventListener('input', () => {
+    const d = digits(input.value).slice(0, 11);
+    let o = d;
+    if (d.length > 3) o = d.slice(0, 3) + '.' + d.slice(3);
+    if (d.length > 6) o = o.slice(0, 7) + '.' + o.slice(7);
+    if (d.length > 9) o = o.slice(0, 11) + '-' + o.slice(11);
+    input.value = o;
+  });
+}
+
+// Consulta pública e gratuita do CNPJ (BrasilAPI). Nunca trava o site se a consulta falhar.
+export async function checkCNPJ(cnpj) {
+  try {
+    const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits(cnpj)}`);
+    if (r.status === 404) return { found: false };
+    if (!r.ok) return { error: true };
+    const j = await r.json();
+    return {
+      found: true,
+      situacao: String(j.descricao_situacao_cadastral || '').toUpperCase(),
+      municipio: String(j.municipio || '').toUpperCase(),
+      uf: String(j.uf || '').toUpperCase(),
+      razao: j.razao_social || '', fantasia: j.nome_fantasia || '',
+      checked_at: new Date().toISOString(),
+    };
+  } catch { return { error: true }; }
+}
+export const isArcos = (ck) => ck?.municipio === 'ARCOS' && ck?.uf === 'MG';
+
+// Código curto do pedido de plano, para a pessoa escrever na mensagem do Pix
+export function pixCode(sub) {
+  const pre = { basico: 'BA', profissional: 'PR', autonomo_destaque: 'AD' }[sub.plan] || 'BQ';
+  return `${pre}-${String(sub.id).replace(/-/g, '').slice(0, 4).toUpperCase()}`;
+}
+
 export function initials(name) {
   const p = String(name || '?').trim().split(/\s+/).filter((w) => /^\p{L}/u.test(w));
   return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase() || '?';
@@ -201,7 +261,9 @@ export function errMsg(error) {
     [/Email not confirmed/i, 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).'],
     [/rate limit|too many/i, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'],
     [/Unable to validate email|invalid format|valid email/i, 'E-mail inválido.'],
-    [/PLANO_NECESSARIO:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
+    [/(?:PLANO_NECESSARIO|CNPJ_INVALIDO|CPF_INVALIDO|CPF_NECESSARIO):\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
+    [/companies_cnpj_uniq/i, 'Este CNPJ já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
+    [/profiles_cpf_uniq/i, 'Este CPF já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
     [/LIMITE_VAGAS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1) + ' Para publicar mais, mude para o plano Profissional.'],
     [/duplicate key/i, 'Este registro já existe.'],
     [/row-level security/i, 'Você não tem permissão para fazer isso.'],

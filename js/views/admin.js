@@ -1,7 +1,7 @@
 import { sb } from '../supabase.js';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
-  moneyCents, waLink, PLANOS,
+  moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
 } from '../ui.js';
 
 // ============================================================
@@ -60,10 +60,11 @@ export async function overview(el, _p, { alive }) {
 
 // ---------- Usuários ----------
 export async function users(el, _p, ctx) {
-  const [pr, subs, comps] = await Promise.all([
+  const [pr, subs, comps, trials] = await Promise.all([
     sb.from('profiles').select('*').order('created_at', { ascending: false }),
     sb.from('subscriptions').select('user_id, plan, status, starts_at, ends_at'),
-    sb.from('companies').select('owner_id, name, created_at'),
+    sb.from('companies').select('id, owner_id, name, cnpj, cnpj_check, created_at'),
+    sb.from('trial_registry').select('cnpj, started_at'),
   ]);
   if (!ctx.alive()) return;
   if (pr.error) { el.innerHTML = `<div class="card">${esc(errMsg(pr.error))}</div>`; return; }
@@ -74,6 +75,15 @@ export async function users(el, _p, ctx) {
     return { plan: a[0].plan, ends: fim };
   };
   const empresa = (uid) => (comps.data || []).find((c) => c.owner_id === uid);
+  const trialEnd = (emp) => {
+    const t = (trials.data || []).find((x) => x.cnpj === digits(emp.cnpj));
+    return Date.parse(t?.started_at || emp.created_at) + 30 * 864e5;
+  };
+  // Mesmo telefone em contas diferentes = possível cadastro duplicado (para você analisar)
+  const fones = {};
+  pr.data.forEach((u) => { const f = digits(u.phone); if (f.length >= 10) (fones[f] = fones[f] || []).push(u.id); });
+  const dup = (u) => (fones[digits(u.phone)] || []).length > 1;
+  const nDup = pr.data.filter(dup).length;
   el.innerHTML = `
     <div class="page-head"><h1>Usuários</h1><p class="muted">${pr.data.length} conta(s) cadastrada(s).</p></div>
     <div class="card filters">
@@ -83,6 +93,7 @@ export async function users(el, _p, ctx) {
         <button type="button" data-t="candidato">Candidatos</button>
         <button type="button" data-t="profissional">Autônomos</button>
         <button type="button" data-t="empresa">Empresas</button>
+        <button type="button" data-t="dup">Possíveis duplicados (${nDup})</button>
       </div>
     </div>
     <div class="stack" id="list"></div>`;
@@ -90,21 +101,28 @@ export async function users(el, _p, ctx) {
   const q = el.querySelector('#q');
   const draw = () => {
     const t = q.value.trim().toLowerCase();
-    const res = pr.data.filter((u) => (!tipo || u.role === tipo) &&
-      (!t || [u.full_name, u.email, u.phone, empresa(u.id)?.name].join(' ').toLowerCase().includes(t)));
+    const res = pr.data.filter((u) => (!tipo || (tipo === 'dup' ? dup(u) : u.role === tipo)) &&
+      (!t || [u.full_name, u.email, u.phone, u.cpf, empresa(u.id)?.name, empresa(u.id)?.cnpj].join(' ').toLowerCase().includes(t)));
     el.querySelector('#list').innerHTML = res.map((u) => {
       const pl = plano(u.id), emp = empresa(u.id);
-      const trial = u.role === 'empresa' && emp && Date.parse(emp.created_at) + 30 * 864e5 > now();
+      const trial = u.role === 'empresa' && emp && trialEnd(emp) > now();
+      const ck = emp?.cnpj_check;
+      const doc = u.role === 'empresa'
+        ? (emp?.cnpj ? `CNPJ ${esc(emp.cnpj)} ${ck ? (ck.found === false ? '<span class="badge b-red">Não encontrado</span>' : `<span class="badge ${ck.situacao === 'ATIVA' && isArcos(ck) ? 'b-green' : 'b-yellow'}">${ICON.check} ${esc(ck.situacao || '')} · ${esc(ck.municipio || '?')}-${esc(ck.uf || '')}</span>`) : '<span class="badge b-gray">Não verificado</span>'}` : '<span class="badge b-yellow">Sem CNPJ</span>')
+        : u.role === 'profissional' ? (u.cpf ? `CPF ${esc(u.cpf)}` : '<span class="badge b-yellow">Sem CPF</span>') : '';
       return `<article class="card user-row ${u.blocked ? 'is-blocked' : ''}">
         <div class="row grow">${avatar(u.avatar_url, u.full_name, 44)}
           <div><b>${esc(u.full_name || '(sem nome)')}</b>${u.is_admin ? ' <span class="badge b-blue">Admin</span>' : ''}
-            <p class="muted small">${esc(u.email || '')}${u.phone ? ' · ' + esc(u.phone) : ''}</p>
+            <p class="muted small">${esc(u.email || '')}${u.phone ? ' · ' + esc(u.phone) : ''}${dup(u) ? ' <span class="badge b-yellow">Telefone repetido</span>' : ''}</p>
+            ${doc ? `<p class="small">${doc}</p>` : ''}
             <div class="chips"><span class="tag">${esc(PERFIL[u.role] || u.role)}</span>
               ${emp ? `<span class="tag">${ICON.building} ${esc(emp.name)}</span>` : ''}
               ${pl ? `<span class="badge b-green">${esc(planName(pl.plan))} até ${dateBR(new Date(pl.ends))}</span>` : trial ? '<span class="badge b-yellow">Teste grátis</span>' : ''}
               ${u.blocked ? '<span class="badge b-red">Bloqueado</span>' : ''}</div>
             <p class="muted small">Cadastro em ${dateBR(u.created_at)}</p></div></div>
         <div class="row wrap">
+          ${emp?.cnpj ? `<button class="btn btn-ghost btn-sm" data-check="${emp.id}">${ICON.search} Verificar CNPJ</button>` : ''}
+          ${u.role !== 'candidato' ? `<button class="btn btn-ghost btn-sm" data-doc="${u.id}">${ICON.edit} Documento</button>` : ''}
           ${u.role !== 'candidato' ? `<button class="btn btn-ghost btn-sm" data-grant="${u.id}">${ICON.star} Dar plano</button>` : ''}
           ${u.is_admin ? '' : u.blocked
             ? `<button class="btn btn-ghost btn-sm" data-unblock="${u.id}">${ICON.check} Desbloquear</button>`
@@ -123,6 +141,42 @@ export async function users(el, _p, ctx) {
     draw();
   };
   const wire = () => {
+    el.querySelectorAll('[data-check]').forEach((b) => (b.onclick = async () => {
+      const emp = comps.data.find((c) => c.id === b.dataset.check);
+      setBusy(b, true, 'Consultando...');
+      const ck = await checkCNPJ(emp.cnpj);
+      if (ck.error) { setBusy(b, false); return toast('Não foi possível consultar agora. Tente de novo em alguns minutos.', 'err'); }
+      const { error } = await sb.from('companies').update({ cnpj_check: ck }).eq('id', emp.id);
+      setBusy(b, false);
+      if (error) return toast(errMsg(error), 'err');
+      emp.cnpj_check = ck;
+      toast(ck.found ? `${ck.razao || 'CNPJ encontrado'} · ${ck.situacao} · ${ck.municipio}-${ck.uf}` : 'CNPJ não encontrado na Receita Federal.', ck.found ? 'ok' : 'err');
+      draw();
+    }));
+    el.querySelectorAll('[data-doc]').forEach((b) => (b.onclick = () => {
+      const u = pr.data.find((x) => x.id === b.dataset.doc);
+      const emp = empresa(u.id);
+      const isEmp = u.role === 'empresa';
+      if (isEmp && !emp) return toast('Esta empresa ainda não preencheu o cadastro da empresa.', 'info');
+      const m = modal(isEmp ? 'Corrigir CNPJ' : 'Corrigir CPF', `
+        <p>Só o admin pode trocar o documento depois de salvo. Confira antes de salvar.</p>
+        <form id="d"><label>${isEmp ? 'CNPJ' : 'CPF'}<input name="doc" inputmode="numeric" value="${esc(isEmp ? emp.cnpj : u.cpf)}"></label>
+          <div class="row-end"><button type="button" class="btn btn-ghost" data-x>Cancelar</button><button class="btn btn-primary">Salvar</button></div></form>`);
+      const inp = m.el.querySelector('[name=doc]');
+      (isEmp ? maskCNPJ : maskCPF)(inp);
+      m.el.querySelector('[data-x]').onclick = m.close;
+      m.el.querySelector('#d').onsubmit = async (e) => {
+        e.preventDefault();
+        const v = inp.value.trim();
+        if (v && !(isEmp ? validCNPJ(v) : validCPF(v))) return toast(isEmp ? 'CNPJ inválido.' : 'CPF inválido.', 'err');
+        const { error } = isEmp
+          ? await sb.from('companies').update({ cnpj: v || null, cnpj_check: null }).eq('id', emp.id)
+          : await sb.from('profiles').update({ cpf: v || null }).eq('id', u.id);
+        if (error) return toast(errMsg(error), 'err');
+        if (isEmp) { emp.cnpj = v; emp.cnpj_check = null; } else u.cpf = v;
+        m.close(); toast('Documento atualizado. ✅'); draw();
+      };
+    }));
     el.querySelectorAll('[data-block]').forEach((b) => (b.onclick = () => setBlocked(b.dataset.block, true)));
     el.querySelectorAll('[data-unblock]').forEach((b) => (b.onclick = () => setBlocked(b.dataset.unblock, false)));
     el.querySelectorAll('[data-grant]').forEach((b) => (b.onclick = () => {
@@ -167,7 +221,7 @@ export async function payments(el, _p, ctx) {
   const hist = data.filter((x) => x.status !== 'pendente').slice(0, 50);
   const STATUS = { ativa: ['b-green', 'Confirmado'], recusada: ['b-red', 'Recusado'], cancelada: ['b-gray', 'Cancelado pelo usuário'] };
   el.innerHTML = `
-    <div class="page-head"><h1>Pagamentos</h1><p class="muted">Confira o Pix na sua conta do banco antes de confirmar.</p></div>
+    <div class="page-head"><h1>Pagamentos</h1><p class="muted">Confira o Pix na sua conta do banco antes de confirmar. O código do pedido vem na mensagem do Pix.</p></div>
     <h2 class="section-title">Aguardando confirmação (${pend.length})</h2>
     <div class="stack">${pend.map((s) => {
       const u = s.profiles || {};
@@ -175,7 +229,7 @@ export async function payments(el, _p, ctx) {
       return `<article class="card pay-row">
         <div class="grow"><b>${esc(u.full_name || u.email || 'Usuário')}</b> <span class="tag">${esc(PERFIL[u.role] || '')}</span>
           <p class="muted small">${esc(u.email || '')}${u.phone ? ' · ' + esc(u.phone) : ''}</p>
-          <p>Plano <b>${esc(planName(s.plan))}</b> · <b>${moneyCents(s.price)}</b> · pedido ${timeAgo(s.created_at)}</p></div>
+          <p>Código <b class="pix-code">${esc(pixCode(s))}</b> · Plano <b>${esc(planName(s.plan))}</b> · <b>${moneyCents(s.price)}</b> · pedido ${timeAgo(s.created_at)}</p></div>
         <div class="row wrap">
           ${wa ? `<a class="btn btn-ghost btn-sm" href="${wa}" target="_blank" rel="noopener">${ICON.chat} WhatsApp</a>` : ''}
           <button class="btn btn-ghost btn-sm danger" data-refuse="${s.id}">Recusar</button>
@@ -184,9 +238,9 @@ export async function payments(el, _p, ctx) {
     }).join('') || empty('card', 'Nenhum pagamento aguardando', 'Quando alguém pedir um plano, ele aparece aqui.')}</div>
     <h2 class="section-title">Histórico</h2>
     <div class="card">${hist.length ? `<div class="table-wrap"><table class="table">
-      <thead><tr><th>Usuário</th><th>Plano</th><th>Valor</th><th>Situação</th><th>Validade</th></tr></thead>
+      <thead><tr><th>Código</th><th>Usuário</th><th>Plano</th><th>Valor</th><th>Situação</th><th>Validade</th></tr></thead>
       <tbody>${hist.map((s) => `<tr>
-        <td>${esc(s.profiles?.full_name || s.profiles?.email || '')}</td><td>${esc(planName(s.plan))}</td>
+        <td>${esc(pixCode(s))}</td><td>${esc(s.profiles?.full_name || s.profiles?.email || '')}</td><td>${esc(planName(s.plan))}</td>
         <td>${s.note ? esc(s.note) : moneyCents(s.price)}</td>
         <td><span class="badge ${STATUS[s.status]?.[0] || 'b-gray'}">${STATUS[s.status]?.[1] || esc(s.status)}</span></td>
         <td>${s.status === 'ativa' ? `${dateBR(s.starts_at)} a ${dateBR(s.ends_at)}` : '—'}</td></tr>`).join('')}</tbody>

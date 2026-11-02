@@ -651,6 +651,9 @@ create policy "profiles_admin_select" on public.profiles for select using (publi
 drop policy if exists "profiles_admin_update" on public.profiles;
 create policy "profiles_admin_update" on public.profiles for update
   using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "companies_admin_update" on public.companies;
+create policy "companies_admin_update" on public.companies for update
+  using (public.is_admin()) with check (public.is_admin());
 drop policy if exists "jobs_admin_select" on public.jobs;
 create policy "jobs_admin_select" on public.jobs for select using (public.is_admin());
 drop policy if exists "jobs_admin_delete" on public.jobs;
@@ -659,6 +662,170 @@ drop policy if exists "professionals_admin_delete" on public.professionals;
 create policy "professionals_admin_delete" on public.professionals for delete using (public.is_admin());
 drop policy if exists "requests_admin_delete" on public.service_requests;
 create policy "requests_admin_delete" on public.service_requests for delete using (public.is_admin());
+
+-- ---------- Documentos: CNPJ (empresas) e CPF (autônomos) ----------
+create or replace function public.only_digits(t text)
+returns text language sql immutable as $$ select regexp_replace(coalesce(t, ''), '\D', '', 'g') $$;
+
+create or replace function public.valid_cpf(t text)
+returns boolean language plpgsql immutable as $$
+declare d text := public.only_digits(t); s int; r int; i int;
+begin
+  if length(d) <> 11 or d ~ '^(\d)\1{10}$' then return false; end if;
+  for k in 9..10 loop
+    s := 0;
+    for i in 1..k loop s := s + substr(d, i, 1)::int * (k + 2 - i); end loop;
+    r := (s * 10) % 11; if r = 10 then r := 0; end if;
+    if r <> substr(d, k + 1, 1)::int then return false; end if;
+  end loop;
+  return true;
+end;
+$$;
+
+create or replace function public.valid_cnpj(t text)
+returns boolean language plpgsql immutable as $$
+declare d text := public.only_digits(t); w int[]; s int; r int; i int;
+begin
+  if length(d) <> 14 or d ~ '^(\d)\1{13}$' then return false; end if;
+  w := array[5,4,3,2,9,8,7,6,5,4,3,2];
+  s := 0; for i in 1..12 loop s := s + substr(d, i, 1)::int * w[i]; end loop;
+  r := s % 11; r := case when r < 2 then 0 else 11 - r end;
+  if r <> substr(d, 13, 1)::int then return false; end if;
+  w := array[6,5,4,3,2,9,8,7,6,5,4,3,2];
+  s := 0; for i in 1..13 loop s := s + substr(d, i, 1)::int * w[i]; end loop;
+  r := s % 11; r := case when r < 2 then 0 else 11 - r end;
+  return r = substr(d, 14, 1)::int;
+end;
+$$;
+
+alter table public.profiles  add column if not exists cpf text;
+alter table public.companies add column if not exists cnpj_check jsonb;   -- resultado da verificação (só o admin grava)
+
+create unique index if not exists profiles_cpf_uniq on public.profiles (public.only_digits(cpf))
+  where cpf is not null and cpf <> '';
+create unique index if not exists companies_cnpj_uniq on public.companies (public.only_digits(cnpj))
+  where cnpj is not null and cnpj <> '';
+
+-- CPF: precisa ser válido e, depois de salvo, só o admin troca
+create or replace function public.protect_profile_flags()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    new.is_admin := old.is_admin;
+    new.blocked  := old.blocked;
+    if coalesce(old.cpf, '') <> '' then new.cpf := old.cpf; end if;
+  end if;
+  if coalesce(new.cpf, '') <> '' and coalesce(new.cpf, '') is distinct from coalesce(old.cpf, '') then
+    if not public.valid_cpf(new.cpf) then raise exception 'CPF_INVALIDO: confira o CPF digitado.'; end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- Teste grátis: uma vez por CNPJ, para sempre (mesmo se a empresa for apagada)
+create table if not exists public.trial_registry (
+  cnpj        text primary key,
+  started_at  timestamptz not null default now()
+);
+alter table public.trial_registry enable row level security;
+drop policy if exists "trial_admin" on public.trial_registry;
+create policy "trial_admin" on public.trial_registry for select using (public.is_admin());
+
+-- CNPJ: obrigatório, válido, único e travado depois de salvo (só o admin troca)
+create or replace function public.companies_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    if tg_op = 'UPDATE' then
+      if coalesce(old.cnpj, '') <> '' then new.cnpj := old.cnpj; end if;
+      new.cnpj_check := old.cnpj_check;
+    else
+      new.cnpj_check := null;
+    end if;
+    if not public.valid_cnpj(new.cnpj) then
+      raise exception 'CNPJ_INVALIDO: informe um CNPJ válido.';
+    end if;
+  end if;
+  if coalesce(new.cnpj, '') <> '' then
+    insert into trial_registry (cnpj, started_at)
+    values (public.only_digits(new.cnpj), coalesce(new.created_at, now()))
+    on conflict (cnpj) do nothing;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists companies_guard on public.companies;
+create trigger companies_guard before insert or update on public.companies
+  for each row execute function public.companies_guard();
+
+-- Quando termina o teste grátis da empresa
+create or replace function public.company_trial_ends(cid uuid)
+returns timestamptz language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select t.started_at from trial_registry t join companies c on t.cnpj = public.only_digits(c.cnpj) where c.id = cid),
+    (select created_at from companies where id = cid)
+  ) + interval '30 days';
+$$;
+grant execute on function public.company_trial_ends(uuid) to authenticated;
+
+-- Agora conta o teste pelo CNPJ (e não pela data do cadastro)
+create or replace function public.company_can_publish(cid uuid)
+returns text language plpgsql stable security definer set search_path = public as $$
+declare v_owner uuid; v_plan text; v_count int;
+begin
+  select owner_id into v_owner from companies where id = cid;
+  if v_owner is null then return 'ok'; end if;              -- empresas de exemplo
+  if now() < public.company_trial_ends(cid) then return 'ok'; end if;
+  v_plan := public.active_plan(v_owner);
+  if v_plan = 'profissional' then return 'ok'; end if;
+  if v_plan = 'basico' then
+    select count(*) into v_count from jobs
+    where company_id = cid
+      and created_at >= (date_trunc('month', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo');
+    if v_count < 5 then return 'ok'; end if;
+    return 'limite';
+  end if;
+  return 'sem_plano';
+end;
+$$;
+
+-- Empresa "em dia": teste grátis ou plano ativo
+create or replace function public.company_active(cid uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select public.company_can_publish(cid) <> 'sem_plano';
+$$;
+grant execute on function public.company_active(uuid) to anon, authenticated;
+
+-- Autônomo precisa de CPF para divulgar o perfil
+create or replace function public.professionals_check_plan()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or public.is_admin() then return new; end if;
+  if new.company_id is null then
+    if coalesce((select cpf from profiles where id = new.user_id), '') = '' then
+      raise exception 'CPF_NECESSARIO: informe seu CPF para divulgar seus serviços.';
+    end if;
+    return new;
+  end if;
+  if tg_op = 'INSERT' and public.company_can_publish(new.company_id) = 'sem_plano' then
+    raise exception 'PLANO_NECESSARIO: o teste grátis de 30 dias terminou. Escolha um plano para divulgar os serviços.';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists professionals_check_plan on public.professionals;
+create trigger professionals_check_plan before insert or update on public.professionals
+  for each row execute function public.professionals_check_plan();
+
+-- Plano vencido: vagas e divulgação ficam PAUSADAS (escondidas), nada é apagado.
+-- Voltam sozinhas quando o pagamento é confirmado.
+drop policy if exists "jobs_select" on public.jobs;
+create policy "jobs_select" on public.jobs for select
+  using ((status = 'aberta' and public.company_active(company_id))
+         or public.is_company_owner(company_id) or public.has_applied(id));
+drop policy if exists "professionals_select" on public.professionals;
+create policy "professionals_select" on public.professionals for select
+  using (company_id is null or public.company_active(company_id) or user_id = auth.uid());
 
 -- PARA VIRAR ADMIN (rodar uma vez só, trocando o e-mail pelo da conta admin):
 --   update public.profiles set is_admin = true where email = 'SEU_EMAIL_AQUI';

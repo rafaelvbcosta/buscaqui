@@ -2,7 +2,7 @@ import { sb } from '../supabase.js';
 import { state, loadUserData, activePlan, pendingSub } from '../store.js';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, confirmBox, errMsg, setBusy, formData,
-  maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA,
+  maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA, maskCPF, validCPF,
 } from '../ui.js';
 
 const cats = (pr) => [...new Set((pr.services || []).map((s) => s.categoria).filter(Boolean))];
@@ -284,7 +284,7 @@ export function myService(el, _p, { go }) {
 
   const readStep = () => {
     const f = el.querySelector('#f');
-    if (step === 1) { d.name = f.elements.name.value.trim(); d.phone = f.phone.value.trim(); d.city = f.city.value.trim(); }
+    if (step === 1) { d.name = f.elements.name.value.trim(); d.phone = f.phone.value.trim(); d.city = f.city.value.trim(); if (f.cpf && !f.cpf.readOnly) d.cpf = f.cpf.value.trim(); }
     if (step === 2) d.services = [...el.querySelectorAll('.svc')].map((r) => ({ categoria: r.querySelector('select').value, descricao: r.querySelector('input').value.trim() }));
     if (step === 3) d.about = f.about.value.trim();
     if (step === 4) d.price = f.price.value.trim();
@@ -292,6 +292,7 @@ export function myService(el, _p, { go }) {
 
   const validate = () => {
     if (step === 1 && (!d.name || !d.phone)) return 'Informe seu nome e telefone.';
+    if (step === 1 && !p.cpf && !validCPF(d.cpf)) return 'Informe um CPF válido (11 números).';
     if (step === 2 && !d.services.some((s) => s.categoria)) return 'Escolha pelo menos um serviço.';
     if (step === 3 && d.about.length < 10) return 'Escreva um pouco sobre seu trabalho (pelo menos uma frase).';
     return '';
@@ -304,7 +305,10 @@ export function myService(el, _p, { go }) {
         <label class="btn btn-ghost btn-sm file-btn">${ICON.upload} Foto (opcional)<input type="file" id="photo" accept="image/*" hidden></label></div>
       <label>Nome que aparece para os clientes<input name="name" value="${esc(d.name)}" required placeholder="Ex.: João Eletricista"></label>
       <label>Telefone / WhatsApp<input name="phone" type="tel" value="${esc(d.phone)}" required></label>
-      <label>Cidade onde atende<input name="city" value="${esc(d.city)}" placeholder="Ex.: Belo Horizonte - MG"></label>`;
+      <label>Cidade onde atende<input name="city" value="${esc(d.city)}" placeholder="Ex.: Belo Horizonte - MG"></label>
+      <label>CPF ${p.cpf ? '' : '<small class="muted">(obrigatório, não aparece para os clientes)</small>'}<input name="cpf" inputmode="numeric" placeholder="000.000.000-00"
+        value="${esc(p.cpf || d.cpf || '')}" ${p.cpf ? 'readonly' : 'required'}>
+        ${p.cpf ? '<small class="muted">Para corrigir o CPF, fale com o suporte do BuscAqui.</small>' : '<small class="muted">Usado só para garantir um cadastro por pessoa.</small>'}</label>`;
     if (step === 2) return `
       <h2>2. Quais serviços você oferece?</h2>
       <div id="svcs">${d.services.map((s, i) => `
@@ -339,6 +343,7 @@ export function myService(el, _p, { go }) {
     const f = el.querySelector('#f');
     if (step === 1) {
       maskPhone(f.phone);
+      if (!f.cpf.readOnly) maskCPF(f.cpf);
       el.querySelector('#photo').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
         try {
@@ -359,6 +364,11 @@ export function myService(el, _p, { go }) {
       const v = validate(); if (v) return toast(v, 'err');
       if (step < 4) { step++; return draw(); }
       const btn = f.querySelector('[type=submit]'); setBusy(btn, true, 'Salvando...');
+      if (!p.cpf && d.cpf) {
+        const { error: e1 } = await sb.from('profiles').update({ cpf: d.cpf }).eq('id', state.user.id);
+        if (e1) { setBusy(btn, false); step = 1; draw(); return toast(errMsg(e1), 'err'); }
+        p.cpf = d.cpf;
+      }
       const row = {
         user_id: state.user.id, name: d.name, phone: d.phone, city: d.city, avatar_url: d.avatar_url || null,
         services: d.services.filter((s) => s.categoria), about: d.about, price: d.price || null,
