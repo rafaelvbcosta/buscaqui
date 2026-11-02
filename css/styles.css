@@ -234,6 +234,7 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .filter-row { display: grid; gap: .6rem; margin: .75rem 0; }
 .filter-row select { margin: 0; }
 @media (min-width: 640px) { .filter-row { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 640px) { .filter-row.cols-2 { grid-template-columns: repeat(2, 1fr); } }
 .filters .chips { margin-bottom: 0; }
 .filters > select { margin: 0; }
 

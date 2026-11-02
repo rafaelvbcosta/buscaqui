@@ -1,10 +1,10 @@
-import { sb } from '../supabase.js?v=202611022203';
-import { state, loadUserData } from '../store.js?v=202611022203';
+import { sb } from '../supabase.js?v=202611022217';
+import { state, loadUserData } from '../store.js?v=202611022217';
 import {
   ICON, esc, nl2br, salaryRange, timeAgo, dateBR, avatar, options, loading, empty, toast, modal,
   confirmBox, errMsg, setBusy, formData, badgeStatus, uploadFile, maskPhone, waLink,
-  CATEGORIAS_VAGA, MODALIDADES,
-} from '../ui.js?v=202611022203';
+  CATEGORIAS_VAGA,
+} from '../ui.js?v=202611022217';
 
 // ============================================================
 // Cartão de vaga (usado em várias telas)
@@ -24,7 +24,7 @@ export function jobCard(j) {
         <button class="icon-btn fav ${fav ? 'on' : ''}" data-fav="${j.id}" aria-label="Favoritar">${ICON.heart}</button>
       </div>
       <div class="job-meta">
-        <span>${ICON.pin}${esc(j.location || c.city || '—')}</span>
+        <span>${ICON.pin}${esc(j.location || 'Arcos')}</span>
         <span>${ICON.briefcase}${esc(j.modality || '—')}</span>
         ${j.category ? `<span class="tag">${esc(j.category)}</span>` : ''}
       </div>
@@ -93,9 +93,8 @@ export async function jobs(el, _p, { alive }) {
     <div class="page-head"><h1>Vagas</h1><p class="muted">Encontre a oportunidade certa para você.</p></div>
     <div class="card filters">
       <div class="search-box">${ICON.search}<input id="q" type="search" placeholder="Buscar cargo ou empresa" value="${esc(f.q || '')}"></div>
-      <div class="filter-row">
+      <div class="filter-row cols-2">
         <select id="cat">${options(CATEGORIAS_VAGA, f.cat, 'Todas as categorias')}</select>
-        <select id="mod">${options(MODALIDADES, f.mod, 'Qualquer modalidade')}</select>
         <select id="sal">
           ${[['', 'Qualquer salário'], ['1500', 'A partir de R$ 1.500'], ['2000', 'A partir de R$ 2.000'], ['3000', 'A partir de R$ 3.000'], ['5000', 'A partir de R$ 5.000']]
             .map(([v, t]) => `<option value="${v}" ${f.sal === v ? 'selected' : ''}>${t}</option>`).join('')}
@@ -110,18 +109,17 @@ export async function jobs(el, _p, { alive }) {
     <div class="grid" id="list"></div>`;
 
   const list = el.querySelector('#list');
-  const q = el.querySelector('#q'), cat = el.querySelector('#cat'), mod = el.querySelector('#mod'), sal = el.querySelector('#sal');
+  const q = el.querySelector('#q'), cat = el.querySelector('#cat'), sal = el.querySelector('#sal');
   const favBtn = el.querySelector('#onlyfav');
 
   const draw = () => {
     const term = q.value.trim().toLowerCase();
     const min = Number(sal.value || 0);
     const onlyFav = favBtn.classList.contains('on');
-    sessionStorage.setItem('bq_filters', JSON.stringify({ q: q.value, cat: cat.value, mod: mod.value, sal: sal.value, fav: onlyFav }));
+    sessionStorage.setItem('bq_filters', JSON.stringify({ q: q.value, cat: cat.value, sal: sal.value, fav: onlyFav }));
     const res = all.filter((j) =>
       (!term || j.title.toLowerCase().includes(term) || (j.companies?.name || '').toLowerCase().includes(term)) &&
       (!cat.value || j.category === cat.value) &&
-      (!mod.value || j.modality === mod.value) &&
       (!min || Number(j.salary_max || j.salary_min || 0) >= min) &&
       (!onlyFav || state.favorites.has(j.id)));
     el.querySelector('#count').textContent = `${res.length} vaga${res.length === 1 ? '' : 's'} encontrada${res.length === 1 ? '' : 's'}`;
@@ -129,9 +127,9 @@ export async function jobs(el, _p, { alive }) {
       : empty('search', onlyFav ? 'Nenhuma vaga favorita ainda' : 'Nenhuma vaga encontrada', onlyFav ? 'Toque no coração de uma vaga para salvá-la aqui.' : 'Tente mudar os filtros.');
     wireJobButtons(list, draw);
   };
-  [q, cat, mod, sal].forEach((i) => i.addEventListener('input', draw));
+  [q, cat, sal].forEach((i) => i.addEventListener('input', draw));
   favBtn.onclick = () => { favBtn.classList.toggle('on'); draw(); };
-  el.querySelector('#clear').onclick = () => { q.value = ''; cat.value = ''; mod.value = ''; sal.value = ''; favBtn.classList.remove('on'); draw(); };
+  el.querySelector('#clear').onclick = () => { q.value = ''; cat.value = ''; sal.value = ''; favBtn.classList.remove('on'); draw(); };
   draw();
 }
 
@@ -158,7 +156,7 @@ export async function jobDetail(el, [id], { alive }) {
             ${isCompany ? '' : `<button class="icon-btn fav ${state.favorites.has(j.id) ? 'on' : ''}" data-fav="${j.id}" aria-label="Favoritar">${ICON.heart}</button>`}
           </div>
           <div class="job-meta">
-            <span>${ICON.pin}${esc(j.location || c.city || '—')}</span>
+            <span>${ICON.pin}${esc(j.location || 'Arcos')}</span>
             <span>${ICON.briefcase}${esc(j.modality || '—')}</span>
             ${j.category ? `<span class="tag">${esc(j.category)}</span>` : ''}
             <span>${ICON.clock}Publicada ${timeAgo(j.created_at)}</span>
@@ -276,10 +274,7 @@ export async function resumeForm(el, _p, { refreshShell }) {
           <label>Nome completo<input name="full_name" value="${esc(p.full_name)}" required></label>
           <label>Telefone / WhatsApp<input name="phone" value="${esc(p.phone)}" type="tel"></label>
         </div>
-        <div class="two">
-          <label>E-mail<input value="${esc(p.email || state.user.email)}" disabled></label>
-          <label>Cidade<input name="city" value="${esc(r.city || p.city)}" placeholder="Ex.: Belo Horizonte - MG"></label>
-        </div>
+        <label>E-mail<input value="${esc(p.email || state.user.email)}" disabled></label>
         <label>Cargo que procura<input name="headline" value="${esc(r.headline)}" placeholder="Ex.: Auxiliar administrativo"></label>
         <label>Sobre você<textarea name="about" rows="3" placeholder="Conte em poucas linhas quem você é e o que busca.">${esc(r.about)}</textarea></label>
       </section>
@@ -355,9 +350,9 @@ export async function resumeForm(el, _p, { refreshShell }) {
     setBusy(btn, true, 'Salvando...');
     const notEmpty = (o) => Object.values(o).some((v) => v);
     const [r1, r2] = await Promise.all([
-      sb.from('profiles').update({ full_name: d.full_name, phone: d.phone, city: d.city, avatar_url: avatarUrl || null }).eq('id', state.user.id),
+      sb.from('profiles').update({ full_name: d.full_name, phone: d.phone, avatar_url: avatarUrl || null }).eq('id', state.user.id),
       sb.from('resumes').upsert({
-        user_id: state.user.id, headline: d.headline, city: d.city, about: d.about,
+        user_id: state.user.id, headline: d.headline, about: d.about,
         experiences: collect('exp').filter(notEmpty), education: collect('edu').filter(notEmpty),
         certificates: collect('cert').filter(notEmpty),
         skills: d.skills.split(',').map((s) => s.trim()).filter(Boolean),
@@ -389,7 +384,7 @@ export function resumeHtml(p, r) {
         ${p.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="" crossorigin="anonymous">` : ''}
         <div><h2>${esc(p.full_name)}</h2>
           ${r.headline ? `<p class="cv-role">${esc(r.headline)}</p>` : ''}
-          <p class="cv-contact">${[p.phone, p.email, r.city || p.city].filter(Boolean).map(esc).join(' · ')}</p></div>
+          <p class="cv-contact">${[p.phone, p.email, r.city || p.city || 'Arcos - MG'].filter(Boolean).map(esc).join(' · ')}</p></div>
       </header>
       ${sec('Sobre', r.about ? `<p>${nl2br(r.about)}</p>` : '')}
       ${sec('Experiência profissional', (r.experiences || []).map((x) => `

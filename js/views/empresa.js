@@ -1,12 +1,12 @@
-import { sb } from '../supabase.js?v=202611022203';
-import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js?v=202611022203';
+import { sb } from '../supabase.js?v=202611022217';
+import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js?v=202611022217';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
   CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos, LIMITE_SERVICOS,
-} from '../ui.js?v=202611022203';
-import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611022203';
-import { visibleServices } from './servicos.js?v=202611022203';
+} from '../ui.js?v=202611022217';
+import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611022217';
+import { visibleServices } from './servicos.js?v=202611022217';
 
 async function myJobsWithCounts() {
   const { data: jobs, error } = await sb.from('jobs').select('*')
@@ -145,7 +145,7 @@ export async function jobForm(el, [id], { go, alive }) {
         </div>
         <label>Salário (R$)<input name="salary" type="number" min="0" step="1" value="${esc(j.salary_min ?? j.salary_max)}" placeholder="Ex.: 1800"></label>
         <p class="muted small">Deixe em branco para mostrar "Salário a combinar".</p>
-        <label>Localização<input name="location" value="${esc(j.location || state.company.city)}" placeholder="Ex.: Centro, Belo Horizonte - MG"></label>
+        <label>Bairro<input name="location" value="${esc(j.location || '')}" placeholder="Ex.: Centro"></label>
         <label>Descrição da vaga<textarea name="description" rows="5" required placeholder="O que a pessoa vai fazer no dia a dia?">${esc(j.description)}</textarea></label>
         <label>Requisitos<textarea name="requirements" rows="3" placeholder="Escolaridade, experiência, CNH...">${esc(j.requirements)}</textarea></label>
         <label>Benefícios<textarea name="benefits" rows="3" placeholder="Vale-transporte, refeição, plano de saúde...">${esc(j.benefits)}</textarea></label>

@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611022203';
-import { state, loadUserData } from '../store.js?v=202611022203';
-import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile } from '../ui.js?v=202611022203';
-import { logout } from '../app.js?v=202611022203';
+import { sb } from '../supabase.js?v=202611022217';
+import { state, loadUserData } from '../store.js?v=202611022217';
+import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile } from '../ui.js?v=202611022217';
+import { logout } from '../app.js?v=202611022217';
 
 const ROLE_LABEL = { candidato: 'Candidato', empresa: 'Empresa', profissional: 'Profissional autônomo' };
 
@@ -16,10 +16,10 @@ export function profile(el, _p, { refreshShell }) {
           <div><span class="badge b-green">${esc(ROLE_LABEL[p.role] || 'Usuário')}</span>
           <label class="btn btn-ghost btn-sm file-btn">${ICON.upload} Trocar foto<input type="file" id="photo" accept="image/*" hidden></label></div></div>
         <label>Nome completo<input name="full_name" value="${esc(p.full_name)}" required></label>
-        <div class="two">
+        ${p.role === 'candidato' ? `<label>Telefone / WhatsApp<input name="phone" type="tel" value="${esc(p.phone)}"></label>` : `<div class="two">
           <label>Telefone / WhatsApp<input name="phone" type="tel" value="${esc(p.phone)}"></label>
           <label>Cidade<input name="city" value="${esc(p.city)}"></label>
-        </div>
+        </div>`}
         <label>E-mail<input value="${esc(state.user.email)}" disabled></label>
         <button class="btn btn-primary" type="submit">Salvar</button>
       </form>
