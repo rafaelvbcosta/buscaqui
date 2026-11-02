@@ -44,6 +44,18 @@ no Registro.br, ~R$ 40/ano). Passos: verificar se está livre → DNS (CNAME `ww
 registros A da raiz para os IPs do GitHub Pages) → Settings → Pages → Custom domain + Enforce HTTPS →
 atualizar Site URL no Supabase. O código não tem o endereço fixo, não precisa mudar nada nele.
 
+Publicado depois (PRs #2 a #7, todos com merge feito pelo Rafael):
+- Nova logo (`assets/logo.png` transparente) e ícone (`assets/icone.png`).
+- Página inicial focada em Arcos: título "Oportunidades de vagas e serviços em Arcos." (sem selo, sem sombreado
+  amarelo) e rodapé "Feito para Arcos - MG". O app é só para Arcos - MG, mas o cadastro não bloqueia outras cidades.
+- Vaga com um só campo "Salário (R$)" (salvo igual em `salary_min` e `salary_max`).
+- Empresas divulgam serviços: tela `#/divulgar`, `professionals.company_id` + `address`, categorias
+  `CATEGORIAS_EMPRESA` em `js/ui.js`, etiqueta "Empresa" e filtro Todos/Autônomos/Empresas. O `setup.sql`
+  novo já foi rodado no Supabase e testado no site real.
+
+Fluxo combinado: o Claude mostra prévia (prints) → Rafael aprova → PR → Rafael faz o merge. Mudança no banco:
+rodar o `setup.sql` da branch ANTES do merge.
+
 Pendências antes de abrir ao público:
 1. Religar "Confirm email" (Authentication → Sign In / Providers → Email).
 2. Rodar `supabase/remover-exemplos.sql` e apagar as contas/vaga de teste, se quiser.
