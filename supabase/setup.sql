@@ -892,6 +892,88 @@ drop policy if exists "feedbacks_admin" on public.feedbacks;
 create policy "feedbacks_admin" on public.feedbacks for all
   using (public.is_admin()) with check (public.is_admin());
 
+-- ---------- CPF guardado à parte (LGPD) ----------
+-- A empresa que recebe uma candidatura pode ler o perfil do candidato. Para o CPF não ir junto,
+-- ele fica numa tabela própria que só o dono e o admin leem. A coluna profiles.cpf fica sempre vazia.
+create table if not exists public.user_docs (
+  user_id     uuid primary key references public.profiles(id) on delete cascade,
+  cpf         text not null,
+  created_at  timestamptz not null default now()
+);
+create unique index if not exists user_docs_cpf_uniq on public.user_docs (public.only_digits(cpf));
+
+-- Muda os CPFs que ainda estão no perfil para a tabela nova (uma vez; nas próximas execuções não há nada)
+insert into public.user_docs (user_id, cpf)
+select id, cpf from public.profiles
+where coalesce(cpf, '') <> '' and public.valid_cpf(cpf)
+on conflict do nothing;
+update public.profiles set cpf = null where cpf is not null;
+
+create or replace function public.user_docs_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if not public.valid_cpf(new.cpf) then raise exception 'CPF_INVALIDO: confira o CPF digitado.'; end if;
+  if auth.uid() is not null and not public.is_admin() then
+    if tg_op = 'UPDATE' then raise exception 'Para corrigir o CPF, fale com o suporte do BuscAqui.'; end if;
+    if new.user_id is distinct from auth.uid() then raise exception 'Você só pode informar o seu próprio CPF.'; end if;
+    new.created_at := now();
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists user_docs_guard on public.user_docs;
+create trigger user_docs_guard before insert or update on public.user_docs
+  for each row execute function public.user_docs_guard();
+
+alter table public.user_docs enable row level security;
+drop policy if exists "user_docs_select" on public.user_docs;
+create policy "user_docs_select" on public.user_docs for select
+  using (user_id = auth.uid() or public.is_admin());
+drop policy if exists "user_docs_insert" on public.user_docs;
+create policy "user_docs_insert" on public.user_docs for insert
+  with check (user_id = auth.uid() or public.is_admin());
+drop policy if exists "user_docs_admin" on public.user_docs;
+create policy "user_docs_admin" on public.user_docs for update
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "user_docs_admin_delete" on public.user_docs;
+create policy "user_docs_admin_delete" on public.user_docs for delete using (public.is_admin());
+
+-- profiles.cpf não é mais usado: fica sempre vazio (versão final desta função)
+create or replace function public.protect_profile_flags()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    new.is_admin := old.is_admin;
+    new.blocked  := old.blocked;
+  end if;
+  new.cpf := null;
+  return new;
+end;
+$$;
+
+-- Autônomo precisa de CPF (agora em user_docs) para divulgar (versão final desta função)
+create or replace function public.professionals_check_plan()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or public.is_admin() then return new; end if;
+  if new.company_id is null then
+    if not exists (select 1 from user_docs where user_id = new.user_id) then
+      raise exception 'CPF_NECESSARIO: informe seu CPF para divulgar seus serviços.';
+    end if;
+    return new;
+  end if;
+  if tg_op = 'INSERT' and public.company_can_publish(new.company_id) = 'sem_plano' then
+    raise exception 'PLANO_NECESSARIO: o teste grátis de 30 dias terminou. Escolha um plano para divulgar os serviços.';
+  end if;
+  if jsonb_array_length(coalesce(new.services, '[]'::jsonb)) > 3
+     and public.active_plan(new.user_id) is distinct from 'profissional'
+     and (tg_op = 'INSERT' or new.services is distinct from old.services) then
+    raise exception 'LIMITE_SERVICOS: seu plano permite até 3 serviços. No plano Profissional, são ilimitados.';
+  end if;
+  return new;
+end;
+$$;
+
 -- PARA VIRAR ADMIN (rodar uma vez só, trocando o e-mail pelo da conta admin):
 --   update public.profiles set is_admin = true where email = 'SEU_EMAIL_AQUI';
 
