@@ -9,8 +9,8 @@
 - **Ainda não aberto ao público.** O Rafael está testando e preparando a divulgação.
 - Supabase configurado: `setup.sql` mais recente (com `feedbacks`) rodado no projeto real — 🧪 (Rafael confirmou
   "Success" antes do merge do PR #16).
-- Branch de trabalho `claude/sleepy-thompson-oqj14v` está 2 commits à frente da `main` (só `CLAUDE.md`; este
-  arquivo e o novo `CLAUDE.md` entram junto no próximo PR).
+- Documentação e testes automatizados (`CLAUDE.md`, `PROJECT_STATUS.md`, `README.md`, `tools/testes/`) entram
+  na `main` pelo PR #17.
 
 ## 2. Funcionalidades implementadas
 | Área | O que funciona | Status |
@@ -29,13 +29,12 @@
 | Cache | `?v=` em todos os arquivos (`tools/versao.py`) | ✅ |
 
 ## 3. Em desenvolvimento
-Nada em andamento no código. Última tarefa foi documentação (este arquivo e `CLAUDE.md`).
+Nada em andamento no código do site. Última tarefa: documentação e kit de testes (PR #17).
 
 ## 4. Pendências (antes de abrir ao público)
 - [ ] Religar **"Confirm email"** no Supabase (Authentication → Sign In / Providers → Email).
 - [ ] Rodar `supabase/remover-exemplos.sql` e apagar contas/vagas de teste (inclui a empresa de teste com CNPJ
       `11.222.333/0001-81`, que não existe na Receita).
-- [ ] Atualizar o **`README.md`** (desatualizado — ver seção 8).
 - [ ] Criar a **política de privacidade / termos de uso** (o cadastro pede aceite dos "termos", mas não há página).
 - [ ] Lembrar: Supabase gratuito **pausa após 7 dias sem uso** ("Restore project" no painel).
 - [ ] Marketing: preencher sobrenome, WhatsApp e e-mail no último slide da apresentação; confirmar a oferta de
@@ -77,9 +76,8 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 ## 8. Documentação × código (conferência de 03/11/2026)
 - `CLAUDE.md` antigo dizia que funcionalidades futuras "aparecem como Em breve" → **corrigido** (não aparecem mais).
 - `CLAUDE.md` antigo não listava `js/views/sugestoes.js` nem `PROJECT_STATUS.md` → **corrigido**.
-- **`README.md` está desatualizado** (não alterado nesta tarefa): cita filtro por modalidade, lista "Em breve"
-  (planos pagos, painel administrativo etc. já existem) e não menciona Admin, planos, Pix, CNPJ/CPF, sugestões nem
-  `tools/versao.py`.
+- `README.md` estava desatualizado (filtro por modalidade, lista "Em breve", sem Admin/planos/Pix/CNPJ/sugestões)
+  → **atualizado no PR #17**.
 - Guia do projeto (artifact) também desatualizado.
 
 ## 9. Informações não confirmadas
@@ -111,9 +109,10 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #14 | 02/11 | Bairro na vaga, sem Cidade (candidato), sem filtro de modalidade | Não |
 | #15 | 02/11 | Remove todos os "em breve" e o sino | Não |
 | #16 | 02/11 | Sugestões e feedbacks | Sim |
+| #17 | 03/11 | Documentação (`CLAUDE.md`, `PROJECT_STATUS.md`, `README.md`) e kit de testes `tools/testes/` (telas + banco). Sem mudança no site | Não |
 
 ## 11. Próximas etapas sugeridas
-1. Abrir PR com `CLAUDE.md` + `PROJECT_STATUS.md` (e, se o Rafael quiser, corrigir o `README.md` e o bug #1).
+1. Merge do PR #17 pelo Rafael. Depois, se ele quiser, corrigir o bug #1 ("Meu perfil" duplicado).
 2. Pendências da seção 4 (principalmente confirmação de e-mail, apagar exemplos, política de privacidade).
 3. Cadastrar as 15–20 empresas fundadoras antes de divulgar (ver estratégia).
 4. Ideias aprovadas (em ordem sugerida): PWA "instalar app" → relatórios do Profissional → estatísticas do

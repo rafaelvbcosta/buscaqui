@@ -21,6 +21,11 @@ público** (fase de testes; ver pendências em `PROJECT_STATUS.md`).
   (prints gerados no navegador de teste) → Rafael responde "aprovado" → Claude abre **Pull Request** → **Rafael faz
   o merge** no GitHub (Claude não faz merge). Se o banco mudou: Rafael roda o `supabase/setup.sql` **da branch** no
   SQL Editor do Supabase **ANTES** do merge.
+- **Toda mudança atualiza também o `PROJECT_STATUS.md`** no mesmo PR (seção "Histórico de alterações" com data,
+  PR e se mexeu no banco; funcionalidades, pendências e bugs quando mudarem). Se uma regra, rota, tabela ou
+  padrão mudar, atualize também este `CLAUDE.md`. Documentação desatualizada é pior que nenhuma.
+- **Antes de abrir o PR**, rode os testes de `tools/testes/` (seção 7) e, se criou tela ou regra nova, acrescente
+  o teste correspondente.
 - Ele prefere **não criar expectativa** nos clientes: nada de avisos "em breve" no site.
 - Pediu **lembretes semanais** das ideias aprovadas (seção 9). Existe uma tarefa agendada (segunda, 18h37, horário de
   Brasília) que envia o lembrete na sessão do Claude.
@@ -136,30 +141,19 @@ Algumas funções são redefinidas mais abaixo no arquivo (`protect_profile_flag
 - Menus com no máximo 5 itens; atalhos novos entram dentro das telas.
 - Branch de trabalho: `claude/sleepy-thompson-oqj14v`. Commits em português. Nunca usar a chave secret.
 
-## 7. Testes (não há testes automatizados no repositório)
-Os testes foram feitos no ambiente do Claude, em arquivos temporários (não versionados). Para refazer:
+## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
+Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** Playwright (já instalado no ambiente do Claude) abrindo `index.html` com as requisições interceptadas:
-  `cdn.jsdelivr.net` → um **Supabase simulado** (módulo JS que exporta `createClient` com `from()`, `rpc()` e `auth`
-  falsos e dados de exemplo), e os arquivos locais servidos do repositório. Gera prints no celular (390 px) e no
-  computador (1280 px) e captura erros de JavaScript. Fontes do Google não carregam no ambiente (usa Inter).
-- **Banco:** Postgres 16 local (`/usr/lib/postgresql/16/bin`, rodando como usuário `postgres`) com *stubs*:
-  ```sql
-  create role anon nologin; create role authenticated nologin;
-  create schema auth; create schema storage;
-  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}'::jsonb);
-  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
-  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid);
-  alter table storage.objects enable row level security;
-  create function storage.foldername(name text) returns text[] language sql as $$ select string_to_array(name, '/') $$;
-  grant usage on schema public, auth to anon, authenticated;
-  ```
-  Rodar o `setup.sql` da `main` e depois o novo **duas vezes seguidas** (prova que é reexecutável) e testar as regras
-  com `set role authenticated; select set_config('request.jwt.claim.sub','<uuid>',false);`.
-- **PDF:** baixar `html2pdf.js@0.10.1` (npm pack) e servir no lugar do cdnjs; converter páginas com `pdftoppm`.
-- O ambiente do Claude **não acessa** o site real, o Supabase real nem a BrasilAPI (proxy bloqueia). Quem testa no
-  site real é o Rafael.
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 28 telas (celular e computador, todos os
+  perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
+  Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
+- **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e
+  `storage`), roda o `setup.sql` da `main` e o atual DUAS vezes (reexecutável) e os testes de `seguranca.sql`
+  (mais de 30 regras). Regra nova → acrescente um teste.
+- **PDF do currículo:** não está automatizado. Para testar: baixar `html2pdf.js@0.10.1` (`npm pack`), servir no
+  lugar do cdnjs, clicar em "Baixar PDF" pelo Playwright e converter as páginas com `pdftoppm`.
+- O ambiente do Claude **não acessa** o site real, o Supabase real nem a BrasilAPI (o proxy bloqueia). Quem testa
+  no site real é o Rafael.
 
 ## 8. Dados de teste no site real
 Contas `rafaelvbcosta+candidato|+profissional|+empresa|+admin@gmail.com`. A empresa de teste usa o CNPJ de exemplo
