@@ -27,7 +27,10 @@ público** (fase de testes; ver pendências em `PROJECT_STATUS.md`).
 - **Antes de abrir o PR**, rode os testes de `tools/testes/` (seção 7) e, se criou tela ou regra nova, acrescente
   o teste correspondente.
 - Ele prefere **não criar expectativa** nos clientes: nada de avisos "em breve" no site.
-- Pediu **lembretes semanais** das ideias aprovadas (seção 9). Existe uma tarefa agendada (segunda, 18h37, horário de
+- **Antes do lançamento oficial**, lembre o Rafael do checklist da seção 4 do `PROJECT_STATUS.md` (CNPJ nas páginas
+  legais, revisão por advogado, Confirm email, apagar exemplos/contas de teste). Sempre que ele falar em abrir ao
+  público, divulgar ou lançar, mostre a lista antes de qualquer outra coisa.
+- Pediu **lembretes semanais** das ideias aprovadas (seção 9) e do checklist do lançamento. Existe uma tarefa agendada (segunda, 18h37, horário de
   Brasília) que envia o lembrete na sessão do Claude.
 
 ## 3. Tecnologias (tudo gratuito, exceto domínio)
