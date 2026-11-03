@@ -1,14 +1,15 @@
-import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611031428';
-import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611031428';
-import { ICON, esc, avatar, loading } from './ui.js?v=202611031428';
-import * as auth from './views/auth.js?v=202611031428';
-import * as cand from './views/candidato.js?v=202611031428';
-import * as serv from './views/servicos.js?v=202611031428';
-import * as emp from './views/empresa.js?v=202611031428';
-import * as perfil from './views/perfil.js?v=202611031428';
-import * as planos from './views/planos.js?v=202611031428';
-import * as admin from './views/admin.js?v=202611031428';
-import * as sugestoes from './views/sugestoes.js?v=202611031428';
+import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611031707';
+import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611031707';
+import { ICON, esc, avatar, loading } from './ui.js?v=202611031707';
+import * as auth from './views/auth.js?v=202611031707';
+import * as cand from './views/candidato.js?v=202611031707';
+import * as serv from './views/servicos.js?v=202611031707';
+import * as emp from './views/empresa.js?v=202611031707';
+import * as perfil from './views/perfil.js?v=202611031707';
+import * as planos from './views/planos.js?v=202611031707';
+import * as admin from './views/admin.js?v=202611031707';
+import * as sugestoes from './views/sugestoes.js?v=202611031707';
+import * as legal from './views/legal.js?v=202611031707';
 
 // ---------------------------------------------------------------
 // Rotas (endereços das telas)
@@ -17,6 +18,12 @@ const PUBLIC = [
   { path: /^\/$/, view: auth.landing },
   { path: /^\/entrar$/, view: auth.login },
   { path: /^\/cadastro$/, view: auth.signup },
+];
+
+// Abrem logado ou não
+const LEGAL = [
+  { path: /^\/privacidade$/, view: legal.privacy },
+  { path: /^\/termos$/, view: legal.terms },
 ];
 
 const ROUTES = [
@@ -113,7 +120,7 @@ function renderShell() {
       <a href="#${homeFor(r)}" class="brand"><img src="assets/logo.png" alt="BuscAqui"></a>
       <div class="topbar-actions">
         <a href="#/perfil" class="me" data-nav="/perfil">${avatar(p.avatar_url, p.full_name, 36)}
-          <span class="me-name">${esc((p.full_name || '').split(' ')[0] || 'Meu perfil')}</span></a>
+          <span class="me-name">${esc((p.full_name || '').split(' ')[0] || 'Minha conta')}</span></a>
       </div>
     </header>
     <div class="shell">
@@ -122,9 +129,10 @@ function renderShell() {
         <div class="sidenav-sep"></div>
         ${isAdmin() ? `<a href="#/admin/sugestoes" data-nav="/admin/sugestoes">${ICON.chat}<span>Sugestões</span></a>`
           : `<a href="#/sugestao" data-nav="/sugestao">${ICON.chat}<span>Enviar sugestão</span></a>`}
-        <a href="#/perfil" data-nav="/perfil">${ICON.settings}<span>Meu perfil</span></a>
+        <a href="#/perfil" data-nav="/perfil">${ICON.settings}<span>Minha conta</span></a>
         <button id="btn-logout" class="sidenav-logout">${ICON.logout}<span>Sair</span></button>
-        <div class="sidenav-foot">Encontre. Conecte. Trabalhe.</div>
+        <div class="sidenav-foot">Encontre. Conecte. Trabalhe.
+          <span class="sidenav-legal"><a href="#/privacidade">Privacidade</a> · <a href="#/termos">Termos</a></span></div>
       </nav>
       <main id="view" class="view"></main>
     </div>
@@ -167,7 +175,7 @@ export async function render() {
 
   if (!state.user) {
     shellRole = null;
-    const pub = PUBLIC.find((r) => r.path.test(path));
+    const pub = [...PUBLIC, ...LEGAL].find((r) => r.path.test(path));
     if (!pub) { location.hash = '#/'; return; }
     app.innerHTML = '<main id="view" class="public"></main>';
     return pub.view(document.getElementById('view'), path.match(pub.path).slice(1), ctx);
@@ -175,7 +183,7 @@ export async function render() {
 
   if (PUBLIC.some((r) => r.path.test(path))) { location.hash = '#' + homeFor(); return; }
 
-  const route = ROUTES.find((r) => r.path.test(path));
+  const route = [...ROUTES, ...LEGAL].find((r) => r.path.test(path));
   if (!route) { location.hash = '#' + homeFor(); return; }
   if (state.profile?.blocked) return blockedScreen();
   if (route.admin && !isAdmin()) { location.hash = '#' + homeFor(); return; }

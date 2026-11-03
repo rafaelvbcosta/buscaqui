@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611031428';
-import { state, loadUserData } from '../store.js?v=202611031428';
-import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile } from '../ui.js?v=202611031428';
-import { logout } from '../app.js?v=202611031428';
+import { sb } from '../supabase.js?v=202611031707';
+import { state, loadUserData } from '../store.js?v=202611031707';
+import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile, CONTATO_EMAIL } from '../ui.js?v=202611031707';
+import { logout } from '../app.js?v=202611031707';
 
 const ROLE_LABEL = { candidato: 'Candidato', empresa: 'Empresa', profissional: 'Profissional autônomo' };
 
@@ -9,7 +9,7 @@ export function profile(el, _p, { refreshShell }) {
   const p = state.profile || {};
   let photo = p.avatar_url || '';
   el.innerHTML = `
-    <div class="page-head"><h1>Meu perfil</h1></div>
+    <div class="page-head"><h1>Minha conta</h1></div>
     <div class="stack narrow">
       <form id="f" class="card">
         <div class="photo-row"><div id="ph">${avatar(photo, p.full_name, 80)}</div>
@@ -33,6 +33,14 @@ export function profile(el, _p, { refreshShell }) {
         <label>Nova senha<input name="p1" type="password" minlength="6" autocomplete="new-password"></label>
         <button class="btn btn-ghost" type="submit">Alterar senha</button>
       </form>
+
+      <section class="card">
+        <h2>${ICON.shield} Privacidade</h2>
+        <p class="muted">Veja quais dados guardamos e como usamos. Para corrigir documentos, pedir uma cópia dos seus
+          dados ou excluir a conta, escreva para <a href="mailto:${CONTATO_EMAIL}">${CONTATO_EMAIL}</a>.</p>
+        <div class="row wrap"><a class="btn btn-ghost btn-sm" href="#/privacidade">Política de privacidade</a>
+          <a class="btn btn-ghost btn-sm" href="#/termos">Termos de uso</a></div>
+      </section>
 
       <button class="btn btn-ghost btn-block danger" id="out">${ICON.logout} Sair da conta</button>
     </div>`;

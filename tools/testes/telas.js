@@ -16,7 +16,7 @@ const FALSO = fs.readFileSync(path.join(__dirname, 'supabase-falso.js'), 'utf8')
 const SAIDA = process.argv[2] || '/tmp/buscaqui-prints';
 const FILTRO = process.argv.slice(3);
 
-// [nome, endereço (hash), cenário, largura, altura]
+// [nome, endereço (hash), cenário, largura, altura, (opcional) seletor para clicar antes do print]
 const C = { role: 'candidato' }, P = { role: 'profissional' }, E = { role: 'empresa' }, A = { role: 'candidato', admin: true };
 const TELAS = [
   ['inicio', '/', { ...C, deslogado: true }, 390, 844],
@@ -47,13 +47,16 @@ const TELAS = [
   ['admin-moderacao', '/admin/moderacao', A, 1280, 700],
   ['admin-config', '/admin/config', A, 1280, 800],
   ['admin-sugestoes', '/admin/sugestoes', A, 1280, 900],
+  ['cadastro', '/cadastro', { ...C, deslogado: true }, 390, 844, '[data-role=candidato]'],
+  ['privacidade', '/privacidade', { ...C, deslogado: true }, 390, 844],
+  ['termos', '/termos', P, 1280, 900],
 ];
 
 (async () => {
   fs.mkdirSync(SAIDA, { recursive: true });
   const br = await chromium.launch();
   let falhas = 0;
-  for (const [nome, hash, cen, w, h] of TELAS) {
+  for (const [nome, hash, cen, w, h, clicar] of TELAS) {
     if (FILTRO.length && !FILTRO.some((f) => nome.includes(f))) continue;
     const pg = await br.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: w < 500 ? 2 : 1.25 });
     const erros = [];
@@ -80,6 +83,7 @@ const TELAS = [
     });
     await pg.goto('http://app.local/#' + hash);
     await pg.waitForTimeout(900);
+    if (clicar) { await pg.click(clicar); await pg.waitForTimeout(400); }
     await pg.screenshot({ path: path.join(SAIDA, `${nome}.png`), fullPage: true });
     console.log(`${erros.length ? 'ERRO' : 'ok  '}  ${nome}${erros.length ? '  ' + erros.join(' | ') : ''}`);
     if (erros.length) falhas++;

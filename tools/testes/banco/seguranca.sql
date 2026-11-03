@@ -8,7 +8,7 @@ insert into auth.users(id,email,raw_user_meta_data) values
  ('e9000000-0000-4000-8000-000000000002','emp2@teste','{"role":"empresa"}'),
  ('f9000000-0000-4000-8000-000000000001','aut1@teste','{"role":"profissional"}'),
  ('f9000000-0000-4000-8000-000000000002','aut2@teste','{"role":"profissional"}'),
- ('c9000000-0000-4000-8000-000000000001','cand@teste','{"role":"candidato","is_admin":true}'),
+ ('c9000000-0000-4000-8000-000000000001','cand@teste','{"role":"candidato","is_admin":true,"terms_version":"2026-11-03"}'),
  ('d9000000-0000-4000-8000-000000000001','adm@teste','{"role":"candidato"}');
 update profiles set is_admin = true where email = 'adm@teste';
 
@@ -32,6 +32,9 @@ set role authenticated;
 select pg_temp.como('c9000000-0000-4000-8000-000000000001');
 update profiles set is_admin = true where id = auth.uid();
 select pg_temp.confere((select not is_admin from profiles where id = auth.uid()), 'usuário não vira admin pelo site');
+select pg_temp.confere((select terms_version = '2026-11-03' and terms_accepted_at is not null from profiles where id = auth.uid()), 'cadastro grava a versão e a data do aceite dos termos');
+update profiles set terms_accepted_at = now() - interval '1 year', terms_version = 'falsa' where id = auth.uid();
+select pg_temp.confere((select terms_version = '2026-11-03' and terms_accepted_at > now() - interval '1 day' from profiles where id = auth.uid()), 'usuário não altera o registro do aceite dos termos');
 select pg_temp.deve_falhar($$select public.confirm_subscription(gen_random_uuid())$$, 'usuário comum não confirma pagamento');
 select pg_temp.deve_falhar($$insert into companies(owner_id,name) values (auth.uid(),'X')$$, 'empresa sem CNPJ é barrada');
 

@@ -938,13 +938,44 @@ create policy "user_docs_admin" on public.user_docs for update
 drop policy if exists "user_docs_admin_delete" on public.user_docs;
 create policy "user_docs_admin_delete" on public.user_docs for delete using (public.is_admin());
 
--- profiles.cpf não é mais usado: fica sempre vazio (versão final desta função)
+-- ---------- Aceite dos termos de uso e da política de privacidade (LGPD) ----------
+-- O cadastro envia terms_version (data da versão dos textos); a data do aceite fica no perfil.
+alter table public.profiles add column if not exists terms_accepted_at timestamptz;
+alter table public.profiles add column if not exists terms_version text;
+
+-- Cria o perfil no cadastro (versão final desta função)
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_role  text := new.raw_user_meta_data->>'role';
+  v_terms text := left(nullif(new.raw_user_meta_data->>'terms_version', ''), 20);
+begin
+  if v_role is null or v_role not in ('candidato','empresa','profissional') then
+    v_role := 'candidato';
+  end if;
+  insert into public.profiles (id, role, full_name, phone, email, terms_version, terms_accepted_at)
+  values (
+    new.id, v_role,
+    coalesce(new.raw_user_meta_data->>'full_name', ''),
+    new.raw_user_meta_data->>'phone',
+    new.email,
+    v_terms,
+    case when v_terms is not null then now() end
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+-- profiles.cpf não é mais usado: fica sempre vazio; aceite dos termos travado (versão final desta função)
 create or replace function public.protect_profile_flags()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is not null and not public.is_admin() then
     new.is_admin := old.is_admin;
     new.blocked  := old.blocked;
+    new.terms_accepted_at := old.terms_accepted_at;  -- o aceite não pode ser mudado pelo usuário
+    new.terms_version     := old.terms_version;
   end if;
   new.cpf := null;
   return new;

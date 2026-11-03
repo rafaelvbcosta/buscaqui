@@ -38,6 +38,8 @@ export const PLANOS = {
 };
 export const DIAS_TESTE_EMPRESA = 30;
 export const LIMITE_SERVICOS = 3; // teste grátis e Básico (Profissional = ilimitado)
+export const CONTATO_EMAIL = 'buscaqui.arcos@gmail.com'; // contato de privacidade e suporte
+export const TERMOS_VERSAO = '2026-11-03'; // data da versão dos termos/política (gravada no aceite do cadastro)
 
 export const STATUS_CANDIDATURA = {
   enviada: { label: 'Enviada', cls: 'b-gray' },
