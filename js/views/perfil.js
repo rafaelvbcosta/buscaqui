@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611031707';
-import { state, loadUserData } from '../store.js?v=202611031707';
-import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile, CONTATO_EMAIL } from '../ui.js?v=202611031707';
-import { logout } from '../app.js?v=202611031707';
+import { sb } from '../supabase.js?v=202611031938';
+import { state, loadUserData } from '../store.js?v=202611031938';
+import { ICON, esc, avatar, toast, errMsg, setBusy, formData, maskPhone, uploadFile, CONTATO_EMAIL } from '../ui.js?v=202611031938';
+import { logout } from '../app.js?v=202611031938';
 
 const ROLE_LABEL = { candidato: 'Candidato', empresa: 'Empresa', profissional: 'Profissional autônomo' };
 

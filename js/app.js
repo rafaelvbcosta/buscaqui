@@ -1,15 +1,15 @@
-import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611031707';
-import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611031707';
-import { ICON, esc, avatar, loading } from './ui.js?v=202611031707';
-import * as auth from './views/auth.js?v=202611031707';
-import * as cand from './views/candidato.js?v=202611031707';
-import * as serv from './views/servicos.js?v=202611031707';
-import * as emp from './views/empresa.js?v=202611031707';
-import * as perfil from './views/perfil.js?v=202611031707';
-import * as planos from './views/planos.js?v=202611031707';
-import * as admin from './views/admin.js?v=202611031707';
-import * as sugestoes from './views/sugestoes.js?v=202611031707';
-import * as legal from './views/legal.js?v=202611031707';
+import { sb, configured, recoveryFromUrl } from './supabase.js?v=202611031938';
+import { state, clearState, loadUserData, role, homeFor, isAdmin } from './store.js?v=202611031938';
+import { ICON, esc, avatar, loading } from './ui.js?v=202611031938';
+import * as auth from './views/auth.js?v=202611031938';
+import * as cand from './views/candidato.js?v=202611031938';
+import * as serv from './views/servicos.js?v=202611031938';
+import * as emp from './views/empresa.js?v=202611031938';
+import * as perfil from './views/perfil.js?v=202611031938';
+import * as planos from './views/planos.js?v=202611031938';
+import * as admin from './views/admin.js?v=202611031938';
+import * as sugestoes from './views/sugestoes.js?v=202611031938';
+import * as legal from './views/legal.js?v=202611031938';
 
 // ---------------------------------------------------------------
 // Rotas (endereços das telas)

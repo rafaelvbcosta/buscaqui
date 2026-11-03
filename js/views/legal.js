@@ -1,5 +1,5 @@
-import { state } from '../store.js?v=202611031707';
-import { ICON, CONTATO_EMAIL, TERMOS_VERSAO } from '../ui.js?v=202611031707';
+import { state } from '../store.js?v=202611031938';
+import { ICON, CONTATO_EMAIL, TERMOS_VERSAO } from '../ui.js?v=202611031938';
 
 // ============================================================
 // POLÍTICA DE PRIVACIDADE E TERMOS DE USO (abrem logado ou não)
@@ -100,8 +100,8 @@ export function privacy(el) {
       para manter você conectado e lembrar os filtros da busca de vagas.</p>
 
     <h2>10. Idade</h2>
-    <p>O cadastro é para maiores de 16 anos. Quem tem entre 16 e 18 anos deve usar o site com o conhecimento e a
-      autorização dos pais ou responsáveis.</p>
+    <p>O BuscAqui é só para <b>maiores de 18 anos</b>. Não guardamos, de propósito, dados de menores de idade; se
+      soubermos de uma conta de menor, ela será excluída.</p>
 
     <h2>11. Mudanças nesta política</h2>
     <p>Se esta política mudar de forma importante, avisaremos no site. A data da última atualização fica no topo
@@ -121,7 +121,7 @@ export function terms(el) {
 
     <h2>2. Sua conta</h2>
     <ul>
-      <li>Para se cadastrar é preciso ter pelo menos 16 anos (entre 16 e 18, com autorização dos responsáveis).</li>
+      <li>Para se cadastrar é preciso ter <b>18 anos ou mais</b>.</li>
       <li>Informe dados verdadeiros e mantenha-os atualizados. Cada pessoa ou empresa deve ter uma conta.</li>
       <li>Guarde sua senha; o que for feito com a sua conta é responsabilidade sua.</li>
       <li>Profissional autônomo precisa de CPF válido e empresa precisa de CNPJ válido, ambos únicos no site. Depois

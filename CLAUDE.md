@@ -133,6 +133,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 - **Sugestões:** usuário só envia (tipo + 5 a 1000 caracteres), **máx. 5 por dia**; não vê o histórico. Admin lê,
   anota e marca nova/lida/resolvida.
 - **Cidade:** o site é para Arcos, mas o cadastro **não bloqueia** outras cidades.
+- **Idade:** só **maiores de 18 anos** (declarado no aceite do cadastro; não há conferência de data de nascimento).
 
 ## 6. Padrões de código (obrigatórios)
 - Sem build, sem frameworks; textos da interface em **português**.

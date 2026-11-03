@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611031707';
-import { state, homeFor } from '../store.js?v=202611031707';
-import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone, TERMOS_VERSAO } from '../ui.js?v=202611031707';
-import { afterLogin } from '../app.js?v=202611031707';
+import { sb } from '../supabase.js?v=202611031938';
+import { state, homeFor } from '../store.js?v=202611031938';
+import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone, TERMOS_VERSAO } from '../ui.js?v=202611031938';
+import { afterLogin } from '../app.js?v=202611031938';
 
 // ---------------- Tela inicial ----------------
 export function landing(el) {
@@ -103,7 +103,7 @@ export function signup(el, _p, { go }) {
           <label>E-mail<input name="email" type="email" required autocomplete="email"></label>
           <label>Senha <small class="muted">(mínimo 6 caracteres)</small><input name="password" type="password" required minlength="6" autocomplete="new-password"></label>
           <label>Repita a senha<input name="password2" type="password" required autocomplete="new-password"></label>
-          <label class="check"><input type="checkbox" name="terms" required> <span>Li e aceito os <a href="#/termos" target="_blank" rel="noopener">termos de uso</a> e a <a href="#/privacidade" target="_blank" rel="noopener">política de privacidade</a>.</span></label>
+          <label class="check"><input type="checkbox" name="terms" required> <span>Li e aceito os <a href="#/termos" target="_blank" rel="noopener">termos de uso</a> e a <a href="#/privacidade" target="_blank" rel="noopener">política de privacidade</a>, e tenho 18 anos ou mais.</span></label>
           <button class="btn btn-primary btn-block btn-lg" type="submit">Criar minha conta</button>
         </form>
       </div></div>`;

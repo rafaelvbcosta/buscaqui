@@ -40,9 +40,9 @@
 3. [ ] **"Excluir minha conta"** em Minha conta (depois, ajustar o texto das páginas, que hoje mandam pedir por
    e-mail).
 4. Recomendado: revisão dos textos por um advogado antes de abrir ao público.
-5. Decisões que o Rafael ainda pode querer mudar nos textos: idade mínima (escrito: 16 anos, com autorização dos
-   responsáveis até 18); identificação do responsável (hoje só "BuscAqui" + e-mail; quando houver CNPJ/MEI, incluir);
-   reembolso em 7 dias (direito de arrependimento do CDC, art. 49).
+5. Decisões do Rafael (03/11/2026): site **só para maiores de 18 anos** (o aceite do cadastro inclui "tenho 18 anos
+   ou mais"); reembolso em até 7 dias mantido (direito de arrependimento do CDC, art. 49). **Pendente:** o Rafael vai
+   informar o CNPJ para identificar o responsável nas páginas (hoje só "BuscAqui" + e-mail).
 
 ## 4. Pendências (antes de abrir ao público)
 - [ ] Religar **"Confirm email"** no Supabase (Authentication → Sign In / Providers → Email).
