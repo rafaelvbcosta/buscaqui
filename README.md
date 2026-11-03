@@ -20,7 +20,7 @@ e as empresas que precisam dela; a parte de serviços atende todo mundo.
 | **Candidato** (grátis) | Vagas de Arcos com busca, categoria, salário e favoritas; candidatura com um toque; acompanhar candidaturas e entrevistas; Currículo fácil pelo celular; PDF grátis; enviar PDF próprio |
 | **Autônomo** | Perfil de serviços em 4 etapas (com CPF), aparecer em "Encontrar profissional", ver pedidos de serviço e oferecer pelo WhatsApp; plano **Autônomo Destaque** (R$ 14,90/mês) para ficar no topo |
 | **Empresa** | Cadastro com CNPJ (conferido na Receita), publicar vagas, ver candidatos, aprovar/recusar, marcar entrevista, WhatsApp direto, painel, página pública, **divulgar os serviços da empresa**. **30 dias grátis** (uma vez por CNPJ); depois **Básico** R$ 29,90/mês ou **Profissional** R$ 49,90/mês |
-| **Todos** | Encontrar profissionais e empresas de serviço, publicar pedido de serviço, perfil com foto, trocar senha, **enviar sugestões** |
+| **Todos** | Encontrar profissionais e empresas de serviço, publicar pedido de serviço, perfil com foto, trocar senha, **enviar sugestões**, Política de privacidade e Termos de uso, **excluir a própria conta** |
 | **Admin** | Visão geral, usuários (documentos, bloqueio, dar plano, possíveis duplicados), confirmar pagamentos por Pix, moderação, chave Pix e sugestões |
 
 Pagamento dos planos: **Pix manual** (o usuário faz o Pix com o código do pedido e o admin confirma). Se o plano

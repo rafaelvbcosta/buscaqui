@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **03/11/2026**. Base: branch `main` (PR #18) + PR #19 (LGPD: privacidade/termos, "Minha conta").
+> Atualizado em **03/11/2026**. Base: branch `main` (PR #19) + PR #20 (LGPD: Excluir minha conta).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -26,7 +26,7 @@
 | Destaques | Selo e topo da lista com revezamento | ✅ |
 | Admin | Visão geral, usuários (busca, duplicados por telefone, documento, verificar CNPJ, dar plano, bloquear), pagamentos, moderação, configurações (chave Pix cadastrada) | ✅ 🧪 |
 | Sugestões | `#/sugestao` (menu lateral + quadro em Minha conta), `#/admin/sugestoes` com filtros, anotação e WhatsApp | ✅ 🧪 |
-| Privacidade (LGPD) | CPF protegido (`user_docs`), páginas `#/privacidade` e `#/termos`, aceite gravado no cadastro | ✅ (#18 🧪) |
+| Privacidade (LGPD) | CPF protegido (`user_docs`), páginas `#/privacidade` e `#/termos`, aceite gravado no cadastro, Excluir minha conta | ✅ (#18 e #19 🧪) |
 | Cache | `?v=` em todos os arquivos (`tools/versao.py`) | ✅ |
 
 ## 3. Em desenvolvimento
@@ -37,8 +37,10 @@
    contato `buscaqui.arcos@gmail.com`; links no cadastro, no rodapé da página inicial, no menu lateral e em Minha
    conta; o cadastro grava `profiles.terms_version` e `terms_accepted_at` (contas antigas ficam vazias). PR #19
    (mexe no banco). Enquanto não há o botão, exclusão de conta e correção de CPF/CNPJ são pedidas por e-mail.
-3. [ ] **"Excluir minha conta"** em Minha conta (depois, ajustar o texto das páginas, que hoje mandam pedir por
-   e-mail).
+3. ✅ **"Excluir minha conta"** em Minha conta (quadro Privacidade): confirmação digitando EXCLUIR, apaga os
+   arquivos (foto, logo, PDF) e chama `delete_my_account()` no banco, que apaga o login e tudo ligado ao perfil.
+   Ficam o CNPJ em `trial_registry` e as sugestões sem nome. Admin não se exclui pelo site. Textos das páginas
+   atualizados. PR #20 (mexe no banco).
 4. Recomendado: revisão dos textos por um advogado antes de abrir ao público.
 5. Decisões do Rafael (03/11/2026): site **só para maiores de 18 anos** (o aceite do cadastro inclui "tenho 18 anos
    ou mais"); reembolso em até 7 dias mantido (direito de arrependimento do CDC, art. 49). **Pendente:** o Rafael vai
@@ -48,7 +50,7 @@
 - [ ] Religar **"Confirm email"** no Supabase (Authentication → Sign In / Providers → Email).
 - [ ] Rodar `supabase/remover-exemplos.sql` e apagar contas/vagas de teste (inclui a empresa de teste com CNPJ
       `11.222.333/0001-81`, que não existe na Receita).
-- [ ] "Excluir minha conta" e revisão dos textos de privacidade/termos — ver seção 3 (LGPD).
+- [ ] Revisão dos textos de privacidade/termos por advogado e CNPJ do responsável nas páginas — ver seção 3 (LGPD).
 - [ ] Lembrar: Supabase gratuito **pausa após 7 dias sem uso** ("Restore project" no painel).
 - [ ] Marketing: preencher sobrenome, WhatsApp e e-mail no último slide da apresentação; confirmar a oferta de
       "empresa fundadora" e as metas da estratégia (ver seção 7).
@@ -128,9 +130,11 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #17 | 03/11 | Documentação (`CLAUDE.md`, `PROJECT_STATUS.md`, `README.md`) e kit de testes `tools/testes/` (telas + banco). Sem mudança no site | Não |
 | #18 | 03/11 | LGPD 1: CPF vai para a tabela protegida `user_docs` (empresa não vê mais o CPF de quem se candidata); CPF antigo migrado automaticamente | **Sim** |
 | #19 | 03/11 | LGPD 2: páginas Política de privacidade e Termos de uso, links (cadastro, rodapé, menu, Minha conta), registro do aceite no cadastro; "Meu perfil" (conta) vira "Minha conta" | **Sim** |
+| #20 | 03/11 | LGPD 3: botão "Excluir minha conta" (função `delete_my_account`, apaga arquivos e dados) | **Sim** |
 
 ## 11. Próximas etapas sugeridas
-1. Rodar o `setup.sql` da branch e fazer o merge do PR #19; depois LGPD etapa 3 ("Excluir minha conta").
+1. Rodar o `setup.sql` da branch e fazer o merge do PR #20. LGPD fica completo no site (falta só a revisão
+   jurídica e o CNPJ nas páginas).
 2. Pendências da seção 4 (principalmente confirmação de e-mail, apagar exemplos, política de privacidade).
 3. Cadastrar as 15–20 empresas fundadoras antes de divulgar (ver estratégia).
 4. Ideias aprovadas (em ordem sugerida): PWA "instalar app" → relatórios do Profissional → estatísticas do

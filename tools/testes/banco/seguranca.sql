@@ -113,5 +113,26 @@ select pg_temp.como('e9000000-0000-4000-8000-000000000001');
 insert into jobs(company_id,title,category,modality,description) select 'ca900000-0000-4000-8000-000000000001','V'||g,'x','Presencial','d' from generate_series(1,4) g;
 select pg_temp.deve_falhar($$insert into jobs(company_id,title,category,modality,description) values ('ca900000-0000-4000-8000-000000000001','V6','x','Presencial','d')$$, 'Básico: a 6ª vaga do mês é barrada');
 reset role;
+
+-- Excluir minha conta
+select pg_temp.deve_falhar($$set role anon; select public.delete_my_account()$$, 'sem login não exclui conta');
+reset role;
+set role authenticated;
+select pg_temp.como('d9000000-0000-4000-8000-000000000001');
+select pg_temp.deve_falhar($$select public.delete_my_account()$$, 'admin não exclui a própria conta pelo site');
+select pg_temp.como('e9000000-0000-4000-8000-000000000001');
+select public.delete_my_account();
+select pg_temp.como('f9000000-0000-4000-8000-000000000001');
+select public.delete_my_account();
+reset role;
+select pg_temp.confere(not exists (select 1 from auth.users where id in ('e9000000-0000-4000-8000-000000000001','f9000000-0000-4000-8000-000000000001'))
+  and not exists (select 1 from profiles where id in ('e9000000-0000-4000-8000-000000000001','f9000000-0000-4000-8000-000000000001')), 'usuário exclui a própria conta (login e perfil somem)');
+select pg_temp.confere(not exists (select 1 from companies where id='ca900000-0000-4000-8000-000000000001')
+  and not exists (select 1 from jobs where company_id='ca900000-0000-4000-8000-000000000001')
+  and not exists (select 1 from subscriptions where user_id='e9000000-0000-4000-8000-000000000001'), 'empresa, vagas e pedidos de plano saem junto');
+select pg_temp.confere(not exists (select 1 from user_docs where user_id='f9000000-0000-4000-8000-000000000001')
+  and not exists (select 1 from professionals where user_id='f9000000-0000-4000-8000-000000000001'), 'CPF e perfil profissional saem junto');
+select pg_temp.confere(exists (select 1 from trial_registry where public.only_digits(cnpj)='11222333000181'), 'CNPJ continua marcado como "já usou o teste"');
+select pg_temp.confere((select count(*)=2 from profiles where id in ('e9000000-0000-4000-8000-000000000002','f9000000-0000-4000-8000-000000000002')), 'contas dos outros continuam intactas');
 \echo
 \echo 'Todos os testes de segurança passaram.'

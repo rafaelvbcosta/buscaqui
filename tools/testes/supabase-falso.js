@@ -50,7 +50,7 @@ function q(t){let rows=[...(DB[t]||[])];const ok={data:null,error:null};const b=
  update(){return {eq:async()=>ok}},insert:async()=>ok,upsert:async()=>ok,delete(){return {eq:async()=>ok}},
  maybeSingle(){return Promise.resolve({data:rows[0]||null,error:null})},single(){return b.maybeSingle()},
  then(res,rej){return Promise.resolve({data:rows,error:null,count:rows.length}).then(res,rej)}};return b}
-export function createClient(){return{from:q,storage:{from:()=>({})},
+export function createClient(){return{from:q,storage:{from:()=>({list:async()=>({data:[],error:null}),remove:async()=>({data:[],error:null})})},
  rpc:async(n,a)=>n==='active_plan'?{data:a&&a.uid==='u2'?'profissional':null,error:null}:n==='company_trial_ends'?{data:MODE==='vencido'||MODE==='plano'?iso(-10):iso(8),error:null}:n==='featured_users'?{data:[{user_id:'u2',plan:'profissional'},{user_id:'u5',plan:'basico'}],error:null}:{data:null,error:null},
  auth:{getSession:async()=>({data:{session:window.__NOSESSION?null:{user:{id:uid,email:'a@x',user_metadata:{}}}}}),
  onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({})}}}

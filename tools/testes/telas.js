@@ -40,6 +40,7 @@ const TELAS = [
   ['empresa-pagina', '/empresa/c1', C, 1280, 800],
   ['planos-empresa', '/planos', { ...E, mode: 'pend' }, 1280, 900],
   ['perfil', '/perfil', C, 390, 844],
+  ['excluir-conta', '/perfil', E, 390, 844, '#del-account'],
   ['sugestao', '/sugestao', C, 390, 844],
   ['admin', '/admin', A, 1280, 800],
   ['admin-usuarios', '/admin/usuarios', A, 1280, 900],

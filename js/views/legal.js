@@ -1,5 +1,5 @@
-import { state } from '../store.js?v=202611031938';
-import { ICON, CONTATO_EMAIL, TERMOS_VERSAO } from '../ui.js?v=202611031938';
+import { state } from '../store.js?v=202611031950';
+import { ICON, CONTATO_EMAIL, TERMOS_VERSAO } from '../ui.js?v=202611031950';
 
 // ============================================================
 // POLÍTICA DE PRIVACIDADE E TERMOS DE USO (abrem logado ou não)
@@ -86,8 +86,9 @@ export function privacy(el) {
     <p>Você pode, a qualquer momento: confirmar se temos dados seus, ver uma cópia, corrigir dados errados ou
       desatualizados, pedir a exclusão, pedir os dados em formato para levar a outro serviço, saber com quem
       compartilhamos e retirar o consentimento. A maior parte você mesmo faz no site (Minha conta, Currículo,
-      Meu perfil profissional, Empresa). Para o resto — inclusive <b>corrigir o CPF ou o CNPJ</b> e <b>excluir a
-      conta</b> — escreva para ${mail}. Respondemos em até 15 dias. Você também pode reclamar na Autoridade
+      Meu perfil profissional, Empresa). Para <b>excluir a conta</b>, use o botão
+      <b>Excluir minha conta</b> em Minha conta (ou escreva para nós). Para o resto — inclusive <b>corrigir o CPF ou o
+      CNPJ</b> — escreva para ${mail}. Respondemos em até 15 dias. Você também pode reclamar na Autoridade
       Nacional de Proteção de Dados (ANPD).</p>
 
     <h2>8. Segurança</h2>
@@ -158,8 +159,9 @@ export function terms(el) {
       (manutenção ou problemas técnicos). Funções e regras podem mudar para melhorar o serviço.</p>
 
     <h2>6. Encerrar a conta</h2>
-    <p>Você pode pedir a exclusão da sua conta quando quiser, por ${mail}. Veja na Política de privacidade o que é
-      apagado e o que a lei obriga a guardar.</p>
+    <p>Você pode excluir a sua conta quando quiser, pelo botão <b>Excluir minha conta</b> em Minha conta, ou pedir
+      por ${mail}. A exclusão é definitiva. Veja na Política de privacidade o que é apagado e o que a lei obriga a
+      guardar.</p>
 
     <h2>7. Mudanças nestes termos</h2>
     <p>Se estes termos mudarem de forma importante, avisaremos no site. Continuar usando o BuscAqui depois do aviso
