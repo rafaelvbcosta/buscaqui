@@ -90,6 +90,11 @@ O Rafael pediu para ser lembrado de forma esporádica destas melhorias (aprovada
 3. ~~Domínio próprio~~ **FEITO em 02/11/2026:** `www.buscaquiarcos.com.br` (DNS no Registro.br: CNAME `www` →
    `rafaelvbcosta.github.io` + 4 registros A 185.199.108-111.153; Custom domain no GitHub Pages; Site URL do Supabase).
 4. **Pagamento automático** (Mercado Pago ou similar) no lugar do Pix manual, quando houver muitos clientes.
+5. **Aplicativo Android na Play Store** (aprovado como ideia em 03/11/2026). Plano: (1) PWA primeiro — manifest +
+   service worker + botão "Instalar app", grátis; (2) depois do lançamento, publicar na Play Store como TWA
+   (Bubblewrap/PWABuilder) usando o próprio site; conta Google Play ~US$ 25 (taxa única), exige página de
+   política de privacidade (também útil pela LGPD) e, para conta pessoal nova, teste fechado antes de publicar
+   (conferir regra atual). iPhone (App Store, US$ 99/ano) fica para depois. App nativo do zero: não recomendado.
 Em discussão: monetizar o currículo em PDF (R$ 6,90). Opções apresentadas: PDF grátis com rodapé de
 propaganda; "Currículo em Destaque" pago; ou PDF pago só depois do pagamento automático (o PDF é gerado no
 navegador e pode ser burlado pelo "Imprimir").
