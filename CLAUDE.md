@@ -1,100 +1,176 @@
 # BuscAqui — contexto para o Claude
 
-## Sobre o projeto
-BuscAqui ("Encontre. Conecte. Trabalhe.") é um app web responsivo (celular e computador) que conecta
-candidatos a emprego, profissionais autônomos e empresas locais. Dono: Rafael (usuário GitHub `rafaelvbcosta`).
+> Leia também **`PROJECT_STATUS.md`** (o que está pronto, pendências, bugs e próximos passos).
+> Atualizado em 03/11/2026, conferido contra o código da branch `main` (commit `db70b17`, PR #16).
 
-## Como falar com o Rafael
+## 1. Objetivo e escopo
+BuscAqui ("Encontre. Conecte. Trabalhe.") é um site responsivo (celular e computador) **exclusivo para Arcos - MG**
+que conecta:
+- **Candidatos** a emprego — foco principal: trabalhadores com pouca instrução formal (ajudante, serviços gerais,
+  limpeza, atendimento, construção, cozinha) e as **empresas** que precisam dessa mão de obra;
+- **Profissionais autônomos** e **empresas que prestam serviço** a quem precisa contratar (todas as classes).
+
+Dono: **Rafael** (GitHub `rafaelvbcosta`). Site: **https://www.buscaquiarcos.com.br/**. Ainda **não foi aberto ao
+público** (fase de testes; ver pendências em `PROJECT_STATUS.md`).
+
+## 2. Como falar com o Rafael
 - Sempre em **português do Brasil**.
-- Ele é **iniciante** em programação e no Claude: dê instruções **um passo de cada vez**, bem detalhadas
-  (onde clicar, nome exato dos botões), e peça para ele responder "pronto" antes do próximo passo.
-- Quando algo der errado, peça um print da tela.
+- Ele é **iniciante**: instruções **um passo de cada vez**, bem detalhadas (onde clicar, nome exato dos botões), e
+  peça "pronto" antes do próximo passo. Quando algo der errado, peça **print da tela**.
+- **Fluxo combinado para toda mudança:** o Claude faz a mudança na branch de trabalho → mostra **prévia em imagens**
+  (prints gerados no navegador de teste) → Rafael responde "aprovado" → Claude abre **Pull Request** → **Rafael faz
+  o merge** no GitHub (Claude não faz merge). Se o banco mudou: Rafael roda o `supabase/setup.sql` **da branch** no
+  SQL Editor do Supabase **ANTES** do merge.
+- **Toda mudança atualiza também o `PROJECT_STATUS.md`** no mesmo PR (seção "Histórico de alterações" com data,
+  PR e se mexeu no banco; funcionalidades, pendências e bugs quando mudarem). Se uma regra, rota, tabela ou
+  padrão mudar, atualize também este `CLAUDE.md`. Documentação desatualizada é pior que nenhuma.
+- **Antes de abrir o PR**, rode os testes de `tools/testes/` (seção 7) e, se criou tela ou regra nova, acrescente
+  o teste correspondente.
+- Ele prefere **não criar expectativa** nos clientes: nada de avisos "em breve" no site.
+- Pediu **lembretes semanais** das ideias aprovadas (seção 9). Existe uma tarefa agendada (segunda, 18h37, horário de
+  Brasília) que envia o lembrete na sessão do Claude.
 
-## Tecnologia (tudo gratuito)
-- Site estático (HTML + CSS + JavaScript em módulos ES), **sem etapa de build**.
-- Hospedagem: **GitHub Pages** (branch `main`, pasta raiz) → **`https://www.buscaquiarcos.com.br/`** (domínio próprio,
-  Registro.br; o endereço antigo `rafaelvbcosta.github.io/buscaqui/` redireciona). O arquivo `CNAME` na raiz guarda o domínio: não apagar.
-- Backend: **Supabase** plano gratuito (Auth e-mail/senha, Postgres com RLS, Storage).
-- Bibliotecas por CDN: `@supabase/supabase-js@2.49.4` (jsdelivr) e `html2pdf.js@0.10.1` (cdnjs, carregado só na tela de PDF).
-- Rotas por hash (`#/vagas`, `#/painel`...), definidas em `js/app.js`.
+## 3. Tecnologias (tudo gratuito, exceto domínio)
+- Site estático: **HTML + CSS + JavaScript em módulos ES**, **sem build, sem frameworks, sem npm**.
+- Hospedagem: **GitHub Pages**, branch `main`, pasta raiz. Domínio próprio no **Registro.br**
+  (`buscaquiarcos.com.br`, ~R$ 40/ano). Arquivo **`CNAME`** na raiz guarda o domínio — **não apagar**. `.nojekyll`
+  também deve ficar.
+- Backend: **Supabase** plano gratuito, projeto `buscaqui` (região São Paulo, ref `tjfzpobrqqoecktotlzy`):
+  Auth e-mail/senha, Postgres com RLS, Storage.
+- CDN: `@supabase/supabase-js@2.49.4` (jsdelivr, `+esm`) e `html2pdf.js@0.10.1` (cdnjs, carregado só ao baixar PDF).
+- API externa: **BrasilAPI** (`https://brasilapi.com.br/api/cnpj/v1/<cnpj>`) para conferir CNPJ (existe, situação,
+  município). Se falhar, o cadastro **não trava**.
+- Fonte da interface: Plus Jakarta Sans (Google Fonts). Cores: verde `#0EAC40`, verde-escuro `#003515`,
+  amarelo `#FDB904` (`:root` em `css/styles.css`).
 
-## Arquivos
-- `js/config.js` — URL e chave **publishable** do Supabase (o Rafael cola manualmente; nunca usar a secret/service_role).
-- `js/app.js` — rotas, menus por perfil, inicialização.
-- `js/store.js` — estado do usuário logado.
-- `js/ui.js` — utilitários (escape de HTML, ícones SVG, toast, modal, máscaras, categorias).
-- `js/views/` — `auth.js`, `candidato.js`, `servicos.js`, `empresa.js`, `perfil.js`.
-- `supabase/setup.sql` — tabelas, trigger de perfil, RLS, buckets (`avatars`, `logos` públicos; `curriculos` privado) e dados de exemplo. Pode ser rodado de novo sem perder dados.
-- `supabase/remover-exemplos.sql` — apaga os dados de exemplo.
-- `js/views/admin.js` (área do admin), `js/views/planos.js` (planos e Pix), `tools/versao.py` (versão dos arquivos).
+## 4. Arquitetura e arquivos
+```
+index.html               página única; carrega css/styles.css e js/app.js (com ?v=)
+CNAME, .nojekyll          domínio do GitHub Pages / desliga o Jekyll
+assets/logo.png, icone.png  logo (transparente) e ícone
+css/styles.css           todo o visual
+js/config.js             SUPABASE_URL e SUPABASE_KEY (publishable). NUNCA a secret/service_role
+js/supabase.js           cria o cliente; `configured` = config preenchida
+js/app.js                rotas (hash), menus por perfil (NAV), moldura, tela de conta bloqueada, start()
+js/store.js              estado do usuário: profile, company, professional, resume, favorites, applied,
+                         subs (assinaturas), trialEnds; helpers role(), isAdmin(), activePlan(),
+                         pendingSub(), trialDaysLeft(), companyActive(), homeFor()
+js/ui.js                 utilitários: esc(), ícones SVG (ICON), toast, modal, confirmBox, errMsg (traduz erros
+                         do banco), máscaras, validCPF/validCNPJ, checkCNPJ (BrasilAPI), pixCode, avatar,
+                         uploadFile, constantes (CATEGORIAS_*, PLANOS, LIMITE_SERVICOS=3, DIAS_TESTE_EMPRESA=30)
+js/views/auth.js         página inicial, entrar, cadastro (escolha de perfil), nova senha
+js/views/candidato.js    vagas (filtros: busca, categoria, salário, favoritas), detalhe da vaga, candidaturas,
+                         Currículo fácil, prévia e PDF (rodapé desenhado em cada página A4)
+js/views/servicos.js     Serviços (hub), Encontrar profissional (filtro Todos/Autônomos/Empresas, destaques),
+                         detalhe do autônomo, Pedidos de serviço, Publicar pedido, perfil do autônomo (4 etapas)
+js/views/empresa.js      painel, minhas vagas, formulário de vaga, candidatos, cadastro da empresa (CNPJ),
+                         página pública da empresa, Divulgar serviços (#/divulgar)
+js/views/perfil.js       Meu perfil (foto, nome, telefone; cidade só p/ autônomo/empresa), trocar senha, sair
+js/views/planos.js       Planos (empresa e autônomo) + pedido com chave Pix e código
+js/views/admin.js        Admin: visão geral, usuários, pagamentos, moderação, configurações (chave Pix)
+js/views/sugestoes.js    Enviar sugestão (#/sugestao) e lista do admin (#/admin/sugestoes)
+supabase/setup.sql       banco inteiro (tabelas, gatilhos, RLS, buckets, exemplos). REEXECUTÁVEL
+supabase/remover-exemplos.sql  apaga empresas/vagas/profissionais de exemplo (owner_id/user_id nulos)
+tools/versao.py          troca o ?v=AAAAMMDDHHMM de TODOS os imports (cache do navegador)
+```
 
-## Status (1º de novembro de 2026)
-**Site no ar** em `https://www.buscaquiarcos.com.br/` (domínio próprio desde 02/11/2026). Configuração concluída:
-`setup.sql` rodado, `js/config.js` preenchido (projeto `tjfzpobrqqoecktotlzy`), GitHub Pages ativo
-(main / root) e Site URL do Supabase configurada.
+**Rotas** (`js/app.js`): públicas `#/`, `#/entrar`, `#/cadastro`. Logado: `#/vagas`, `#/vaga/:id`,
+`#/candidaturas`, `#/curriculo`, `#/previa`, `#/servicos`, `#/profissionais`, `#/profissional/:id`, `#/pedidos`,
+`#/pedido-novo`, `#/meu-servico`, `#/perfil`, `#/nova-senha`, `#/sugestao`, `#/empresa/:id`;
+só empresa: `#/painel`, `#/minhas-vagas`, `#/vaga-form[/:id]`, `#/candidatos/:jobId`, `#/empresa`, `#/divulgar`;
+empresa e autônomo: `#/planos`; só admin: `#/admin`, `#/admin/usuarios`, `#/admin/pagamentos`,
+`#/admin/moderacao`, `#/admin/config`, `#/admin/sugestoes`.
 
-Testado no site real com os três perfis (contas `rafaelvbcosta+candidato|profissional|empresa@gmail.com`):
-cadastro, currículo, candidatura, perfil profissional, cadastro de empresa, publicação de vaga e
-lista de candidatos — tudo funcionando.
+**Menus** (`NAV`, máx. **5 itens** — o menu de baixo do celular não comporta mais): candidato (Vagas, Serviços,
+Candidaturas, Currículo, Prévia/PDF); empresa (Painel, Minhas vagas, Empresa, Planos, Serviços); profissional
+(Pedidos, Serviços, Meu perfil→`/meu-servico`, Vagas, Candidaturas); admin (Visão geral, Usuários, Pagamentos,
+Moderação, Configurações). Menu lateral (computador) tem ainda "Enviar sugestão" (admin: "Sugestões"), "Meu perfil"
+e "Sair".
 
-Também testado: contratar serviço (encontrar profissional → WhatsApp; publicar pedido → profissional
-"Oferecer serviço" → cliente "Já resolvi"). Melhoria já publicada (PR #1): cartão "Meus pedidos de serviço"
-na tela Serviços e "Meus pedidos" no topo da tela Pedidos (para quem não é profissional).
+**Banco** (`supabase/setup.sql`): tabelas `profiles`, `resumes`, `companies`, `jobs`, `applications`, `favorites`,
+`professionals` (autônomos E divulgação de empresas via `company_id`), `service_requests`, `subscriptions`,
+`app_settings` (`pix_chave`, `pix_nome`), `trial_registry`, `feedbacks`. Buckets: `avatars` e `logos` (públicos),
+`curriculos` (privado). Gatilho `handle_new_user` cria o profile no cadastro (role vem do metadata; nunca admin).
+Algumas funções são redefinidas mais abaixo no arquivo (`protect_profile_flags`, `company_can_publish`,
+`professionals_check_plan`): **vale a última definição**.
 
-Rafael está fazendo mais testes por conta própria. Ideia para depois: domínio próprio (ex.: `buscaqui.com.br`
-no Registro.br, ~R$ 40/ano). Passos: verificar se está livre → DNS (CNAME `www` → `rafaelvbcosta.github.io`;
-registros A da raiz para os IPs do GitHub Pages) → Settings → Pages → Custom domain + Enforce HTTPS →
-atualizar Site URL no Supabase. O código não tem o endereço fixo, não precisa mudar nada nele.
+## 5. Regras de negócio (todas conferidas no código/banco)
+- **Perfis:** `candidato`, `profissional` (autônomo), `empresa`; **admin** = `profiles.is_admin = true`, marcado
+  **só pelo SQL Editor** (conta `rafaelvbcosta+admin@gmail.com`, perfil candidato). Admin vê/modera tudo (RLS).
+- **Conta bloqueada** (`profiles.blocked`, só o admin muda): vê a tela "Conta bloqueada"; o conteúdo dela continua
+  no ar até ser removido na Moderação.
+- **Documentos:** empresa precisa de **CNPJ válido e único**; autônomo precisa de **CPF válido e único** para
+  divulgar. Depois de salvo, **só o admin troca** (Admin › Usuários › Documento). No cadastro da empresa o site
+  consulta a BrasilAPI: barra CNPJ inexistente ou não ATIVO; se não for de Arcos, só avisa.
+- **Teste grátis da empresa:** **30 dias, uma vez por CNPJ para sempre** (`trial_registry`, mesmo se a empresa for
+  apagada). Durante o teste: vagas ilimitadas e até 3 serviços.
+- **Planos** (preço sempre do banco, `plan_price`; usuário só PEDE ou cancela pedido pendente):
+  - Básico **R$ 29,90/mês** (empresa): até **5 vagas por mês do calendário** (fuso de São Paulo), até **3 serviços**,
+    selo Destaque.
+  - Profissional **R$ 49,90/mês** (empresa): vagas e serviços ilimitados, **topo** da lista de serviços.
+  - Autônomo Destaque **R$ 14,90/mês** (autônomo): topo da lista + selo Destaque.
+  - Pagamento por **Pix manual**: usuário pede → aparece chave Pix + **código do pedido** (ex. `BA-7F3K`, prefixo
+    BA/PR/AD + 4 primeiros caracteres do id) → admin confere no banco e clica **Confirmar pagamento** → plano ativo
+    por **30 dias** (renovação **soma** os dias). Admin também pode **Dar plano** (cortesia).
+  - Destaques: Profissional e Autônomo Destaque aparecem no topo, **revezando a ordem** a cada visita; Básico só
+    ganha o selo.
+- **Plano/teste vencido (empresa):** vagas e divulgação ficam **pausadas** (escondidas do público via RLS
+  `company_active`), **nada é apagado**, voltam sozinhas ao confirmar o pagamento. Sem plano a empresa não publica
+  vaga nova nem começa divulgação (`PLANO_NECESSARIO`).
+- **Serviços de empresa:** um cartão por empresa, vários serviços (categoria + descrição), limite 3 sem o
+  Profissional (`LIMITE_SERVICOS`, conferido no banco). Nome/logo/telefone/endereço vêm do cadastro da empresa.
+- **Vaga:** salário em **um campo** (gravado igual em `salary_min` e `salary_max`; vazio = "Salário a combinar");
+  campo **Bairro** (coluna `location`; vazio mostra "Arcos"); modalidade existe no formulário mas não no filtro.
+- **Candidato:** sem campo Cidade (currículo mostra "Arcos - MG" se vazio); PDF grátis com rodapé de propaganda
+  em cada página A4 ("Página X de Y" quando há mais de uma).
+- **Sugestões:** usuário só envia (tipo + 5 a 1000 caracteres), **máx. 5 por dia**; não vê o histórico. Admin lê,
+  anota e marca nova/lida/resolvida.
+- **Cidade:** o site é para Arcos, mas o cadastro **não bloqueia** outras cidades.
 
-Publicado depois (PRs #2 a #7, todos com merge feito pelo Rafael):
-- Nova logo (`assets/logo.png` transparente) e ícone (`assets/icone.png`).
-- Página inicial focada em Arcos: título "Oportunidades de vagas e serviços em Arcos." (sem selo, sem sombreado
-  amarelo) e rodapé "Feito para Arcos - MG". O app é só para Arcos - MG, mas o cadastro não bloqueia outras cidades.
-- Vaga com um só campo "Salário (R$)" (salvo igual em `salary_min` e `salary_max`).
-- Empresas divulgam serviços: tela `#/divulgar`, `professionals.company_id` + `address`, categorias
-  `CATEGORIAS_EMPRESA` em `js/ui.js`, etiqueta "Empresa" e filtro Todos/Autônomos/Empresas. O `setup.sql`
-  novo já foi rodado no Supabase e testado no site real.
+## 6. Padrões de código (obrigatórios)
+- Sem build, sem frameworks; textos da interface em **português**.
+- Sempre escapar dado de usuário com **`esc()`** ao montar HTML.
+- Toda mudança no banco vai para **`supabase/setup.sql` de forma reexecutável** (`if not exists`,
+  `create or replace`, `drop policy if exists`, `drop trigger if exists`, limpeza antes de índices únicos). Regras de
+  negócio importantes são **garantidas no banco** (gatilhos/RLS), não só na tela.
+- Erros do banco com prefixo (`PLANO_NECESSARIO:`, `LIMITE_VAGAS:`, `LIMITE_SERVICOS:`, `LIMITE_SUGESTOES:`,
+  `CNPJ_INVALIDO:`, `CPF_INVALIDO:`, `CPF_NECESSARIO:`) são traduzidos em `errMsg()` (`js/ui.js`).
+- **Versão dos arquivos:** todo import local e o `index.html` levam `?v=AAAAMMDDHHMM`. **Antes de cada publicação
+  rode `python3 tools/versao.py`** (troca todos ao mesmo tempo). Todos precisam da MESMA versão, senão o navegador
+  carrega `store.js` duas vezes (estado duplicado). Arquivo JS novo: importe com `?v=` e rode o script.
+- Menus com no máximo 5 itens; atalhos novos entram dentro das telas.
+- Branch de trabalho: `claude/sleepy-thompson-oqj14v`. Commits em português. Nunca usar a chave secret.
 
-PR #8 (publicado): Admin + planos + Pix manual + controle contra fraude.
-- Conta admin: `rafaelvbcosta+admin@gmail.com` (perfil candidato, `profiles.is_admin = true`, marcado no SQL Editor).
-  Telas `#/admin`, `/admin/usuarios`, `/admin/pagamentos`, `/admin/moderacao`, `/admin/config` (chave Pix já cadastrada).
-- Planos (preço vale o do banco, `plan_price`): Básico R$ 29,90 (5 vagas/mês do calendário, até 3 serviços, selo
-  Destaque), Profissional R$ 49,90 (ilimitado, topo da lista), Autônomo Destaque R$ 14,90 (topo + selo).
-  Empresa: 30 dias grátis uma vez por CNPJ (`trial_registry`), com vagas ilimitadas e até 3 serviços.
-  Pix manual: usuário pede (código ex. BA-7F3K) → admin confirma → 30 dias (renovação soma).
-  Vencido: vagas e divulgação da empresa ficam pausadas (RLS `company_active`), nada é apagado.
-- CNPJ obrigatório/único/travado (consulta BrasilAPI no cadastro), CPF obrigatório/único/travado para autônomo.
-- Testado no site real: CNPJ de teste via Admin › Documento, pedido do Básico, confirmação e plano ativo.
+## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
+Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
+- **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 28 telas (celular e computador, todos os
+  perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
+  Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
+- **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e
+  `storage`), roda o `setup.sql` da `main` e o atual DUAS vezes (reexecutável) e os testes de `seguranca.sql`
+  (mais de 30 regras). Regra nova → acrescente um teste.
+- **PDF do currículo:** não está automatizado. Para testar: baixar `html2pdf.js@0.10.1` (`npm pack`), servir no
+  lugar do cdnjs, clicar em "Baixar PDF" pelo Playwright e converter as páginas com `pdftoppm`.
+- O ambiente do Claude **não acessa** o site real, o Supabase real nem a BrasilAPI (o proxy bloqueia). Quem testa
+  no site real é o Rafael.
 
-Fluxo combinado: o Claude mostra prévia (prints) → Rafael aprova → PR → Rafael faz o merge. Mudança no banco:
-rodar o `setup.sql` da branch ANTES do merge. Testes do banco: Postgres 16 local com stubs de `auth`/`storage`.
+## 8. Dados de teste no site real
+Contas `rafaelvbcosta+candidato|+profissional|+empresa|+admin@gmail.com`. A empresa de teste usa o CNPJ de exemplo
+`11.222.333/0001-81` (colocado pelo Admin). Dados de exemplo do `setup.sql` (Padaria Pão Dourado, Construtora
+Alicerce Forte, Mercado Bom Preço, João Eletricista etc.) têm `owner_id`/`user_id` nulos e cidades de BH/Contagem.
 
-**Versão dos arquivos (cache do navegador):** todos os imports de `js/` e o `index.html` levam `?v=AAAAMMDDHHMM`.
-Antes de cada publicação, rode `python3 tools/versao.py` (troca a versão em todos ao mesmo tempo). Todos os
-arquivos precisam ter a MESMA versão, senão o navegador carrega o `store.js` duas vezes (estado duplicado).
-
-Pendências antes de abrir ao público:
-1. Religar "Confirm email" (Authentication → Sign In / Providers → Email).
-2. Rodar `supabase/remover-exemplos.sql` e apagar as contas/vaga de teste, se quiser.
-3. Lembrar que o Supabase gratuito pausa após 7 dias sem uso.
-
-## Ideias aprovadas para depois (LEMBRAR o Rafael de vez em quando, no começo das conversas)
-O Rafael pediu para ser lembrado de forma esporádica destas melhorias (aprovadas em 02/11/2026):
+## 9. Ideias aprovadas para depois (LEMBRAR o Rafael de vez em quando)
 1. **Relatórios do plano Profissional** (gráficos de visualizações e candidatos por vaga).
 2. **Estatísticas do autônomo** (quantas pessoas viram o perfil e clicaram no WhatsApp).
-3. ~~Domínio próprio~~ **FEITO em 02/11/2026:** `www.buscaquiarcos.com.br` (DNS no Registro.br: CNAME `www` →
-   `rafaelvbcosta.github.io` + 4 registros A 185.199.108-111.153; Custom domain no GitHub Pages; Site URL do Supabase).
+3. ~~Domínio próprio~~ **FEITO em 02/11/2026** (`www.buscaquiarcos.com.br`; DNS no Registro.br: CNAME `www` →
+   `rafaelvbcosta.github.io` + 4 registros A `185.199.108-111.153`; Custom domain + Enforce HTTPS no GitHub Pages;
+   Site URL do Supabase = `https://www.buscaquiarcos.com.br/`, Redirect URL extra = endereço antigo).
 4. **Pagamento automático** (Mercado Pago ou similar) no lugar do Pix manual, quando houver muitos clientes.
-Em discussão: monetizar o currículo em PDF (R$ 6,90). Opções apresentadas: PDF grátis com rodapé de
-propaganda; "Currículo em Destaque" pago; ou PDF pago só depois do pagamento automático (o PDF é gerado no
-navegador e pode ser burlado pelo "Imprimir").
+5. **Aplicativo Android na Play Store** (03/11/2026): primeiro **PWA** (manifest + service worker + "Instalar app",
+   grátis); depois **TWA** na Play Store (Bubblewrap/PWABuilder), conta Google ~US$ 25 (taxa única), exige página de
+   **política de privacidade** (também útil pela LGPD) e teste fechado para conta pessoal nova (conferir regra
+   atual). iPhone (US$ 99/ano) depois. App nativo do zero: não recomendado.
 
-## Fora do MVP (próximas versões, aparecem como "Em breve")
-Chat, notificações push, avaliações, login social, vídeo de apresentação, relatórios avançados (plano
-Profissional) e estatísticas do autônomo, pagamento automático (Mercado Pago), IA e cursos.
-
-## Regras ao alterar o código
-- Manter sem build e sem frameworks; textos da interface em português.
-- Sempre escapar dados de usuário com `esc()` ao montar HTML.
-- Qualquer mudança no banco: atualizar `supabase/setup.sql` de forma reexecutável (`if not exists`, `drop policy if exists`).
-- Plano gratuito do Supabase: 500 MB de banco, 1 GB de arquivos e pausa após 7 dias sem uso.
+Também conversadas e **fora por enquanto**: chat, notificações, avaliações, login com Google, vídeo de apresentação,
+IA, cursos. Currículo em PDF **continua grátis** (decisão: rodapé de propaganda em vez de cobrar R$ 6,90).
