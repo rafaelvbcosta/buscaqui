@@ -1005,6 +1005,23 @@ begin
 end;
 $$;
 
+-- ---------- Excluir minha conta (LGPD) ----------
+-- Apaga a conta de quem está logado. Tudo ligado ao perfil sai junto (on delete cascade): currículo, CPF,
+-- candidaturas, favoritos, perfil profissional, empresa, vagas, pedidos de serviço e de plano.
+-- Ficam: trial_registry (CNPJ que já usou o teste) e feedbacks (sem o nome, user_id vira nulo).
+-- Os arquivos (foto, logo, PDF) o site apaga antes, pela API do Storage.
+create or replace function public.delete_my_account()
+returns void language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null then raise exception 'Entre na sua conta para excluí-la.'; end if;
+  if public.is_admin() then raise exception 'A conta de administrador não pode ser excluída pelo site.'; end if;
+  delete from auth.users where id = v_uid;
+end;
+$$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;
+
 -- PARA VIRAR ADMIN (rodar uma vez só, trocando o e-mail pelo da conta admin):
 --   update public.profiles set is_admin = true where email = 'SEU_EMAIL_AQUI';
 

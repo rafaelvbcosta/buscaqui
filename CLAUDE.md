@@ -67,7 +67,7 @@ js/views/servicos.js     Serviços (hub), Encontrar profissional (filtro Todos/A
 js/views/empresa.js      painel, minhas vagas, formulário de vaga, candidatos, cadastro da empresa (CNPJ),
                          página pública da empresa, Divulgar serviços (#/divulgar)
 js/views/perfil.js       Minha conta (foto, nome, telefone; cidade só p/ autônomo/empresa), trocar senha, quadro
-                         Privacidade (links + e-mail de contato), sair
+                         Privacidade (links, e-mail de contato, Excluir minha conta), sair
 js/views/legal.js        Política de privacidade (#/privacidade) e Termos de uso (#/termos)
 js/views/planos.js       Planos (empresa e autônomo) + pedido com chave Pix e código
 js/views/admin.js        Admin: visão geral, usuários, pagamentos, moderação, configurações (chave Pix)
@@ -152,7 +152,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 ## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
 Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 31 telas (celular e computador, todos os
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 32 telas (celular e computador, todos os
   perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
   Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
 - **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e
@@ -175,6 +175,10 @@ Textos em `js/views/legal.js`. **Se o site passar a guardar um dado novo, compar
 quem vê o quê, atualize a Política de privacidade no mesmo PR** e troque `TERMOS_VERSAO` (`js/ui.js`) quando a
 mudança for importante. O cadastro grava `profiles.terms_version` e `terms_accepted_at` (gatilho
 `handle_new_user`, versão final no fim do `setup.sql`; o usuário não consegue alterar — `protect_profile_flags`).
+**Excluir minha conta:** o site apaga os arquivos da pasta `<id do usuário>/` nos buckets e chama a função
+`delete_my_account()` (apaga `auth.users`; o resto sai por `on delete cascade`). **Tabela nova ligada a um usuário
+precisa de `on delete cascade`** (ou `set null`, se o dado deve ficar sem o nome) e, se guardar arquivo, na pasta do
+usuário. Ficam de propósito: `trial_registry` e `feedbacks` (sem `user_id`). Admin não se exclui pelo site.
 
 ## 9. Ideias aprovadas para depois (LEMBRAR o Rafael de vez em quando)
 1. **Relatórios do plano Profissional** (gráficos de visualizações e candidatos por vaga).
