@@ -89,10 +89,12 @@ e "Sair".
 
 **Banco** (`supabase/setup.sql`): tabelas `profiles`, `resumes`, `companies`, `jobs`, `applications`, `favorites`,
 `professionals` (autônomos E divulgação de empresas via `company_id`), `service_requests`, `subscriptions`,
-`app_settings` (`pix_chave`, `pix_nome`), `trial_registry`, `feedbacks`. Buckets: `avatars` e `logos` (públicos),
+`app_settings` (`pix_chave`, `pix_nome`), `trial_registry`, `feedbacks`, `user_docs` (CPF do autônomo; só o dono e o
+admin leem — **nunca** guardar CPF em `profiles`, que outras pessoas podem ler). Buckets: `avatars` e `logos` (públicos),
 `curriculos` (privado). Gatilho `handle_new_user` cria o profile no cadastro (role vem do metadata; nunca admin).
 Algumas funções são redefinidas mais abaixo no arquivo (`protect_profile_flags`, `company_can_publish`,
-`professionals_check_plan`): **vale a última definição**.
+`professionals_check_plan`): **vale a última definição**. A coluna `profiles.cpf` ainda existe mas fica sempre
+vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs` e coloca em `state.profile.cpf`.
 
 ## 5. Regras de negócio (todas conferidas no código/banco)
 - **Perfis:** `candidato`, `profissional` (autônomo), `empresa`; **admin** = `profiles.is_admin = true`, marcado
@@ -100,7 +102,8 @@ Algumas funções são redefinidas mais abaixo no arquivo (`protect_profile_flag
 - **Conta bloqueada** (`profiles.blocked`, só o admin muda): vê a tela "Conta bloqueada"; o conteúdo dela continua
   no ar até ser removido na Moderação.
 - **Documentos:** empresa precisa de **CNPJ válido e único**; autônomo precisa de **CPF válido e único** para
-  divulgar. Depois de salvo, **só o admin troca** (Admin › Usuários › Documento). No cadastro da empresa o site
+  divulgar. Depois de salvo, **só o admin troca** (Admin › Usuários › Documento). O CPF fica em `user_docs` (RLS: dono lê e
+  grava o próprio uma vez; só o admin altera/apaga). No cadastro da empresa o site
   consulta a BrasilAPI: barra CNPJ inexistente ou não ATIVO; se não for de Arcos, só avisa.
 - **Teste grátis da empresa:** **30 dias, uma vez por CNPJ para sempre** (`trial_registry`, mesmo se a empresa for
   apagada). Durante o teste: vagas ilimitadas e até 3 serviços.
@@ -159,6 +162,10 @@ Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositó
 Contas `rafaelvbcosta+candidato|+profissional|+empresa|+admin@gmail.com`. A empresa de teste usa o CNPJ de exemplo
 `11.222.333/0001-81` (colocado pelo Admin). Dados de exemplo do `setup.sql` (Padaria Pão Dourado, Construtora
 Alicerce Forte, Mercado Bom Preço, João Eletricista etc.) têm `owner_id`/`user_id` nulos e cidades de BH/Contagem.
+
+## 8.1 LGPD
+Contato de privacidade: **buscaqui.arcos@gmail.com**. Etapas e situação na seção 3 do `PROJECT_STATUS.md`.
+Documento pessoal (CPF) nunca vai em tabela que outros usuários leem (`profiles` é lida por empresas e no admin).
 
 ## 9. Ideias aprovadas para depois (LEMBRAR o Rafael de vez em quando)
 1. **Relatórios do plano Profissional** (gráficos de visualizações e candidatos por vaga).

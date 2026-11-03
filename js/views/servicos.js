@@ -1,9 +1,9 @@
-import { sb } from '../supabase.js?v=202611022235';
-import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611022235';
+import { sb } from '../supabase.js?v=202611031428';
+import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611031428';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, confirmBox, errMsg, setBusy, formData,
   maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA, maskCPF, validCPF, LIMITE_SERVICOS,
-} from '../ui.js?v=202611022235';
+} from '../ui.js?v=202611031428';
 
 const cats = (pr) => [...new Set((pr.services || []).map((s) => s.categoria).filter(Boolean))];
 
@@ -377,7 +377,7 @@ export function myService(el, _p, { go }) {
       if (step < 4) { step++; return draw(); }
       const btn = f.querySelector('[type=submit]'); setBusy(btn, true, 'Salvando...');
       if (!p.cpf && d.cpf) {
-        const { error: e1 } = await sb.from('profiles').update({ cpf: d.cpf }).eq('id', state.user.id);
+        const { error: e1 } = await sb.from('user_docs').insert({ user_id: state.user.id, cpf: d.cpf });
         if (e1) { setBusy(btn, false); step = 1; draw(); return toast(errMsg(e1), 'err'); }
         p.cpf = d.cpf;
       }

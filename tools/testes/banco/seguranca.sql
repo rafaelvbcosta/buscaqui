@@ -53,12 +53,24 @@ select pg_temp.confere((select count(*)=0 from subscriptions), 'empresa não vê
 
 select pg_temp.como('f9000000-0000-4000-8000-000000000001');
 select pg_temp.deve_falhar($$insert into professionals(user_id,name) values (auth.uid(),'P1')$$, 'autônomo sem CPF não divulga');
-select pg_temp.deve_falhar($$update profiles set cpf='529.982.247-24' where id=auth.uid()$$, 'CPF inválido é barrado');
-update profiles set cpf='529.982.247-25' where id=auth.uid();
+select pg_temp.deve_falhar($$insert into user_docs(user_id,cpf) values (auth.uid(),'529.982.247-24')$$, 'CPF inválido é barrado');
+insert into user_docs(user_id,cpf) values (auth.uid(),'529.982.247-25');
 insert into professionals(user_id,name) values (auth.uid(),'P1');
 select pg_temp.confere(true, 'autônomo com CPF divulga');
+select pg_temp.deve_falhar($$update user_docs set cpf='153.509.460-56' where user_id=auth.uid() returning 1/0$$, 'CPF salvo não pode ser trocado pelo usuário');
+select pg_temp.confere((select cpf='529.982.247-25' from user_docs where user_id=auth.uid()), 'CPF salvo continua o mesmo');
+update profiles set cpf='529.982.247-25' where id=auth.uid();
+select pg_temp.confere((select cpf is null from profiles where id=auth.uid()), 'perfil nunca guarda CPF (fica em user_docs)');
 select pg_temp.como('f9000000-0000-4000-8000-000000000002');
-select pg_temp.deve_falhar($$update profiles set cpf='52998224725' where id=auth.uid()$$, 'CPF repetido é barrado');
+select pg_temp.deve_falhar($$insert into user_docs(user_id,cpf) values (auth.uid(),'52998224725')$$, 'CPF repetido é barrado');
+select pg_temp.deve_falhar($$insert into user_docs(user_id,cpf) values ('f9000000-0000-4000-8000-000000000001','153.509.460-56')$$, 'usuário não grava CPF em nome de outro');
+-- LGPD: a empresa que recebe a candidatura de um autônomo NÃO vê o CPF dele
+select pg_temp.como('f9000000-0000-4000-8000-000000000001');
+insert into applications(job_id,candidate_id) select id, auth.uid() from jobs where company_id='ca900000-0000-4000-8000-000000000001' limit 1;
+select pg_temp.como('e9000000-0000-4000-8000-000000000001');
+select pg_temp.confere((select count(*)=1 from profiles where id='f9000000-0000-4000-8000-000000000001'), 'empresa vê o perfil de quem se candidatou');
+select pg_temp.confere((select count(*)=0 from user_docs where user_id='f9000000-0000-4000-8000-000000000001'), 'empresa NÃO vê o CPF de quem se candidatou');
+select pg_temp.confere((select cpf is null from profiles where id='f9000000-0000-4000-8000-000000000001'), 'perfil lido pela empresa não traz CPF');
 
 select pg_temp.como('c9000000-0000-4000-8000-000000000001');
 insert into feedbacks(user_id,kind,message,status) values ('f9000000-0000-4000-8000-000000000001','sugestao','Mensagem de teste 1','resolvida');
@@ -74,6 +86,9 @@ select pg_temp.como('c9000000-0000-4000-8000-000000000001');
 
 select pg_temp.como('d9000000-0000-4000-8000-000000000001');
 select pg_temp.confere((select count(*)=5 and bool_and(user_id='c9000000-0000-4000-8000-000000000001' and status='nova') from feedbacks), 'admin vê as sugestões com o autor real');
+select pg_temp.confere((select count(*)=1 from user_docs where user_id='f9000000-0000-4000-8000-000000000001'), 'admin vê o CPF');
+update user_docs set cpf='153.509.460-56' where user_id='f9000000-0000-4000-8000-000000000001';
+select pg_temp.confere((select cpf='153.509.460-56' from user_docs where user_id='f9000000-0000-4000-8000-000000000001'), 'admin corrige o CPF');
 select public.confirm_subscription(id) from subscriptions where status='pendente';
 select pg_temp.confere((select status='ativa' and ends_at-starts_at=interval '30 days' from subscriptions limit 1), 'admin confirma o Pix: 30 dias');
 reset role;

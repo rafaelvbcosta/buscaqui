@@ -17,7 +17,14 @@ P=(psql -h "$SOCK" -p "$PORTA" -U postgres -v ON_ERROR_STOP=1 -q)
 "${P[@]}" -d teste -f "$AQUI/stubs.sql" >/dev/null 2>&1
 if git -C "$RAIZ" show origin/main:supabase/setup.sql > "$DIR/main.sql" 2>/dev/null; then
   "${P[@]}" -d teste -f "$DIR/main.sql" >/dev/null 2>&1 && echo "OK  setup.sql da main"
+  # dado "antigo" para conferir a migração: um CPF guardado do jeito da main (se a main tiver profiles.cpf)
+  "${P[@]}" -d teste -c "insert into auth.users(id,email,raw_user_meta_data) values ('a9000000-0000-4000-8000-000000000001','antigo@teste','{\"role\":\"profissional\"}');
+    do \$\$ begin if exists (select 1 from information_schema.columns where table_name='profiles' and column_name='cpf') then
+      update profiles set cpf='529.982.247-25' where id='a9000000-0000-4000-8000-000000000001'; end if; end \$\$;" >/dev/null 2>&1 || true
 fi
 "${P[@]}" -d teste -f "$RAIZ/supabase/setup.sql" >/dev/null 2>&1 && echo "OK  setup.sql atual (1ª vez)"
 "${P[@]}" -d teste -f "$RAIZ/supabase/setup.sql" >/dev/null 2>&1 && echo "OK  setup.sql atual (2ª vez, reexecutável)"
+MIGR=$("${P[@]}" -d teste -Atc "select (select count(*) from user_docs where user_id='a9000000-0000-4000-8000-000000000001')||'/'||(select count(*) from profiles where cpf is not null)" 2>/dev/null || echo "-")
+[ "$MIGR" = "1/0" ] && echo "OK  migração: CPF antigo foi para user_docs e saiu do perfil" || echo "INFO migração não conferida ($MIGR)"
+"${P[@]}" -d teste -c "delete from auth.users where id='a9000000-0000-4000-8000-000000000001'; delete from profiles where id='a9000000-0000-4000-8000-000000000001';" >/dev/null 2>&1 || true
 "${P[@]}" -d teste -f "$AQUI/seguranca.sql" 2>&1 | sed -n 's/^psql:[^ ]* NOTICE:  //p; s/^NOTICE:  //p; /FALHOU\|ERROR\|passaram/p'

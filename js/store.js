@@ -1,4 +1,4 @@
-import { sb } from './supabase.js?v=202611022235';
+import { sb } from './supabase.js?v=202611031428';
 
 export const state = {
   session: null,
@@ -22,7 +22,7 @@ export function clearState() {
 export async function loadUserData() {
   if (!state.user) return;
   const uid = state.user.id;
-  const [p, c, pr, r, f, a, s] = await Promise.all([
+  const [p, c, pr, r, f, a, s, doc] = await Promise.all([
     sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
     sb.from('companies').select('*').eq('owner_id', uid).maybeSingle(),
     sb.from('professionals').select('*').eq('user_id', uid).maybeSingle(),
@@ -30,8 +30,11 @@ export async function loadUserData() {
     sb.from('favorites').select('job_id').eq('user_id', uid),
     sb.from('applications').select('job_id').eq('candidate_id', uid),
     sb.from('subscriptions').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
+    sb.from('user_docs').select('cpf').eq('user_id', uid).maybeSingle(),
   ]);
   state.profile = p.data || null;
+  // o CPF fica em user_docs (só o dono e o admin leem); junta no perfil só para uso da tela
+  if (state.profile) state.profile.cpf = doc.data?.cpf || null;
   state.company = c.data || null;
   state.professional = pr.data || null;
   state.resume = r.data || null;

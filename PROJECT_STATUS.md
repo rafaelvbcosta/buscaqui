@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **03/11/2026**. Base: branch `main` no commit `db70b17` (merge do PR #16).
+> Atualizado em **03/11/2026**. Base: branch `main` (PR #17) + PR #18 (LGPD: CPF protegido).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -29,13 +29,20 @@
 | Cache | `?v=` em todos os arquivos (`tools/versao.py`) | ✅ |
 
 ## 3. Em desenvolvimento
-Nada em andamento no código do site. Última tarefa: documentação e kit de testes (PR #17).
+**LGPD** (iniciado em 03/11/2026), em etapas:
+1. ✅ CPF protegido: saiu de `profiles` e foi para a tabela `user_docs` (só o dono e o admin leem). Antes, uma
+   empresa que recebia candidatura de um autônomo conseguia ler o CPF dele pelo banco. PR #18 (mexe no banco).
+2. [ ] Páginas de **Política de Privacidade** e **Termos de Uso**, contato `buscaqui.arcos@gmail.com`, links no
+   cadastro e no rodapé, e registro da data do aceite.
+3. [ ] **"Excluir minha conta"** no Meu perfil.
+4. Recomendado: revisão dos textos por um advogado antes de abrir ao público.
 
 ## 4. Pendências (antes de abrir ao público)
 - [ ] Religar **"Confirm email"** no Supabase (Authentication → Sign In / Providers → Email).
 - [ ] Rodar `supabase/remover-exemplos.sql` e apagar contas/vagas de teste (inclui a empresa de teste com CNPJ
       `11.222.333/0001-81`, que não existe na Receita).
-- [ ] Criar a **política de privacidade / termos de uso** (o cadastro pede aceite dos "termos", mas não há página).
+- [ ] Criar a **política de privacidade / termos de uso** (o cadastro pede aceite dos "termos", mas não há página) e
+      "Excluir minha conta" — ver seção 3 (LGPD).
 - [ ] Lembrar: Supabase gratuito **pausa após 7 dias sem uso** ("Restore project" no painel).
 - [ ] Marketing: preencher sobrenome, WhatsApp e e-mail no último slide da apresentação; confirmar a oferta de
       "empresa fundadora" e as metas da estratégia (ver seção 7).
@@ -51,6 +58,7 @@ Nada em andamento no código do site. Última tarefa: documentação e kit de te
 | 6 | Filtros salvos antigos no navegador podem conter `mod` (modalidade, removida); é ignorado | `js/views/candidato.js` | Nenhuma |
 
 Nenhum bug de funcionamento foi relatado pelo Rafael em aberto.
+Corrigido no PR #18: CPF do autônomo podia ser lido por empresas que recebiam a candidatura dele (falha de privacidade).
 
 ## 6. Decisões tomadas (e por quê)
 - Site estático + Supabase gratuito: custo zero e manutenção simples para iniciante.
@@ -110,9 +118,11 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #15 | 02/11 | Remove todos os "em breve" e o sino | Não |
 | #16 | 02/11 | Sugestões e feedbacks | Sim |
 | #17 | 03/11 | Documentação (`CLAUDE.md`, `PROJECT_STATUS.md`, `README.md`) e kit de testes `tools/testes/` (telas + banco). Sem mudança no site | Não |
+| #18 | 03/11 | LGPD 1: CPF vai para a tabela protegida `user_docs` (empresa não vê mais o CPF de quem se candidata); CPF antigo migrado automaticamente | **Sim** |
 
 ## 11. Próximas etapas sugeridas
-1. Merge do PR #17 pelo Rafael. Depois, se ele quiser, corrigir o bug #1 ("Meu perfil" duplicado).
+1. Rodar o `setup.sql` da branch e fazer o merge do PR #18; depois LGPD etapas 2 e 3 (seção 3). Corrigir o bug #1
+   ("Meu perfil" duplicado) quando o Rafael quiser.
 2. Pendências da seção 4 (principalmente confirmação de e-mail, apagar exemplos, política de privacidade).
 3. Cadastrar as 15–20 empresas fundadoras antes de divulgar (ver estratégia).
 4. Ideias aprovadas (em ordem sugerida): PWA "instalar app" → relatórios do Profissional → estatísticas do

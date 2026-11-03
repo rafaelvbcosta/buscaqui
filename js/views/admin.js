@@ -1,8 +1,8 @@
-import { sb } from '../supabase.js?v=202611022235';
+import { sb } from '../supabase.js?v=202611031428';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
   moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
-} from '../ui.js?v=202611022235';
+} from '../ui.js?v=202611031428';
 
 // ============================================================
 // ÁREA DO ADMINISTRADOR
@@ -63,14 +63,17 @@ export async function overview(el, _p, { alive }) {
 
 // ---------- Usuários ----------
 export async function users(el, _p, ctx) {
-  const [pr, subs, comps, trials] = await Promise.all([
+  const [pr, subs, comps, trials, docs] = await Promise.all([
     sb.from('profiles').select('*').order('created_at', { ascending: false }),
     sb.from('subscriptions').select('user_id, plan, status, starts_at, ends_at'),
     sb.from('companies').select('id, owner_id, name, cnpj, cnpj_check, created_at'),
     sb.from('trial_registry').select('cnpj, started_at'),
+    sb.from('user_docs').select('user_id, cpf'),
   ]);
   if (!ctx.alive()) return;
   if (pr.error) { el.innerHTML = `<div class="card">${esc(errMsg(pr.error))}</div>`; return; }
+  const cpfDe = Object.fromEntries((docs.data || []).map((x) => [x.user_id, x.cpf]));
+  pr.data.forEach((u) => { u.cpf = cpfDe[u.id] || null; });
   const plano = (uid) => {
     const a = (subs.data || []).filter((s) => s.user_id === uid && isActive(s));
     if (!a.length) return null;
@@ -174,7 +177,7 @@ export async function users(el, _p, ctx) {
         if (v && !(isEmp ? validCNPJ(v) : validCPF(v))) return toast(isEmp ? 'CNPJ inválido.' : 'CPF inválido.', 'err');
         const { error } = isEmp
           ? await sb.from('companies').update({ cnpj: v || null, cnpj_check: null }).eq('id', emp.id)
-          : await sb.from('profiles').update({ cpf: v || null }).eq('id', u.id);
+          : v ? await sb.from('user_docs').upsert({ user_id: u.id, cpf: v }) : await sb.from('user_docs').delete().eq('user_id', u.id);
         if (error) return toast(errMsg(error), 'err');
         if (isEmp) { emp.cnpj = v; emp.cnpj_check = null; } else u.cpf = v;
         m.close(); toast('Documento atualizado. ✅'); draw();
