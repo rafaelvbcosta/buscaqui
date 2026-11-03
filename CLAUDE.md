@@ -57,7 +57,8 @@ js/store.js              estado do usuário: profile, company, professional, res
                          pendingSub(), trialDaysLeft(), companyActive(), homeFor()
 js/ui.js                 utilitários: esc(), ícones SVG (ICON), toast, modal, confirmBox, errMsg (traduz erros
                          do banco), máscaras, validCPF/validCNPJ, checkCNPJ (BrasilAPI), pixCode, avatar,
-                         uploadFile, constantes (CATEGORIAS_*, PLANOS, LIMITE_SERVICOS=3, DIAS_TESTE_EMPRESA=30)
+                         uploadFile, constantes (CATEGORIAS_*, PLANOS, LIMITE_SERVICOS=3, DIAS_TESTE_EMPRESA=30,
+                         CONTATO_EMAIL, TERMOS_VERSAO)
 js/views/auth.js         página inicial, entrar, cadastro (escolha de perfil), nova senha
 js/views/candidato.js    vagas (filtros: busca, categoria, salário, favoritas), detalhe da vaga, candidaturas,
                          Currículo fácil, prévia e PDF (rodapé desenhado em cada página A4)
@@ -65,7 +66,9 @@ js/views/servicos.js     Serviços (hub), Encontrar profissional (filtro Todos/A
                          detalhe do autônomo, Pedidos de serviço, Publicar pedido, perfil do autônomo (4 etapas)
 js/views/empresa.js      painel, minhas vagas, formulário de vaga, candidatos, cadastro da empresa (CNPJ),
                          página pública da empresa, Divulgar serviços (#/divulgar)
-js/views/perfil.js       Meu perfil (foto, nome, telefone; cidade só p/ autônomo/empresa), trocar senha, sair
+js/views/perfil.js       Minha conta (foto, nome, telefone; cidade só p/ autônomo/empresa), trocar senha, quadro
+                         Privacidade (links + e-mail de contato), sair
+js/views/legal.js        Política de privacidade (#/privacidade) e Termos de uso (#/termos)
 js/views/planos.js       Planos (empresa e autônomo) + pedido com chave Pix e código
 js/views/admin.js        Admin: visão geral, usuários, pagamentos, moderação, configurações (chave Pix)
 js/views/sugestoes.js    Enviar sugestão (#/sugestao) e lista do admin (#/admin/sugestoes)
@@ -74,7 +77,8 @@ supabase/remover-exemplos.sql  apaga empresas/vagas/profissionais de exemplo (ow
 tools/versao.py          troca o ?v=AAAAMMDDHHMM de TODOS os imports (cache do navegador)
 ```
 
-**Rotas** (`js/app.js`): públicas `#/`, `#/entrar`, `#/cadastro`. Logado: `#/vagas`, `#/vaga/:id`,
+**Rotas** (`js/app.js`): públicas `#/`, `#/entrar`, `#/cadastro`; logado ou não (`LEGAL`): `#/privacidade`,
+`#/termos`. Logado: `#/vagas`, `#/vaga/:id`,
 `#/candidaturas`, `#/curriculo`, `#/previa`, `#/servicos`, `#/profissionais`, `#/profissional/:id`, `#/pedidos`,
 `#/pedido-novo`, `#/meu-servico`, `#/perfil`, `#/nova-senha`, `#/sugestao`, `#/empresa/:id`;
 só empresa: `#/painel`, `#/minhas-vagas`, `#/vaga-form[/:id]`, `#/candidatos/:jobId`, `#/empresa`, `#/divulgar`;
@@ -84,8 +88,8 @@ empresa e autônomo: `#/planos`; só admin: `#/admin`, `#/admin/usuarios`, `#/ad
 **Menus** (`NAV`, máx. **5 itens** — o menu de baixo do celular não comporta mais): candidato (Vagas, Serviços,
 Candidaturas, Currículo, Prévia/PDF); empresa (Painel, Minhas vagas, Empresa, Planos, Serviços); profissional
 (Pedidos, Serviços, Meu perfil→`/meu-servico`, Vagas, Candidaturas); admin (Visão geral, Usuários, Pagamentos,
-Moderação, Configurações). Menu lateral (computador) tem ainda "Enviar sugestão" (admin: "Sugestões"), "Meu perfil"
-e "Sair".
+Moderação, Configurações). Menu lateral (computador) tem ainda "Enviar sugestão" (admin: "Sugestões"), "Minha conta"
+(`#/perfil`), "Sair" e, no pé, links Privacidade · Termos. "Meu perfil" é só o perfil profissional do autônomo.
 
 **Banco** (`supabase/setup.sql`): tabelas `profiles`, `resumes`, `companies`, `jobs`, `applications`, `favorites`,
 `professionals` (autônomos E divulgação de empresas via `company_id`), `service_requests`, `subscriptions`,
@@ -129,6 +133,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 - **Sugestões:** usuário só envia (tipo + 5 a 1000 caracteres), **máx. 5 por dia**; não vê o histórico. Admin lê,
   anota e marca nova/lida/resolvida.
 - **Cidade:** o site é para Arcos, mas o cadastro **não bloqueia** outras cidades.
+- **Idade:** só **maiores de 18 anos** (declarado no aceite do cadastro; não há conferência de data de nascimento).
 
 ## 6. Padrões de código (obrigatórios)
 - Sem build, sem frameworks; textos da interface em **português**.
@@ -147,7 +152,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 ## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
 Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 28 telas (celular e computador, todos os
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 31 telas (celular e computador, todos os
   perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
   Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
 - **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e
@@ -166,6 +171,10 @@ Alicerce Forte, Mercado Bom Preço, João Eletricista etc.) têm `owner_id`/`use
 ## 8.1 LGPD
 Contato de privacidade: **buscaqui.arcos@gmail.com**. Etapas e situação na seção 3 do `PROJECT_STATUS.md`.
 Documento pessoal (CPF) nunca vai em tabela que outros usuários leem (`profiles` é lida por empresas e no admin).
+Textos em `js/views/legal.js`. **Se o site passar a guardar um dado novo, compartilhar com outro serviço ou mudar
+quem vê o quê, atualize a Política de privacidade no mesmo PR** e troque `TERMOS_VERSAO` (`js/ui.js`) quando a
+mudança for importante. O cadastro grava `profiles.terms_version` e `terms_accepted_at` (gatilho
+`handle_new_user`, versão final no fim do `setup.sql`; o usuário não consegue alterar — `protect_profile_flags`).
 
 ## 9. Ideias aprovadas para depois (LEMBRAR o Rafael de vez em quando)
 1. **Relatórios do plano Profissional** (gráficos de visualizações e candidatos por vaga).

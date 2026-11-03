@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611031428';
-import { state, homeFor } from '../store.js?v=202611031428';
-import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone } from '../ui.js?v=202611031428';
-import { afterLogin } from '../app.js?v=202611031428';
+import { sb } from '../supabase.js?v=202611031938';
+import { state, homeFor } from '../store.js?v=202611031938';
+import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone, TERMOS_VERSAO } from '../ui.js?v=202611031938';
+import { afterLogin } from '../app.js?v=202611031938';
 
 // ---------------- Tela inicial ----------------
 export function landing(el) {
@@ -23,7 +23,8 @@ export function landing(el) {
         <div class="feature">${ICON.building}<div><h3>Para empresas</h3><p>Publique vagas, receba candidatos de Arcos e marque entrevistas.</p></div></div>
       </div>
     </section>
-    <footer class="public-foot">BuscAqui · Feito para Arcos - MG · Encontre. Conecte. Trabalhe.</footer>`;
+    <footer class="public-foot">BuscAqui · Feito para Arcos - MG · Encontre. Conecte. Trabalhe.
+      <span class="foot-links"><a href="#/privacidade">Política de privacidade</a> · <a href="#/termos">Termos de uso</a></span></footer>`;
 }
 
 // ---------------- Entrar ----------------
@@ -102,7 +103,7 @@ export function signup(el, _p, { go }) {
           <label>E-mail<input name="email" type="email" required autocomplete="email"></label>
           <label>Senha <small class="muted">(mínimo 6 caracteres)</small><input name="password" type="password" required minlength="6" autocomplete="new-password"></label>
           <label>Repita a senha<input name="password2" type="password" required autocomplete="new-password"></label>
-          <label class="check"><input type="checkbox" name="terms" required> Li e aceito os termos de uso e a política de privacidade.</label>
+          <label class="check"><input type="checkbox" name="terms" required> <span>Li e aceito os <a href="#/termos" target="_blank" rel="noopener">termos de uso</a> e a <a href="#/privacidade" target="_blank" rel="noopener">política de privacidade</a>, e tenho 18 anos ou mais.</span></label>
           <button class="btn btn-primary btn-block btn-lg" type="submit">Criar minha conta</button>
         </form>
       </div></div>`;
@@ -122,7 +123,7 @@ export function signup(el, _p, { go }) {
         email: d.email,
         password: d.password,
         options: {
-          data: { full_name: d.full_name, phone: d.phone, role: chosen },
+          data: { full_name: d.full_name, phone: d.phone, role: chosen, terms_version: TERMOS_VERSAO },
           emailRedirectTo: location.origin + location.pathname,
         },
       });

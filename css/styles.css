@@ -161,6 +161,16 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .feature:nth-child(2) > svg, .feature:nth-child(4) > svg { background: var(--yellow-50); color: #b88400; }
 .feature p { margin: 0; color: var(--muted); font-size: .92rem; }
 .public-foot { text-align: center; color: var(--muted); font-size: .85rem; padding: 1rem; }
+.public-foot a, .sidenav-legal a { color: var(--muted); }
+.foot-links { display: block; margin-top: .35rem; }
+.sidenav-legal { display: block; margin-top: .3rem; font-weight: 500; }
+/* Política de privacidade / Termos de uso */
+.legal-wrap { padding: 1rem 0; }
+.legal { max-width: 760px; margin-inline: auto; width: 100%; line-height: 1.6; }
+.legal h2 { margin: 1.4rem 0 .4rem; color: var(--forest); }
+.legal ul { padding-left: 1.2rem; margin: .4rem 0; }
+.legal li { margin: .3rem 0; }
+.legal-links { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line); text-align: center; }
 @media (min-width: 900px) { .hero { grid-template-columns: 1.1fr 1fr; gap: 3rem; } .hero-cards { grid-template-columns: 1fr 1fr; } .feature { flex-direction: column; } }
 
 .auth-wrap { display: flex; align-items: center; justify-content: center; flex: 1; padding: 1rem 0; }
@@ -216,6 +226,8 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
   .sidenav a, .sidenav-logout { display: flex; align-items: center; gap: .75rem; padding: .7rem .9rem; border-radius: 12px; color: var(--ink); font-weight: 600; font: inherit; font-weight: 600; background: none; border: 0; cursor: pointer; text-align: left; }
   .sidenav a:hover, .sidenav-logout:hover { background: var(--bg); text-decoration: none; }
   .sidenav a.active { background: var(--green); color: #fff; }
+  .sidenav .sidenav-legal a { display: inline; padding: 0; border-radius: 0; font-size: .78rem; font-weight: 500; color: var(--muted); }
+  .sidenav .sidenav-legal a:hover { background: none; text-decoration: underline; }
   .sidenav-sep { height: 1px; background: var(--line); margin: .75rem .5rem; }
   .sidenav-logout { color: var(--muted); }
   .sidenav-foot { margin-top: auto; font-size: .78rem; color: var(--muted); padding: .5rem .9rem; font-weight: 600; }

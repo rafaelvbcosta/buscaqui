@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **03/11/2026**. Base: branch `main` (PR #17) + PR #18 (LGPD: CPF protegido).
+> Atualizado em **03/11/2026**. Base: branch `main` (PR #18) + PR #19 (LGPD: privacidade/termos, "Minha conta").
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -25,24 +25,30 @@
 | Planos e Pix | Teste 30 dias por CNPJ, Básico, Profissional, Autônomo Destaque, pedido com código, confirmação pelo admin, renovação soma dias, vagas pausadas ao vencer | ✅ 🧪 (fluxo Básico testado) |
 | Destaques | Selo e topo da lista com revezamento | ✅ |
 | Admin | Visão geral, usuários (busca, duplicados por telefone, documento, verificar CNPJ, dar plano, bloquear), pagamentos, moderação, configurações (chave Pix cadastrada) | ✅ 🧪 |
-| Sugestões | `#/sugestao` (menu lateral + quadro no Meu perfil), `#/admin/sugestoes` com filtros, anotação e WhatsApp | ✅ 🧪 |
+| Sugestões | `#/sugestao` (menu lateral + quadro em Minha conta), `#/admin/sugestoes` com filtros, anotação e WhatsApp | ✅ 🧪 |
+| Privacidade (LGPD) | CPF protegido (`user_docs`), páginas `#/privacidade` e `#/termos`, aceite gravado no cadastro | ✅ (#18 🧪) |
 | Cache | `?v=` em todos os arquivos (`tools/versao.py`) | ✅ |
 
 ## 3. Em desenvolvimento
 **LGPD** (iniciado em 03/11/2026), em etapas:
 1. ✅ CPF protegido: saiu de `profiles` e foi para a tabela `user_docs` (só o dono e o admin leem). Antes, uma
    empresa que recebia candidatura de um autônomo conseguia ler o CPF dele pelo banco. PR #18 (mexe no banco).
-2. [ ] Páginas de **Política de Privacidade** e **Termos de Uso**, contato `buscaqui.arcos@gmail.com`, links no
-   cadastro e no rodapé, e registro da data do aceite.
-3. [ ] **"Excluir minha conta"** no Meu perfil.
+2. ✅ Páginas **Política de privacidade** (`#/privacidade`) e **Termos de uso** (`#/termos`), abrem logado ou não;
+   contato `buscaqui.arcos@gmail.com`; links no cadastro, no rodapé da página inicial, no menu lateral e em Minha
+   conta; o cadastro grava `profiles.terms_version` e `terms_accepted_at` (contas antigas ficam vazias). PR #19
+   (mexe no banco). Enquanto não há o botão, exclusão de conta e correção de CPF/CNPJ são pedidas por e-mail.
+3. [ ] **"Excluir minha conta"** em Minha conta (depois, ajustar o texto das páginas, que hoje mandam pedir por
+   e-mail).
 4. Recomendado: revisão dos textos por um advogado antes de abrir ao público.
+5. Decisões do Rafael (03/11/2026): site **só para maiores de 18 anos** (o aceite do cadastro inclui "tenho 18 anos
+   ou mais"); reembolso em até 7 dias mantido (direito de arrependimento do CDC, art. 49). **Pendente:** o Rafael vai
+   informar o CNPJ para identificar o responsável nas páginas (hoje só "BuscAqui" + e-mail).
 
 ## 4. Pendências (antes de abrir ao público)
 - [ ] Religar **"Confirm email"** no Supabase (Authentication → Sign In / Providers → Email).
 - [ ] Rodar `supabase/remover-exemplos.sql` e apagar contas/vagas de teste (inclui a empresa de teste com CNPJ
       `11.222.333/0001-81`, que não existe na Receita).
-- [ ] Criar a **política de privacidade / termos de uso** (o cadastro pede aceite dos "termos", mas não há página) e
-      "Excluir minha conta" — ver seção 3 (LGPD).
+- [ ] "Excluir minha conta" e revisão dos textos de privacidade/termos — ver seção 3 (LGPD).
 - [ ] Lembrar: Supabase gratuito **pausa após 7 dias sem uso** ("Restore project" no painel).
 - [ ] Marketing: preencher sobrenome, WhatsApp e e-mail no último slide da apresentação; confirmar a oferta de
       "empresa fundadora" e as metas da estratégia (ver seção 7).
@@ -50,15 +56,16 @@
 ## 5. Bugs e pontos de atenção conhecidos
 | # | Descrição | Onde | Gravidade |
 |---|---|---|---|
-| 1 | No **menu lateral do autônomo** aparecem **dois itens "Meu perfil"** (um vai para `#/meu-servico`, perfil profissional; outro para `#/perfil`, dados da conta) | `js/app.js` (`NAV.profissional` + link fixo do menu lateral) | Baixa (confunde) |
-| 2 | No celular, "Enviar sugestão" não está no menu de baixo (só no quadro do Meu perfil, acessado pela foto no topo). Admin no celular também não tem "Sugestões" no menu de baixo (acessa pela Visão geral) | `js/app.js` | Baixa (decisão de espaço) |
+| 2 | No celular, "Enviar sugestão" não está no menu de baixo (só no quadro de Minha conta, acessada pela foto no topo). Admin no celular também não tem "Sugestões" no menu de baixo (acessa pela Visão geral) | `js/app.js` | Baixa (decisão de espaço) |
 | 3 | Dados de exemplo do `setup.sql` estão em **Belo Horizonte/Contagem**, não em Arcos | `supabase/setup.sql` | Baixa (apagar antes de lançar) |
 | 4 | Sem aviso antes do plano vencer (o usuário só vê quando vence) | — | Média (ideia futura) |
 | 5 | Datas de plano/teste exibidas na tela usam o relógio do aparelho; o banco é quem decide de verdade | `js/store.js` | Baixa |
 | 6 | Filtros salvos antigos no navegador podem conter `mod` (modalidade, removida); é ignorado | `js/views/candidato.js` | Nenhuma |
 
 Nenhum bug de funcionamento foi relatado pelo Rafael em aberto.
-Corrigido no PR #18: CPF do autônomo podia ser lido por empresas que recebiam a candidatura dele (falha de privacidade).
+Corrigidos: PR #18 — CPF do autônomo podia ser lido por empresas que recebiam a candidatura dele (falha de
+privacidade). PR #19 — menu lateral do autônomo tinha dois itens "Meu perfil"; o de dados da conta (`#/perfil`) virou
+**"Minha conta"** para todos os perfis (os números dos bugs acima foram mantidos).
 
 ## 6. Decisões tomadas (e por quê)
 - Site estático + Supabase gratuito: custo zero e manutenção simples para iniciante.
@@ -98,7 +105,8 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 - ⚠️ Regras atuais do Google Play (teste fechado, valores) não foram conferidas.
 - ⚠️ Metas, orçamento (~R$ 600) e oferta de "empresa fundadora" do material de marketing são **sugestões** ainda
   não aprovadas pelo Rafael.
-- ⚠️ O texto exato dos termos de uso aceitos no cadastro não existe.
+- ⚠️ Os textos de privacidade e termos foram escritos pelo Claude a partir do código; **não** foram revisados por
+  advogado.
 
 ## 10. Histórico de alterações (PRs, todos com merge feito pelo Rafael)
 | PR | Data | Mudança | Banco? |
@@ -119,10 +127,10 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #16 | 02/11 | Sugestões e feedbacks | Sim |
 | #17 | 03/11 | Documentação (`CLAUDE.md`, `PROJECT_STATUS.md`, `README.md`) e kit de testes `tools/testes/` (telas + banco). Sem mudança no site | Não |
 | #18 | 03/11 | LGPD 1: CPF vai para a tabela protegida `user_docs` (empresa não vê mais o CPF de quem se candidata); CPF antigo migrado automaticamente | **Sim** |
+| #19 | 03/11 | LGPD 2: páginas Política de privacidade e Termos de uso, links (cadastro, rodapé, menu, Minha conta), registro do aceite no cadastro; "Meu perfil" (conta) vira "Minha conta" | **Sim** |
 
 ## 11. Próximas etapas sugeridas
-1. Rodar o `setup.sql` da branch e fazer o merge do PR #18; depois LGPD etapas 2 e 3 (seção 3). Corrigir o bug #1
-   ("Meu perfil" duplicado) quando o Rafael quiser.
+1. Rodar o `setup.sql` da branch e fazer o merge do PR #19; depois LGPD etapa 3 ("Excluir minha conta").
 2. Pendências da seção 4 (principalmente confirmação de e-mail, apagar exemplos, política de privacidade).
 3. Cadastrar as 15–20 empresas fundadoras antes de divulgar (ver estratégia).
 4. Ideias aprovadas (em ordem sugerida): PWA "instalar app" → relatórios do Profissional → estatísticas do
