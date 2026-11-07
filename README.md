@@ -49,7 +49,8 @@ vence, as vagas da empresa ficam **pausadas** (nada é apagado) e voltam ao reno
 
 ## Tarefas úteis
 - **Apagar os dados de exemplo:** rode [`supabase/remover-exemplos.sql`](supabase/remover-exemplos.sql).
-- **Antes de abrir ao público:** religue *Authentication → Sign In / Providers → Confirm email*.
+- **E-mails do site:** saem pelo Gmail `buscaqui.arcos@gmail.com` (Supabase → Authentication → Emails → SMTP
+  Settings, com senha de app do Google). *Confirm email* está ligado.
 - **Projeto pausado?** O Supabase grátis pausa após 7 dias sem uso: painel → **Restore project**.
 - **Testes:** veja [`tools/testes/README.md`](tools/testes/README.md).
 

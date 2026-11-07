@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **03/11/2026**. Base: branch `main` (PR #20) + PR #21 (checklist do lançamento).
+> Atualizado em **07/11/2026**. Base: branch `main` (PR #21) + PR #22 (configurações do lançamento).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -47,9 +47,18 @@ Nada em andamento. **LGPD concluída no site** em 03/11/2026 (testada pelo Rafae
       "BuscAqui" + e-mail). Mudança em `js/views/legal.js`.
 - [ ] **Revisão dos textos** de Privacidade e Termos **por um advogado** (foram escritos pelo Claude a partir do
       código).
-- [ ] Religar **"Confirm email"** no Supabase (Authentication → Sign In / Providers → Email).
-- [ ] Rodar `supabase/remover-exemplos.sql` e apagar contas/vagas de teste (inclui a empresa de teste com CNPJ
-      `11.222.333/0001-81`, que não existe na Receita, e as contas `rafaelvbcosta+...`).
+- [x] **E-mails do site pelo Gmail** (07/11/2026): o e-mail embutido do Supabase só entrega para a equipe do
+      projeto, então "Esqueci minha senha" e a confirmação não chegavam aos usuários. Agora: Authentication → Emails →
+      SMTP Settings com `smtp.gmail.com`, porta 465, usuário `buscaqui.arcos@gmail.com` e **senha de app** do Google
+      (verificação em duas etapas ligada nessa conta). Limite do Gmail: ~500 e-mails/dia. Aviso do Supabase de que o
+      Gmail é "pessoal" é esperado (pode cair no Spam às vezes; se crescer, trocar por Resend). Testado 🧪.
+- [x] **Modelos de e-mail em português** (Confirm signup e Reset password), com botão verde. Testado 🧪.
+- [x] **"Confirm email" ligado** (Authentication → Sign In / Providers → topo da página, "User Signups"). Cadastro
+      novo testado do começo ao fim 🧪.
+- [x] **Contas de teste apagadas** pelo botão Excluir minha conta (`+candidato`, `+profissional`, `+empresa`,
+      `+teste2`) em 07/11/2026. Sobrou só `rafaelvbcosta+admin@gmail.com` e as contas de pessoas reais.
+- [x] **Exemplos apagados** (`supabase/remover-exemplos.sql`, que agora também marca `exemplos_removidos` e impede
+      o `setup.sql` de recriá-los) — PR #22.
 - [ ] Marketing: preencher sobrenome, WhatsApp e e-mail no último slide da apresentação; confirmar a oferta de
       "empresa fundadora" e as metas da estratégia (ver seção 7).
 - [ ] Lembrar: Supabase gratuito **pausa após 7 dias sem uso** ("Restore project" no painel).
@@ -58,7 +67,6 @@ Nada em andamento. **LGPD concluída no site** em 03/11/2026 (testada pelo Rafae
 | # | Descrição | Onde | Gravidade |
 |---|---|---|---|
 | 2 | No celular, "Enviar sugestão" não está no menu de baixo (só no quadro de Minha conta, acessada pela foto no topo). Admin no celular também não tem "Sugestões" no menu de baixo (acessa pela Visão geral) | `js/app.js` | Baixa (decisão de espaço) |
-| 3 | Dados de exemplo do `setup.sql` estão em **Belo Horizonte/Contagem**, não em Arcos | `supabase/setup.sql` | Baixa (apagar antes de lançar) |
 | 4 | Sem aviso antes do plano vencer (o usuário só vê quando vence) | — | Média (ideia futura) |
 | 5 | Datas de plano/teste exibidas na tela usam o relógio do aparelho; o banco é quem decide de verdade | `js/store.js` | Baixa |
 | 6 | Filtros salvos antigos no navegador podem conter `mod` (modalidade, removida); é ignorado | `js/views/candidato.js` | Nenhuma |
@@ -131,10 +139,11 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #19 | 03/11 | LGPD 2: páginas Política de privacidade e Termos de uso, links (cadastro, rodapé, menu, Minha conta), registro do aceite no cadastro; "Meu perfil" (conta) vira "Minha conta" | **Sim** |
 | #20 | 03/11 | LGPD 3: botão "Excluir minha conta" (função `delete_my_account`, apaga arquivos e dados) | **Sim** |
 | #21 | 03/11 | Documentação: checklist "antes de publicar oficialmente" (lembrete pedido pelo Rafael) | Não |
+| #22 | 07/11 | Lançamento: `setup.sql` não recria os exemplos depois de `remover-exemplos.sql`; docs das configurações feitas no painel (Gmail, modelos de e-mail, Confirm email) e contas de teste apagadas | **Sim** (rodar `remover-exemplos.sql`) |
 
 ## 11. Próximas etapas sugeridas
-1. Antes de publicar: checklist da seção 4 (CNPJ nas páginas, revisão jurídica, confirmação de e-mail, apagar
-   exemplos e contas de teste).
+1. Configurações técnicas do lançamento **feitas** (07/11/2026). Faltam do checklist da seção 4: CNPJ nas páginas,
+   revisão jurídica e itens de marketing (o Rafael decidiu lançar sem CNPJ por ora).
 2. Corrigir os bugs da seção 5 que o Rafael quiser.
 3. Cadastrar as 15–20 empresas fundadoras antes de divulgar (ver estratégia).
 4. Ideias aprovadas (em ordem sugerida): PWA "instalar app" → relatórios do Profissional → estatísticas do

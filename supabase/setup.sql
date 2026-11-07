@@ -359,8 +359,17 @@ create policy "buscaqui_delete_own" on storage.objects for delete
 
 -- ---------------------------------------------------------------------
 -- 6. DADOS DE EXEMPLO (empresas, vagas e profissionais fictícios)
---    Para apagar depois: rode o arquivo supabase/remover-exemplos.sql
+--    Para apagar: rode o arquivo supabase/remover-exemplos.sql. Ele grava 'exemplos_removidos' em app_settings
+--    e, a partir daí, rodar este setup.sql de novo NÃO recria os exemplos (importante depois do lançamento).
 -- ---------------------------------------------------------------------
+do $exemplos$
+declare v_removidos boolean := false;
+begin
+  if to_regclass('public.app_settings') is not null then
+    execute $q$select exists (select 1 from public.app_settings where key = 'exemplos_removidos')$q$ into v_removidos;
+  end if;
+  if v_removidos then return; end if;
+
 insert into public.companies (id, name, segment, city, address, about, phone, email, instagram) values
   ('00000000-0000-4000-a000-000000000001', 'Padaria Pão Dourado', 'Alimentação', 'Belo Horizonte - MG',
    'Rua das Flores, 120 - Centro', 'Padaria de bairro com 20 anos de tradição, pães artesanais e café da manhã.',
@@ -424,6 +433,8 @@ insert into public.professionals (id, name, phone, city, about, price, services)
    'Montagem e desmontagem de móveis, instalação de prateleiras e cortinas.', 'A partir de R$ 60,00',
    '[{"categoria":"Montador de móveis","descricao":"Montagem de móveis em geral"}]')
 on conflict (id) do nothing;
+end
+$exemplos$;
 
 -- ---------------------------------------------------------------------
 -- 7. ADMINISTRADOR, PLANOS E PAGAMENTOS (Pix manual)
