@@ -1033,6 +1033,114 @@ $$;
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
 
+-- ---------- Promoção de lançamento e prazo de cada vaga ----------
+-- app_settings 'promo_ate' = último dia da promoção (AAAA-MM-DD, horário de Brasília; vazio = sem promoção).
+-- Durante a promoção, qualquer empresa publica vagas grátis; cada uma fica 30 dias no ar (jobs.paid_until).
+-- jobs.paid_until: a vaga aparece até essa data mesmo sem plano/teste (promoção agora; vaga avulsa depois).
+alter table public.jobs add column if not exists paid_until timestamptz;
+
+create or replace function public.promo_ends()
+returns timestamptz language sql stable security definer set search_path = public as $$
+  select case when value ~ '^\d{4}-\d{2}-\d{2}$'
+    then ((value::date + 1)::timestamp at time zone 'America/Sao_Paulo') end
+  from app_settings where key = 'promo_ate';
+$$;
+grant execute on function public.promo_ends() to anon, authenticated;
+
+create or replace function public.promo_active()
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce(now() < public.promo_ends(), false);
+$$;
+grant execute on function public.promo_active() to anon, authenticated;
+
+-- Publicar vaga (versão final desta função): na promoção, sempre pode e a vaga ganha 30 dias no ar
+create or replace function public.jobs_check_plan()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v text;
+begin
+  if auth.uid() is null or public.is_admin() then return new; end if;
+  new.paid_until := null;
+  if public.promo_active() then
+    new.paid_until := now() + interval '30 days';
+    return new;
+  end if;
+  v := public.company_can_publish(new.company_id);
+  if v = 'limite' then
+    raise exception 'LIMITE_VAGAS: o plano Básico permite até 5 vagas por mês.';
+  elsif v = 'sem_plano' then
+    raise exception 'PLANO_NECESSARIO: o teste grátis de 30 dias terminou. Escolha um plano para publicar vagas.';
+  end if;
+  return new;
+end;
+$$;
+
+-- O prazo da vaga só muda pelo banco (promoção/pagamento) ou pelo admin
+create or replace function public.jobs_protect()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    new.paid_until := old.paid_until;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists jobs_protect on public.jobs;
+create trigger jobs_protect before update on public.jobs
+  for each row execute function public.jobs_protect();
+
+-- Pode publicar? (versão final desta função) — no Básico, vagas grátis/avulsas não contam no limite do mês
+create or replace function public.company_can_publish(cid uuid)
+returns text language plpgsql stable security definer set search_path = public as $$
+declare v_owner uuid; v_plan text; v_count int;
+begin
+  select owner_id into v_owner from companies where id = cid;
+  if v_owner is null then return 'ok'; end if;              -- empresas de exemplo
+  if now() < public.company_trial_ends(cid) then return 'ok'; end if;
+  v_plan := public.active_plan(v_owner);
+  if v_plan = 'profissional' then return 'ok'; end if;
+  if v_plan = 'basico' then
+    select count(*) into v_count from jobs
+    where company_id = cid and paid_until is null
+      and created_at >= (date_trunc('month', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo');
+    if v_count < 5 then return 'ok'; end if;
+    return 'limite';
+  end if;
+  return 'sem_plano';
+end;
+$$;
+
+-- CNPJ e teste grátis (versão final desta função): quem cadastra a empresa durante a promoção
+-- começa o teste de 30 dias só quando a promoção termina
+create or replace function public.companies_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    if tg_op = 'UPDATE' then
+      if coalesce(old.cnpj, '') <> '' then new.cnpj := old.cnpj; end if;
+      new.cnpj_check := old.cnpj_check;
+    else
+      new.cnpj_check := null;
+    end if;
+    if not public.valid_cnpj(new.cnpj) then
+      raise exception 'CNPJ_INVALIDO: informe um CNPJ válido.';
+    end if;
+  end if;
+  if coalesce(new.cnpj, '') <> '' then
+    insert into trial_registry (cnpj, started_at)
+    values (public.only_digits(new.cnpj),
+            case when public.promo_active() then public.promo_ends() else coalesce(new.created_at, now()) end)
+    on conflict (cnpj) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+-- Quem vê a vaga (versão final): aberta e (empresa em dia OU dentro do prazo pago/grátis da própria vaga)
+drop policy if exists "jobs_select" on public.jobs;
+create policy "jobs_select" on public.jobs for select
+  using ((status = 'aberta' and (public.company_active(company_id) or paid_until > now()))
+         or public.is_company_owner(company_id) or public.has_applied(id));
+
 -- PARA VIRAR ADMIN (rodar uma vez só, trocando o e-mail pelo da conta admin):
 --   update public.profiles set is_admin = true where email = 'SEU_EMAIL_AQUI';
 

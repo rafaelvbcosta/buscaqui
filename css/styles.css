@@ -408,6 +408,15 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .plan-status.ok { border-left-color: var(--green); } .plan-status.ok > svg { background: var(--green-50); color: var(--green-600); }
 .plan-status.trial { border-left-color: var(--yellow); } .plan-status.trial > svg { background: var(--yellow-50); color: #b88400; }
 .plan-status.warn { border-left-color: var(--red); } .plan-status.warn > svg { background: var(--red-50); color: var(--red); }
+.plan-status.promo { border-left-color: var(--green); background: linear-gradient(90deg, var(--green-50), var(--card) 70%); }
+.plan-status.promo > svg { background: var(--yellow); color: var(--forest); }
+@media (max-width: 640px) {
+  .plan-status.promo { flex-wrap: wrap; }
+  .plan-status.promo .grow { flex: 1 1 calc(100% - 60px); }
+  .plan-status.promo > .btn { width: 100%; justify-content: center; }
+}
+.promo-note { display: flex; gap: .5rem; align-items: flex-start; background: var(--green-50); border-radius: 12px; padding: .7rem .9rem; font-size: .92rem; }
+.promo-note svg { width: 18px; height: 18px; flex: none; color: var(--green-600); margin-top: .15rem; }
 .plans { margin-top: 1rem; }
 .plan { display: flex; flex-direction: column; gap: .5rem; }
 .plan h2 { margin: 0; }

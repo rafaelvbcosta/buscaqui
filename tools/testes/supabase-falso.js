@@ -5,10 +5,13 @@
 //   window.__ADMIN = true                                       (usuário é admin)
 //   window.__MODE  = '' | 'pend' (pedido de plano pendente) | 'plano' (Básico ativo) | 'vencido' (teste vencido)
 //                    | 'semcnpj' (empresa sem CNPJ) | 'dono' (o usuário é dono da "Oficina Modelo")
+//                    | 'promo' (promoção de lançamento valendo; teste da empresa vencido; 1 vaga grátis no ar)
+//                    | 'promonovo' (promoção valendo; empresa nova, teste começa depois da promoção)
 //   window.__NOSESSION = true                                   (ninguém logado: telas públicas)
 // Todos os nomes, e-mails e telefones são FICTÍCIOS. Escritas (insert/update/delete) só respondem "ok".
 const uid='u1';const R=window.__ROLE||'candidato';const ADM=!!window.__ADMIN;const MODE=window.__MODE||'';
 const day=864e5, iso=(d)=>new Date(Date.now()+d*day).toISOString();
+const PROMO=MODE.startsWith('promo'), promoAte=new Date(Date.now()+12*day-3*36e5).toISOString().slice(0,10);
 const DB={
  profiles:[
   {id:uid,role:R,full_name:ADM?'Admin Exemplo':'Usuário Candidato',email:'usuario@exemplo.com',phone:ADM?'(37) 90000-0000':'(37) 90000-0001',is_admin:ADM,blocked:false,created_at:iso(-10)},
@@ -19,7 +22,7 @@ const DB={
   {id:'u7',role:'empresa',full_name:'Ana Lima (2ª conta)',email:'ana2@exemplo.com',phone:'(37) 98888-2222',created_at:iso(-1)},
   {id:'u6',role:'candidato',full_name:'Conta Falsa',email:'falso@exemplo.com',blocked:true,created_at:iso(-1)}],
  companies:[
-  ...(R==='empresa'&&!ADM&&MODE!=='dono'?[{id:'c0',owner_id:uid,name:'Empresa de Teste',cnpj:MODE==='semcnpj'?null:'11.444.777/0001-61',city:'Arcos',created_at:MODE==='vencido'||MODE==='plano'?iso(-40):iso(-22)}]:[]),
+  ...(R==='empresa'&&!ADM&&MODE!=='dono'?[{id:'c0',owner_id:uid,name:'Empresa de Teste',cnpj:MODE==='semcnpj'?null:'11.444.777/0001-61',city:'Arcos',created_at:MODE==='vencido'||MODE==='plano'||MODE==='promo'?iso(-40):MODE==='promonovo'?iso(-1):iso(-22)}]:[]),
   {id:'c1',owner_id:MODE==='dono'?uid:'u2',name:'Oficina Modelo',cnpj:'11.222.333/0001-81',cnpj_check:{found:true,situacao:'ATIVA',municipio:'ARCOS',uf:'MG'},city:'Arcos - MG',address:'Rua Getúlio Vargas, 120 - Centro',created_at:iso(-40)},
   {id:'c2',owner_id:'u5',name:'Pet Shop Modelo',cnpj:'45.723.174/0001-10',city:'Arcos - MG',address:'Av. Magalhães Pinto, 45',created_at:iso(-5)}],
  professionals:[
@@ -35,14 +38,14 @@ const DB={
   ...(MODE==='plano'?[{id:'s9',user_id:uid,plan:'basico',price:29.90,status:'ativa',starts_at:iso(-5),ends_at:iso(25),created_at:iso(-5)}]:[]),
   ...(MODE==='pend'?[{id:'s8',user_id:uid,plan:R==='profissional'?'autonomo_destaque':'basico',price:R==='profissional'?14.90:29.90,status:'pendente',created_at:iso(0)}]:[])],
  trial_registry:[{cnpj:'11222333000181',started_at:iso(-40)},{cnpj:'45723174000110',started_at:iso(-5)}],
- jobs:[...(R==='empresa'&&!ADM?[{id:'j9',company_id:'c0',title:'Auxiliar de escritório',status:'aberta',views:12,created_at:iso(-35),modality:'Presencial',location:'Centro'}]:[]),{id:'j1',company_id:'c1',title:'Mecânico auxiliar',status:'aberta',created_at:iso(-2),companies:{name:'Oficina Modelo'}},{id:'j2',company_id:'c2',title:'Atendente de pet shop',status:'aberta',created_at:iso(-1),companies:{name:'Pet Shop Modelo'}}],
+ jobs:[...(R==='empresa'&&!ADM&&MODE==='promo'?[{id:'j8',company_id:'c0',title:'Ajudante de cozinha',status:'aberta',views:31,created_at:iso(-5),paid_until:iso(25),modality:'Presencial',location:'São Judas'}]:[]),...(R==='empresa'&&!ADM&&MODE!=='promonovo'?[{id:'j9',company_id:'c0',title:'Auxiliar de escritório',status:'aberta',views:12,created_at:iso(-35),modality:'Presencial',location:'Centro'}]:[]),{id:'j1',company_id:'c1',title:'Mecânico auxiliar',status:'aberta',created_at:iso(-2),companies:{name:'Oficina Modelo'}},{id:'j2',company_id:'c2',title:'Atendente de pet shop',status:'aberta',created_at:iso(-1),companies:{name:'Pet Shop Modelo'}}],
  service_requests:[{id:'r1',user_id:'u4',title:'Trocar chuveiro elétrico',description:'Chuveiro queimou',status:'aberto',created_at:iso(-1)}],
  feedbacks:[
   {id:'f1',user_id:'u4',role:'candidato',kind:'sugestao',message:'Seria ótimo poder filtrar as vagas por bairro, porque moro no Centro e não tenho carro.',status:'nova',created_at:iso(-0.05),profiles:{full_name:'Usuário Candidato',email:'candidato@exemplo.com',phone:'(37) 90000-0001'}},
   {id:'f2',user_id:'u5',role:'empresa',kind:'problema',message:'Tentei enviar a logo da empresa pelo celular e demorou bastante para aparecer.',status:'nova',created_at:iso(-0.4),profiles:{full_name:'Ana Lima',email:'ana@exemplo.com',phone:'(37) 98888-2222'}},
   {id:'f3',user_id:'u3',role:'profissional',kind:'elogio',message:'Muito fácil de usar! Já recebi dois clientes pelo WhatsApp.',status:'lida',admin_note:'Pedir depoimento para divulgar',created_at:iso(-2),profiles:{full_name:'Profissional Exemplo',email:'profissional@exemplo.com',phone:'(37) 90000-0001'}}],
  user_docs:[{user_id:'u3',cpf:'529.982.247-25'},...(R==='profissional'&&!ADM?[{user_id:uid,cpf:'153.509.460-56'}]:[])],
- app_settings:[{key:'pix_chave',value:'pix@exemplo.com'},{key:'pix_nome',value:'Nome de Exemplo'}],
+ app_settings:[{key:'pix_chave',value:'pix@exemplo.com'},{key:'pix_nome',value:'Nome de Exemplo'},...(PROMO?[{key:'promo_ate',value:promoAte}]:[])],
  applications:[],favorites:[],resumes:[{user_id:uid,headline:'Auxiliar administrativo',city:'Arcos - MG',about:'Organizado, pontual e com facilidade para aprender. Busco minha primeira oportunidade em escritório.',experiences:[{cargo:'Atendente',empresa:'Padaria Pão Dourado',periodo:'2024 - 2025',descricao:'Atendimento ao cliente e caixa.'}],education:[{curso:'Ensino Médio completo',instituicao:'E.E. de Arcos',periodo:'2023'}],skills:['Pacote Office','Atendimento','Trabalho em equipe'],courses:[]}]
 };
 function q(t){let rows=[...(DB[t]||[])];const ok={data:null,error:null};const b={select(){return b},order(){return b},limit(){return b},
@@ -51,6 +54,6 @@ function q(t){let rows=[...(DB[t]||[])];const ok={data:null,error:null};const b=
  maybeSingle(){return Promise.resolve({data:rows[0]||null,error:null})},single(){return b.maybeSingle()},
  then(res,rej){return Promise.resolve({data:rows,error:null,count:rows.length}).then(res,rej)}};return b}
 export function createClient(){return{from:q,storage:{from:()=>({list:async()=>({data:[],error:null}),remove:async()=>({data:[],error:null})})},
- rpc:async(n,a)=>n==='active_plan'?{data:a&&a.uid==='u2'?'profissional':null,error:null}:n==='company_trial_ends'?{data:MODE==='vencido'||MODE==='plano'?iso(-10):iso(8),error:null}:n==='featured_users'?{data:[{user_id:'u2',plan:'profissional'},{user_id:'u5',plan:'basico'}],error:null}:{data:null,error:null},
+ rpc:async(n,a)=>n==='active_plan'?{data:a&&a.uid==='u2'?'profissional':null,error:null}:n==='company_trial_ends'?{data:MODE==='vencido'||MODE==='plano'||MODE==='promo'?iso(-10):MODE==='promonovo'?iso(42):iso(8),error:null}:n==='featured_users'?{data:[{user_id:'u2',plan:'profissional'},{user_id:'u5',plan:'basico'}],error:null}:{data:null,error:null},
  auth:{getSession:async()=>({data:{session:window.__NOSESSION?null:{user:{id:uid,email:'a@x',user_metadata:{}}}}}),
  onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({})}}}

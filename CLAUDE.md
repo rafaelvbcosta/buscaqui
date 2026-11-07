@@ -96,11 +96,12 @@ Moderação, Configurações). Menu lateral (computador) tem ainda "Enviar suges
 
 **Banco** (`supabase/setup.sql`): tabelas `profiles`, `resumes`, `companies`, `jobs`, `applications`, `favorites`,
 `professionals` (autônomos E divulgação de empresas via `company_id`), `service_requests`, `subscriptions`,
-`app_settings` (`pix_chave`, `pix_nome`), `trial_registry`, `feedbacks`, `user_docs` (CPF do autônomo; só o dono e o
+`app_settings` (`pix_chave`, `pix_nome`, `promo_ate`, `exemplos_removidos`), `trial_registry`, `feedbacks`, `user_docs` (CPF do autônomo; só o dono e o
 admin leem — **nunca** guardar CPF em `profiles`, que outras pessoas podem ler). Buckets: `avatars` e `logos` (públicos),
 `curriculos` (privado). Gatilho `handle_new_user` cria o profile no cadastro (role vem do metadata; nunca admin).
 Algumas funções são redefinidas mais abaixo no arquivo (`protect_profile_flags`, `company_can_publish`,
-`professionals_check_plan`): **vale a última definição**. A coluna `profiles.cpf` ainda existe mas fica sempre
+`professionals_check_plan`, `jobs_check_plan`, `companies_guard`, `handle_new_user`) e a política `jobs_select`:
+**vale a última definição**. A coluna `profiles.cpf` ainda existe mas fica sempre
 vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs` e coloca em `state.profile.cpf`.
 
 ## 5. Regras de negócio (todas conferidas no código/banco)
@@ -127,6 +128,17 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 - **Plano/teste vencido (empresa):** vagas e divulgação ficam **pausadas** (escondidas do público via RLS
   `company_active`), **nada é apagado**, voltam sozinhas ao confirmar o pagamento. Sem plano a empresa não publica
   vaga nova nem começa divulgação (`PLANO_NECESSARIO`).
+- **Prazo de cada vaga (`jobs.paid_until`):** a vaga aparece se estiver aberta e (empresa em dia **ou**
+  `paid_until > now()`). Só o banco grava esse prazo (gatilhos `jobs_check_plan` no insert e `jobs_protect` no
+  update; a empresa não consegue mudar). No Básico, vagas com `paid_until` não contam no limite de 5 por mês.
+  Tela: `jobLive(j)` em `js/store.js`; vaga fora do prazo e sem plano aparece como "Vencida".
+- **Promoção de lançamento** (desde 07/11/2026, etapa 1 dos novos modelos de cobrança): o admin escolhe o último dia
+  em Admin › Configurações (`app_settings.promo_ate`, AAAA-MM-DD, fim do dia em Brasília; vazio = sem promoção e
+  nada aparece no site). Enquanto vale (`promo_active()`), **qualquer empresa publica vagas grátis** e cada vaga fica
+  **30 dias no ar** (`paid_until = publicação + 30 dias`). Empresa **cadastrada durante a promoção** começa o teste
+  de 30 dias só quando ela termina (`trial_registry.started_at = promo_ends()`). Avisos: painel, Planos e formulário
+  de vaga. Próximas etapas: vaga avulsa R$ 9,90/30 dias + renovação R$ 9,90 (etapa 2) e pacote de 3 vagas por
+  R$ 24,90 em 90 dias (etapa 3), também usando `paid_until`.
 - **Serviços de empresa:** um cartão por empresa, vários serviços (categoria + descrição), limite 3 sem o
   Profissional (`LIMITE_SERVICOS`, conferido no banco). Nome/logo/telefone/endereço vêm do cadastro da empresa.
 - **Vaga:** salário em **um campo** (gravado igual em `salary_min` e `salary_max`; vazio = "Salário a combinar");
@@ -155,7 +167,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 ## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
 Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 32 telas (celular e computador, todos os
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 38 telas (celular e computador, todos os
   perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
   Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
 - **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e

@@ -1,12 +1,12 @@
-import { sb } from '../supabase.js?v=202611031950';
-import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive } from '../store.js?v=202611031950';
+import { sb } from '../supabase.js?v=202611071755';
+import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive, jobLive, promoActive, promoLastDay, trialStarts } from '../store.js?v=202611071755';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
   CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos, LIMITE_SERVICOS,
-} from '../ui.js?v=202611031950';
-import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611031950';
-import { visibleServices } from './servicos.js?v=202611031950';
+} from '../ui.js?v=202611071755';
+import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611071755';
+import { visibleServices } from './servicos.js?v=202611071755';
 
 async function myJobsWithCounts() {
   const { data: jobs, error } = await sb.from('jobs').select('*')
@@ -30,7 +30,7 @@ async function myJobsWithCounts() {
 export async function dashboard(el, _p, { alive }) {
   const jobs = await myJobsWithCounts();
   if (!alive()) return;
-  const open = jobs.filter((j) => j.status === 'aberta');
+  const open = jobs.filter(jobLive);
   const sum = (k) => jobs.reduce((s, j) => s + (j[k] || 0), 0);
   const c = state.company;
   el.innerHTML = `
@@ -38,7 +38,7 @@ export async function dashboard(el, _p, { alive }) {
       <div class="row">${avatar(c.logo_url, c.name, 52, true)}<div><h1>Olá, ${esc(c.name)}</h1><p class="muted">Resumo das suas vagas</p></div></div>
       <a href="#/vaga-form" class="btn btn-primary">${ICON.plus} Publicar vaga</a>
     </div>
-    ${planBanner()}
+    ${promoBanner()}${planBanner()}
     <div class="stats">
       <div class="stat">${ICON.briefcase}<b>${open.length}</b><span>Vagas abertas</span></div>
       <div class="stat">${ICON.eye}<b>${sum('views')}</b><span>Visualizações</span></div>
@@ -51,7 +51,7 @@ export async function dashboard(el, _p, { alive }) {
         <thead><tr><th>Vaga</th><th>Status</th><th>Visualizações</th><th>Candidatos</th><th>Novos</th><th></th></tr></thead>
         <tbody>${jobs.map((j) => `<tr>
           <td><b>${esc(j.title)}</b></td>
-          <td>${j.status !== 'aberta' ? '<span class="badge b-gray">Encerrada</span>' : companyActive() ? '<span class="badge b-green">Aberta</span>' : '<span class="badge b-yellow">Pausada</span>'}</td>
+          <td>${jobBadge(j, false)}</td>
           <td>${j.views}</td><td>${j.total}</td>
           <td>${j.novos ? `<span class="badge b-yellow">${j.novos}</span>` : '0'}</td>
           <td><a href="#/candidatos/${j.id}" class="btn btn-ghost btn-sm">Ver candidatos</a></td></tr>`).join('')}</tbody>
@@ -66,6 +66,28 @@ export async function dashboard(el, _p, { alive }) {
     <a href="#/planos" class="card soon">${ICON.star}<div><b>Planos Básico e Profissional</b><p class="muted small">Mais vagas por mês e sua empresa em destaque. A partir de R$ 29,90/mês.</p></div></a>`;
 }
 
+// Situação de cada vaga: Encerrada, Aberta, ou Pausada/Vencida (sem plano e fora do prazo grátis/pago)
+function jobBadge(j, link) {
+  if (j.status !== 'aberta') return '<span class="badge b-gray">Encerrada</span>';
+  if (jobLive(j)) return '<span class="badge b-green">Aberta</span>';
+  const txt = j.paid_until ? 'Vencida' : 'Pausada';
+  return link ? `<a href="#/planos" class="badge b-yellow">${txt}: escolha um plano</a>` : `<span class="badge b-yellow">${txt}</span>`;
+}
+
+// Prazo da vaga grátis/paga, mostrado quando a empresa não está com teste/plano em dia
+function prazoVaga(j) {
+  if (!j.paid_until || companyActive() || j.status !== 'aberta') return '';
+  return Date.parse(j.paid_until) > Date.now() ? ` · <b>no ar até ${dateBR(j.paid_until)}</b>` : ` · venceu em ${dateBR(j.paid_until)}`;
+}
+
+// Promoção de lançamento (só aparece enquanto vale; a data é escolhida pelo admin)
+export function promoBanner(withButton = true) {
+  if (!promoActive()) return '';
+  return `<div class="card plan-status promo">${ICON.star}<div class="grow"><b>Promoção de lançamento: publique vagas grátis até ${promoLastDay()}</b>
+    <p class="muted small">Cada vaga publicada na promoção fica 30 dias no ar, sem custo.</p></div>
+    ${withButton ? `<a href="#/vaga-form" class="btn btn-primary btn-sm">${ICON.plus} Publicar vaga</a>` : ''}</div>`;
+}
+
 // Aviso do plano no topo do painel
 function planBanner() {
   const ativo = activePlan(), pend = pendingSub(), dias = trialDaysLeft();
@@ -73,11 +95,14 @@ function planBanner() {
     <p class="muted small">Assim que o Pix for confirmado, o plano é ativado.</p></div></a>`;
   if (ativo) return `<a href="#/planos" class="card plan-status ok">${ICON.star}<div class="grow"><b>Plano ${esc(PLANOS[ativo.plan].nome)}</b>
     <p class="muted small">Válido até ${dateBR(ativo.ends_at)}.</p></div><span class="btn btn-ghost btn-sm">Ver plano</span></a>`;
+  const ini = trialStarts();
+  if (ini && ini.getTime() > Date.now()) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Seu teste grátis de 30 dias começa em ${dateBR(ini.toISOString())}</b>
+    <p class="muted small">Ele começa quando a promoção terminar: vagas ilimitadas e até ${LIMITE_SERVICOS} serviços divulgados.</p></div></a>`;
   if (dias > 0) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Teste grátis: falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}</b>
     <p class="muted small">Vagas ilimitadas e até ${LIMITE_SERVICOS} serviços divulgados. Depois, escolha um plano para continuar.</p></div><span class="btn btn-secondary btn-sm">Ver planos</span></a>`;
   const venceu = state.subs.some((x) => x.status === 'ativa');
   return `<a href="#/planos" class="card plan-status warn">${ICON.ban}<div class="grow"><b>${venceu ? 'Seu plano venceu' : 'Seu teste grátis terminou'}: vagas e divulgação pausadas</b>
-    <p class="muted small">Nada foi apagado. Suas vagas e candidatos estão guardados e voltam a aparecer assim que o pagamento for confirmado.</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
+    <p class="muted small">${promoActive() ? 'Durante a promoção, as vagas novas são grátis. As vagas antigas e a divulgação voltam quando o pagamento de um plano for confirmado.' : 'Nada foi apagado. Suas vagas e candidatos estão guardados e voltam a aparecer assim que o pagamento for confirmado.'}</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
 }
 
 // ============================================================
@@ -93,8 +118,8 @@ export async function myJobs(el, _p, ctx) {
       <div class="card myjob">
         <div class="grow">
           <div class="row"><h3><a href="#/vaga/${j.id}">${esc(j.title)}</a></h3>
-            ${j.status !== 'aberta' ? '<span class="badge b-gray">Encerrada</span>' : companyActive() ? '<span class="badge b-green">Aberta</span>' : '<a href="#/planos" class="badge b-yellow">Pausada: renove o plano</a>'}</div>
-          <p class="muted small">${esc(j.modality || '')} · ${esc(j.location || '')} · ${salaryRange(j.salary_min, j.salary_max)} · publicada em ${dateBR(j.created_at)}</p>
+            ${jobBadge(j, true)}</div>
+          <p class="muted small">${esc(j.modality || '')} · ${esc(j.location || '')} · ${salaryRange(j.salary_min, j.salary_max)} · publicada em ${dateBR(j.created_at)}${prazoVaga(j)}</p>
           <p class="small">${ICON.eye} ${j.views} visualizações · ${ICON.users} ${j.total} candidatos ${j.novos ? `· <b class="hl">${j.novos} novo(s)</b>` : ''}</p>
         </div>
         <div class="myjob-actions">
@@ -146,6 +171,7 @@ export async function jobForm(el, [id], { go, alive }) {
         <label>Descrição da vaga<textarea name="description" rows="5" required placeholder="O que a pessoa vai fazer no dia a dia?">${esc(j.description)}</textarea></label>
         <label>Requisitos<textarea name="requirements" rows="3" placeholder="Escolaridade, experiência, CNH...">${esc(j.requirements)}</textarea></label>
         <label>Benefícios<textarea name="benefits" rows="3" placeholder="Vale-transporte, refeição, plano de saúde...">${esc(j.benefits)}</textarea></label>
+        ${!id && promoActive() ? `<p class="promo-note">${ICON.star}<span><b>Grátis na promoção de lançamento:</b> esta vaga fica 30 dias no ar, sem custo.</span></p>` : ''}
         <button class="btn btn-primary btn-block btn-lg" type="submit">${id ? 'Salvar alterações' : 'Publicar vaga'}</button>
       </form>
     </div>`;
