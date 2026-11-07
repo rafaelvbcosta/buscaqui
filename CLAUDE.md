@@ -157,6 +157,8 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
   **30 dias no ar** (`paid_until = publicação + 30 dias`). Empresa **cadastrada durante a promoção** começa o teste
   de 30 dias só quando ela termina (`trial_registry.started_at = promo_ends()`). Avisos: painel, Planos e formulário
   de vaga. Vaga avulsa e renovação = etapa 2; pacote de 3 vagas = etapa 3 (todas feitas, também usando `paid_until`).
+  **No dia do lançamento**, as empresas cadastradas antes dele também começam o teste depois da promoção (decisão do
+  Rafael): rodar o SQL da seção 3 do `PROJECT_STATUS.md` logo depois que ele salvar a data.
 - **Serviços de empresa:** um cartão por empresa, vários serviços (categoria + descrição), limite 3 sem o
   Profissional (`LIMITE_SERVICOS`, conferido no banco). Nome/logo/telefone/endereço vêm do cadastro da empresa.
 - **Vaga:** salário em **um campo** (gravado igual em `salary_min` e `salary_max`; vazio = "Salário a combinar");
