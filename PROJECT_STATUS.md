@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **07/11/2026**. Base: branch `main` (PR #24) + PR #25 (pacote de 3 vagas).
+> Atualizado em **07/11/2026**. Base: branch `main` (PR #25) + PR #26 (plano do dia do lançamento).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -44,8 +44,10 @@ pequena, muitas empresas contratam pouco e o plano mensal assusta.
 4. [ ] Atualizar a **apresentação para empresas** (artifact) com promoção, vaga avulsa e pacote — fora do site.
 Planos mensais continuam: Básico R$ 29,90 (5 vagas/mês) e Profissional R$ 49,90. Escadinha: 1–2 vagas → avulsa;
 3+ → Básico; muitas ou serviços → Profissional.
-⚠️ As 3 empresas reais cadastradas em 02/11 (antes da promoção) têm o teste até ~02/12. Se o Rafael quiser que elas
-também comecem o teste depois da promoção, dá para ajustar no banco quando ele escolher a data.
+✅ Decisão do Rafael (07/11/2026): as **empresas reais cadastradas antes do lançamento** (3 em 07/11) também começam o
+teste de 30 dias **depois da promoção**. Isso é feito **no dia do lançamento**, depois de salvar a data da promoção
+(ver checklist da seção 4), com este SQL (só tem efeito com a promoção valendo):
+`update public.trial_registry set started_at = public.promo_ends() where public.promo_active() and cnpj in (select public.only_digits(cnpj) from public.companies where owner_id is not null and created_at < '2026-11-08');`
 
 **LGPD concluída no site** em 03/11/2026 (testada pelo Rafael no site real 🧪):
 1. ✅ CPF protegido na tabela `user_docs` (só o dono e o admin leem) — PR #18.
@@ -76,6 +78,9 @@ também comecem o teste depois da promoção, dá para ajustar no banco quando e
       `+teste2`) em 07/11/2026. Sobrou só `rafaelvbcosta+admin@gmail.com` e as contas de pessoas reais.
 - [x] **Exemplos apagados** (`supabase/remover-exemplos.sql`, que agora também marca `exemplos_removidos` e impede
       o `setup.sql` de recriá-los) — PR #22.
+- [ ] **No dia do lançamento:** (1) Admin › Configurações › preencher a data da promoção e Salvar; (2) pedir ao Claude
+      para rodar o ajuste do teste das empresas antigas (SQL na seção 3) e conferir.
+- [ ] Atualizar a **apresentação para empresas** com promoção, vaga avulsa (R$ 9,90) e pacote (R$ 24,90).
 - [ ] Empresas fundadoras: ideia aprovada em 07/11/2026, mas o Rafael pediu para **não implementar ainda** (detalhes
       no `CLAUDE.md`, seção 9, item 6). Lembrar.
 - [ ] Marketing: preencher sobrenome, WhatsApp e e-mail no último slide da apresentação; confirmar a oferta de
@@ -162,6 +167,7 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #23 | 07/11 | Promoção de lançamento (etapa 1 dos novos modelos): `jobs.paid_until`, `promo_ate`, teste depois da promoção, avisos; ideia das empresas fundadoras nos lembretes | **Sim** |
 | #24 | 07/11 | Vaga avulsa R$ 9,90 e renovação (etapa 2): `subscriptions.job_id`, plano `vaga_avulsa`, status de vaga `aguardando`, telas e Termos | **Sim** |
 | #25 | 07/11 | Pacote de 3 vagas R$ 24,90 (etapa 3): `pacote3`, `credits_left`, `use_package_credit`; `jobs_protect` sem security definer; restrição de planos igual em todo o setup | **Sim** |
+| #26 | 07/11 | Documentação: plano do dia do lançamento (data da promoção + teste das empresas antigas depois da promoção) | Não |
 
 ## 11. Próximas etapas sugeridas
 1. Configurações técnicas do lançamento **feitas** (07/11/2026). Faltam do checklist da seção 4: CNPJ nas páginas,
