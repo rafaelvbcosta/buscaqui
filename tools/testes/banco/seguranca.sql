@@ -134,5 +134,41 @@ select pg_temp.confere(not exists (select 1 from user_docs where user_id='f90000
   and not exists (select 1 from professionals where user_id='f9000000-0000-4000-8000-000000000001'), 'CPF e perfil profissional saem junto');
 select pg_temp.confere(exists (select 1 from trial_registry where public.only_digits(cnpj)='11222333000181'), 'CNPJ continua marcado como "já usou o teste"');
 select pg_temp.confere((select count(*)=2 from profiles where id in ('e9000000-0000-4000-8000-000000000002','f9000000-0000-4000-8000-000000000002')), 'contas dos outros continuam intactas');
+-- Promoção de lançamento e prazo de cada vaga
+select pg_temp.como('');
+insert into auth.users(id,email,raw_user_meta_data) values
+ ('e9000000-0000-4000-8000-000000000003','emp3@teste','{"role":"empresa"}'),
+ ('e9000000-0000-4000-8000-000000000004','emp4@teste','{"role":"empresa"}');
+insert into companies(id,owner_id,name,cnpj) values ('ca900000-0000-4000-8000-000000000003','e9000000-0000-4000-8000-000000000003','C3','12.345.678/0001-95');
+update trial_registry set started_at = now() - interval '40 days' where cnpj = '12345678000195';
+delete from app_settings where key = 'promo_ate';
+set role authenticated;
+select pg_temp.como('e9000000-0000-4000-8000-000000000003');
+select pg_temp.deve_falhar($$insert into jobs(company_id,title,category,modality,description) values ('ca900000-0000-4000-8000-000000000003','V','x','Presencial','d')$$, 'sem promoção: teste vencido não publica vaga');
+reset role;
+select pg_temp.como('');
+insert into app_settings(key,value) values ('promo_ate', to_char((now() at time zone 'America/Sao_Paulo')::date + 10, 'YYYY-MM-DD'))
+on conflict (key) do update set value = excluded.value;
+set role authenticated;
+select pg_temp.como('e9000000-0000-4000-8000-000000000003');
+insert into jobs(id,company_id,title,category,modality,description,paid_until) values ('b9000000-0000-4000-8000-000000000001','ca900000-0000-4000-8000-000000000003','Promo','x','Presencial','d', now() + interval '5 years');
+select pg_temp.confere((select paid_until between now() + interval '29 days' and now() + interval '31 days' from jobs where id='b9000000-0000-4000-8000-000000000001'), 'promoção: vaga grátis fica 30 dias no ar (o prazo enviado pelo usuário é ignorado)');
+update jobs set paid_until = now() + interval '1 year' where id='b9000000-0000-4000-8000-000000000001';
+select pg_temp.confere((select paid_until < now() + interval '31 days' from jobs where id='b9000000-0000-4000-8000-000000000001'), 'empresa não muda o prazo da vaga');
+select pg_temp.como('c9000000-0000-4000-8000-000000000001');
+select pg_temp.confere(exists (select 1 from jobs where id='b9000000-0000-4000-8000-000000000001'), 'público vê a vaga da promoção mesmo com o teste da empresa vencido');
+select pg_temp.como('e9000000-0000-4000-8000-000000000004');
+insert into companies(id,owner_id,name,cnpj) values ('ca900000-0000-4000-8000-000000000004',auth.uid(),'C4','98.765.432/0001-98');
+select pg_temp.confere(public.company_trial_ends('ca900000-0000-4000-8000-000000000004') >= public.promo_ends() + interval '30 days', 'empresa que entra na promoção: teste de 30 dias começa depois dela');
+reset role;
+select pg_temp.como('');
+update jobs set paid_until = now() - interval '1 minute' where id='b9000000-0000-4000-8000-000000000001';
+delete from app_settings where key = 'promo_ate';
+set role authenticated;
+select pg_temp.como('c9000000-0000-4000-8000-000000000001');
+select pg_temp.confere(not exists (select 1 from jobs where id='b9000000-0000-4000-8000-000000000001'), 'vaga da promoção sai do ar quando vence o prazo (nada é apagado)');
+select pg_temp.como('e9000000-0000-4000-8000-000000000003');
+select pg_temp.confere(exists (select 1 from jobs where id='b9000000-0000-4000-8000-000000000001'), 'a empresa continua vendo a vaga vencida');
+reset role;
 \echo
 \echo 'Todos os testes de segurança passaram.'

@@ -1,8 +1,8 @@
-import { sb } from '../supabase.js?v=202611031950';
+import { sb } from '../supabase.js?v=202611071755';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
   moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
-} from '../ui.js?v=202611031950';
+} from '../ui.js?v=202611071755';
 
 // ============================================================
 // ÁREA DO ADMINISTRADOR
@@ -328,6 +328,11 @@ export async function settings(el, _p, ctx) {
       <label>Chave Pix<input name="pix_chave" value="${esc(v.pix_chave)}" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"></label>
       <label>Nome de quem recebe<input name="pix_nome" value="${esc(v.pix_nome)}" placeholder="Ex.: Rafael V. B. Costa"></label>
       <p class="muted small">Aparece na tela Planos, para o usuário conferir antes de pagar.</p>
+      <h2>Promoção de lançamento</h2>
+      <label>Vagas grátis para todas as empresas até (último dia)<input name="promo_ate" type="date" value="${esc(v.promo_ate || '')}"></label>
+      <p class="muted small">Enquanto vale, qualquer empresa publica vagas sem pagar; cada vaga fica 30 dias no ar. Quem cadastrar a empresa
+        durante a promoção começa o teste grátis de 30 dias só depois dela. Deixe em branco para não ter promoção (nada aparece no site).</p>
+      ${v.promo_ate ? '<button type="button" class="btn btn-ghost btn-sm" id="promo-clear">Encerrar promoção (apagar a data)</button>' : ''}
       <h2>Preços dos planos</h2>
       <ul class="plan-items">${Object.values(PLANOS).map((p) => `<li>${ICON.check}${esc(p.nome)}: <b>${moneyCents(p.preco)}/mês</b> (${p.para === 'empresa' ? 'empresas' : 'autônomos'})</li>`).join('')}</ul>
       <p class="muted small">Para mudar os preços, peça ao Claude: eles ficam no código e no banco.</p>
@@ -340,9 +345,15 @@ export async function settings(el, _p, ctx) {
     const { error } = await sb.from('app_settings').upsert([
       { key: 'pix_chave', value: f.pix_chave.value.trim() },
       { key: 'pix_nome', value: f.pix_nome.value.trim() },
+      { key: 'promo_ate', value: f.promo_ate.value || '' },
     ]);
     setBusy(btn, false);
     if (error) return toast(errMsg(error), 'err');
     toast('Configurações salvas! ✅');
+    settings(el, _p, ctx);
   };
+  el.querySelector('#promo-clear')?.addEventListener('click', () => {
+    el.querySelector('[name=promo_ate]').value = '';
+    toast('Data apagada. Clique em Salvar para encerrar a promoção.', 'info');
+  });
 }

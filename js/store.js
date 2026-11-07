@@ -1,4 +1,4 @@
-import { sb } from './supabase.js?v=202611031950';
+import { sb } from './supabase.js?v=202611071755';
 
 export const state = {
   session: null,
@@ -10,19 +10,20 @@ export const state = {
   favorites: new Set(),
   applied: new Set(),
   subs: [],
+  promoAte: '', // último dia da promoção de lançamento (AAAA-MM-DD) ou ''
 };
 
 export function clearState() {
   Object.assign(state, {
     session: null, user: null, profile: null, company: null,
-    professional: null, resume: null, favorites: new Set(), applied: new Set(), subs: [],
+    professional: null, resume: null, favorites: new Set(), applied: new Set(), subs: [], promoAte: '',
   });
 }
 
 export async function loadUserData() {
   if (!state.user) return;
   const uid = state.user.id;
-  const [p, c, pr, r, f, a, s, doc] = await Promise.all([
+  const [p, c, pr, r, f, a, s, doc, promo] = await Promise.all([
     sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
     sb.from('companies').select('*').eq('owner_id', uid).maybeSingle(),
     sb.from('professionals').select('*').eq('user_id', uid).maybeSingle(),
@@ -31,6 +32,7 @@ export async function loadUserData() {
     sb.from('applications').select('job_id').eq('candidate_id', uid),
     sb.from('subscriptions').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
     sb.from('user_docs').select('cpf').eq('user_id', uid).maybeSingle(),
+    sb.from('app_settings').select('key, value').eq('key', 'promo_ate').maybeSingle(),
   ]);
   state.profile = p.data || null;
   // o CPF fica em user_docs (só o dono e o admin leem); junta no perfil só para uso da tela
@@ -41,6 +43,7 @@ export async function loadUserData() {
   state.favorites = new Set((f.data || []).map((x) => x.job_id));
   state.applied = new Set((a.data || []).map((x) => x.job_id));
   state.subs = s.data || [];
+  state.promoAte = /^\d{4}-\d{2}-\d{2}$/.test(promo.data?.value || '') ? promo.data.value : '';
   state.trialEnds = null;
   if (state.company) {
     const t = await sb.rpc('company_trial_ends', { cid: state.company.id });
@@ -79,6 +82,24 @@ export function trialDaysLeft() {
   // o teste conta pelo CNPJ (o banco guarda quando cada CNPJ começou o teste)
   const fim = state.trialEnds ? Date.parse(state.trialEnds) : Date.parse(state.company.created_at) + 30 * 864e5;
   return Math.max(0, Math.ceil((fim - Date.now()) / 864e5));
+}
+
+// ---------- Promoção de lançamento ----------
+// Vale até o fim do dia promoAte (horário de Brasília). O banco é quem decide de verdade (promo_active()).
+export function promoEnds() {
+  if (!state.promoAte) return null;
+  return new Date(Date.parse(state.promoAte + 'T00:00:00-03:00') + 864e5);
+}
+export const promoActive = () => { const e = promoEnds(); return Boolean(e && Date.now() < e.getTime()); };
+// Data (dd/mm/aaaa) do último dia da promoção
+export const promoLastDay = () => state.promoAte ? state.promoAte.split('-').reverse().join('/') : '';
+
+// Vaga no ar agora? (aberta e: empresa em dia, ou dentro do prazo grátis/pago da própria vaga)
+export const jobLive = (j) => j.status === 'aberta' && (companyActive() || Boolean(j.paid_until && Date.parse(j.paid_until) > Date.now()));
+
+// Início do teste grátis (para quem entrou na promoção, começa quando ela termina)
+export function trialStarts() {
+  return state.trialEnds ? new Date(Date.parse(state.trialEnds) - 30 * 864e5) : null;
 }
 
 export function homeFor(r = role()) {

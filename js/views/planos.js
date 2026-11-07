@@ -1,6 +1,7 @@
-import { sb } from '../supabase.js?v=202611031950';
-import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft } from '../store.js?v=202611031950';
-import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode } from '../ui.js?v=202611031950';
+import { sb } from '../supabase.js?v=202611071755';
+import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft, trialStarts } from '../store.js?v=202611071755';
+import { promoBanner } from './empresa.js?v=202611071755';
+import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode } from '../ui.js?v=202611071755';
 
 // ============================================================
 // PLANOS (empresa e profissional autônomo) — pagamento por Pix manual
@@ -19,6 +20,9 @@ export async function plans(el, _p, ctx) {
   if (ativo) {
     status = `<div class="card plan-status ok">${ICON.check}<div><b>Plano ${esc(PLANOS[ativo.plan].nome)} ativo</b>
       <p class="muted small">Válido até ${dateBR(ativo.ends_at)}. Para renovar, pague de novo antes dessa data: os dias são somados.</p></div></div>`;
+  } else if (r === 'empresa' && trialStarts() && trialStarts().getTime() > Date.now()) {
+    status = `<div class="card plan-status trial">${ICON.clock}<div><b>Seu teste grátis de 30 dias começa em ${dateBR(trialStarts().toISOString())}</b>
+      <p class="muted small">Ele começa quando a promoção de lançamento terminar. Até lá, as vagas novas são grátis.</p></div></div>`;
   } else if (r === 'empresa' && dias > 0) {
     status = `<div class="card plan-status trial">${ICON.clock}<div><b>Teste grátis: falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}</b>
       <p class="muted small">Durante o teste: vagas ilimitadas e até 3 serviços divulgados. Depois, escolha um plano para continuar publicando vagas.</p></div></div>`;
@@ -41,6 +45,7 @@ export async function plans(el, _p, ctx) {
 
   el.innerHTML = `
     <div class="page-head"><h1>Planos</h1><p class="muted">Escolha o plano ideal. O pagamento é por Pix, todo mês.</p></div>
+    ${r === 'empresa' ? promoBanner() : ''}
     ${status}
     ${pend ? `<div class="card pend">
       <h3>${ICON.clock} Pedido aguardando confirmação</h3>
