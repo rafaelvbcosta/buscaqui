@@ -2,7 +2,8 @@
 # Testa o supabase/setup.sql num Postgres 16 TEMPORÁRIO (nunca no Supabase de verdade):
 #   1) cria um banco vazio com os stubs do Supabase;
 #   2) roda o setup.sql da main (se houver git) e depois o atual DUAS vezes (prova que é reexecutável);
-#   3) roda os testes de segurança (seguranca.sql).
+#   3) roda os testes de segurança (seguranca.sql);
+#   4) confere que os exemplos apagados não voltam ao rodar o setup.sql de novo.
 # Uso, na raiz do repositório:  bash tools/testes/banco/testar-banco.sh
 set -euo pipefail
 AQUI="$(cd "$(dirname "$0")" && pwd)"; RAIZ="$(cd "$AQUI/../../.." && pwd)"
@@ -28,3 +29,9 @@ MIGR=$("${P[@]}" -d teste -Atc "select (select count(*) from user_docs where use
 [ "$MIGR" = "1/0" ] && echo "OK  migração: CPF antigo foi para user_docs e saiu do perfil" || echo "INFO migração não conferida ($MIGR)"
 "${P[@]}" -d teste -c "delete from auth.users where id='a9000000-0000-4000-8000-000000000001'; delete from profiles where id='a9000000-0000-4000-8000-000000000001';" >/dev/null 2>&1 || true
 "${P[@]}" -d teste -f "$AQUI/seguranca.sql" 2>&1 | sed -n 's/^psql:[^ ]* NOTICE:  //p; s/^NOTICE:  //p; /FALHOU\|ERROR\|passaram/p'
+# Exemplos: remover-exemplos.sql apaga e, depois dele, rodar o setup.sql de novo NÃO recria os exemplos
+ANTES=$("${P[@]}" -d teste -Atc "select count(*) from companies where owner_id is null")
+"${P[@]}" -d teste -f "$RAIZ/supabase/remover-exemplos.sql" >/dev/null 2>&1
+"${P[@]}" -d teste -f "$RAIZ/supabase/setup.sql" >/dev/null 2>&1
+DEPOIS=$("${P[@]}" -d teste -Atc "select (select count(*) from companies where owner_id is null)+(select count(*) from jobs j join companies c on c.id=j.company_id where c.owner_id is null)+(select count(*) from professionals where user_id is null and company_id is null)")
+if [ "$ANTES" -gt 0 ] && [ "$DEPOIS" = 0 ]; then echo "OK  exemplos removidos não voltam ao rodar o setup.sql de novo"; else echo "FALHOU: exemplos (antes $ANTES, depois $DEPOIS)"; exit 1; fi

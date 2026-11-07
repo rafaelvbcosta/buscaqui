@@ -27,8 +27,8 @@ público** (fase de testes; ver pendências em `PROJECT_STATUS.md`).
 - **Antes de abrir o PR**, rode os testes de `tools/testes/` (seção 7) e, se criou tela ou regra nova, acrescente
   o teste correspondente.
 - Ele prefere **não criar expectativa** nos clientes: nada de avisos "em breve" no site.
-- **Antes do lançamento oficial**, lembre o Rafael do checklist da seção 4 do `PROJECT_STATUS.md` (CNPJ nas páginas
-  legais, revisão por advogado, Confirm email, apagar exemplos/contas de teste). Sempre que ele falar em abrir ao
+- **Antes do lançamento oficial**, lembre o Rafael do checklist da seção 4 do `PROJECT_STATUS.md` (o que ainda falta:
+  CNPJ nas páginas legais, revisão por advogado, marketing). Sempre que ele falar em abrir ao
   público, divulgar ou lançar, mostre a lista antes de qualquer outra coisa.
 - Pediu **lembretes semanais** das ideias aprovadas (seção 9) e do checklist do lançamento. Existe uma tarefa agendada (segunda, 18h37, horário de
   Brasília) que envia o lembrete na sessão do Claude.
@@ -167,9 +167,16 @@ Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositó
   no site real é o Rafael.
 
 ## 8. Dados de teste no site real
-Contas `rafaelvbcosta+candidato|+profissional|+empresa|+admin@gmail.com`. A empresa de teste usa o CNPJ de exemplo
-`11.222.333/0001-81` (colocado pelo Admin). Dados de exemplo do `setup.sql` (Padaria Pão Dourado, Construtora
-Alicerce Forte, Mercado Bom Preço, João Eletricista etc.) têm `owner_id`/`user_id` nulos e cidades de BH/Contagem.
+Desde 07/11/2026 (preparação do lançamento) o site real tem **só contas de pessoas reais + a conta Admin**
+(`rafaelvbcosta+admin@gmail.com`). As contas de teste antigas e os exemplos foram apagados. Para testar no site real,
+crie uma conta nova (ex.: `rafaelvbcosta+testeN@gmail.com`, o e-mail chega no Gmail do Rafael) e apague-a depois
+com **Excluir minha conta**. **Nunca** mexa nas contas de outras pessoas sem o Rafael pedir.
+Os exemplos do `setup.sql` (Padaria Pão Dourado etc., `owner_id`/`user_id` nulos) só são criados enquanto não existir
+`exemplos_removidos` em `app_settings` (gravado pelo `remover-exemplos.sql`) — rodar o `setup.sql` não os traz de volta.
+
+**E-mails (Auth):** saem pelo **Gmail `buscaqui.arcos@gmail.com`** (SMTP próprio no Supabase, senha de app do Google;
+~500/dia). O e-mail embutido do Supabase só entrega para a equipe do projeto — nunca volte para ele. **Confirm email
+está ligado.** Modelos "Confirm signup" e "Reset password" em português (Authentication → Emails → Templates).
 
 ## 8.1 LGPD
 Contato de privacidade: **buscaqui.arcos@gmail.com**. Etapas e situação na seção 3 do `PROJECT_STATUS.md`.
