@@ -101,7 +101,9 @@ admin leem — **nunca** guardar CPF em `profiles`, que outras pessoas podem ler
 `curriculos` (privado). Gatilho `handle_new_user` cria o profile no cadastro (role vem do metadata; nunca admin).
 Algumas funções são redefinidas mais abaixo no arquivo (`protect_profile_flags`, `company_can_publish`,
 `professionals_check_plan`, `jobs_check_plan`, `jobs_protect`, `companies_guard`, `handle_new_user`, `plan_price`,
-`subscriptions_guard`, `active_plan`, `featured_users`, `confirm_subscription`) e a política `jobs_select`:
+`subscriptions_guard`, `active_plan`, `featured_users`, `confirm_subscription`) e a política `jobs_select`. Restrições
+`check` redefinidas (ex.: `subscriptions_plan_check`) precisam ter **os mesmos valores em todas as versões** do arquivo,
+senão rodar o setup de novo falha quando já há dados (o teste do banco roda o setup outra vez no fim, com dados):
 **vale a última definição**. A coluna `profiles.cpf` ainda existe mas fica sempre
 vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs` e coloca em `state.profile.cpf`.
 
@@ -129,8 +131,16 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
     e status `aberta`. Um pedido pendente por vaga (`subscriptions_job_pend_uniq`). Telas: formulário de vaga
     ("Continuar para o pagamento"), Minhas vagas ("Ver Pix", "Cancelar pedido", "Renovar"/"Colocar no ar por R$ 9,90"),
     cartão "Vaga avulsa" em Planos. No Básico, ao passar de 5 vagas no mês, o site oferece a avulsa.
+  - **Pacote 3 vagas R$ 24,90** (empresa, etapa 3): pedido `plan = 'pacote3'` (código `P3-XXXX`); ao confirmar, ganha
+    `credits_left = 3` válidos por **90 dias** (`ends_at`). Cada vaga usada = 30 dias no ar, para **publicar** (vaga
+    gravada como `aguardando` e liberada na hora) ou **renovar**, pela função `use_package_credit(jid)` (erro
+    `SEM_CREDITO`). Não é plano. Só essa função desconta vagas (marca de transação `buscaqui.uso_pacote` no
+    `subscriptions_guard`). `jobs_protect` **não** é security definer de propósito: barra a edição direta
+    (`current_user = 'authenticated'`) e deixa passar o próprio banco (confirmar Pix, usar pacote). Telas:
+    `packageCredits()` (`js/store.js`), aviso no formulário ("Publicar usando o pacote"), botões "… com o pacote
+    (X restantes)" em Minhas vagas, cartão "Pacote 3 vagas" e aviso de vagas restantes em Planos e no painel.
   - Pagamento por **Pix manual**: usuário pede → aparece chave Pix + **código do pedido** (ex. `BA-7F3K`, prefixo
-    BA/PR/AD/VA + 4 primeiros caracteres do id) → admin confere no banco e clica **Confirmar pagamento** → plano ativo
+    BA/PR/AD/VA/P3 + 4 primeiros caracteres do id) → admin confere no banco e clica **Confirmar pagamento** → plano ativo
     por **30 dias** (renovação **soma** os dias). Admin também pode **Dar plano** (cortesia).
   - Destaques: Profissional e Autônomo Destaque aparecem no topo, **revezando a ordem** a cada visita; Básico só
     ganha o selo.
@@ -146,8 +156,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
   nada aparece no site). Enquanto vale (`promo_active()`), **qualquer empresa publica vagas grátis** e cada vaga fica
   **30 dias no ar** (`paid_until = publicação + 30 dias`). Empresa **cadastrada durante a promoção** começa o teste
   de 30 dias só quando ela termina (`trial_registry.started_at = promo_ends()`). Avisos: painel, Planos e formulário
-  de vaga. Vaga avulsa e renovação = etapa 2 (feita). Próxima: pacote de 3 vagas por R$ 24,90 em 90 dias (etapa 3),
-  também usando `paid_until`.
+  de vaga. Vaga avulsa e renovação = etapa 2; pacote de 3 vagas = etapa 3 (todas feitas, também usando `paid_until`).
 - **Serviços de empresa:** um cartão por empresa, vários serviços (categoria + descrição), limite 3 sem o
   Profissional (`LIMITE_SERVICOS`, conferido no banco). Nome/logo/telefone/endereço vêm do cadastro da empresa.
 - **Vaga:** salário em **um campo** (gravado igual em `salary_min` e `salary_max`; vazio = "Salário a combinar");
@@ -166,7 +175,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
   `create or replace`, `drop policy if exists`, `drop trigger if exists`, limpeza antes de índices únicos). Regras de
   negócio importantes são **garantidas no banco** (gatilhos/RLS), não só na tela.
 - Erros do banco com prefixo (`PLANO_NECESSARIO:`, `LIMITE_VAGAS:`, `LIMITE_SERVICOS:`, `LIMITE_SUGESTOES:`,
-  `CNPJ_INVALIDO:`, `CPF_INVALIDO:`, `CPF_NECESSARIO:`, `PAGAMENTO_PENDENTE:`) são traduzidos em `errMsg()` (`js/ui.js`).
+  `CNPJ_INVALIDO:`, `CPF_INVALIDO:`, `CPF_NECESSARIO:`, `PAGAMENTO_PENDENTE:`, `SEM_CREDITO:`) são traduzidos em `errMsg()` (`js/ui.js`).
 - **Versão dos arquivos:** todo import local e o `index.html` levam `?v=AAAAMMDDHHMM`. **Antes de cada publicação
   rode `python3 tools/versao.py`** (troca todos ao mesmo tempo). Todos precisam da MESMA versão, senão o navegador
   carrega `store.js` duas vezes (estado duplicado). Arquivo JS novo: importe com `?v=` e rode o script.
@@ -176,7 +185,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 ## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
 Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 42 telas (celular e computador, todos os
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 45 telas (celular e computador, todos os
   perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
   Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
 - **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e

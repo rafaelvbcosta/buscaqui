@@ -1,5 +1,5 @@
-import { state } from '../store.js?v=202611071815';
-import { ICON, CONTATO_EMAIL, TERMOS_VERSAO } from '../ui.js?v=202611071815';
+import { state } from '../store.js?v=202611071833';
+import { ICON, CONTATO_EMAIL, TERMOS_VERSAO } from '../ui.js?v=202611071833';
 
 // ============================================================
 // POLÍTICA DE PRIVACIDADE E TERMOS DE USO (abrem logado ou não)
@@ -151,6 +151,9 @@ export function terms(el) {
       <li><b>Vaga avulsa:</b> sem plano mensal, a empresa pode pagar uma vaga por vez (valor na página Planos). A vaga
         fica 30 dias no ar depois que a equipe confirma o Pix e pode ser renovada por mais 30 dias pelo mesmo valor.
         A vaga avulsa vale só para aquela vaga e não dá direito aos recursos dos planos mensais.</li>
+      <li><b>Pacote de 3 vagas:</b> valor na página Planos. Depois que a equipe confirma o Pix, a empresa tem 3 vagas para
+        usar em até 90 dias; cada vaga usada (para publicar ou renovar) fica 30 dias no ar. Vagas não usadas nesse prazo
+        expiram, sem devolução (fica valendo o direito de arrependimento abaixo).</li>
       <li><b>Promoções:</b> o BuscAqui pode liberar, por tempo limitado, a publicação grátis de vagas (por exemplo, no
         lançamento). As condições e a data final aparecem no site; cada vaga publicada na promoção fica 30 dias no ar.</li>
       <li>Quando o plano ou o teste termina, as vagas e a divulgação da empresa ficam pausadas (nada é apagado) e

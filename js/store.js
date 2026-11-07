@@ -1,4 +1,4 @@
-import { sb } from './supabase.js?v=202611071815';
+import { sb } from './supabase.js?v=202611071833';
 
 export const state = {
   session: null,
@@ -62,8 +62,8 @@ export const isAdmin = () => Boolean(state.profile?.is_admin);
 // Plano ativo agora (ou null)
 export function activePlan() {
   const now = Date.now();
-  // vaga avulsa não é plano (só coloca uma vaga no ar)
-  const ativos = state.subs.filter((x) => x.plan !== 'vaga_avulsa' && x.status === 'ativa' && Date.parse(x.starts_at) <= now && now < Date.parse(x.ends_at));
+  // vaga avulsa e pacote não são planos (só colocam vagas no ar)
+  const ativos = state.subs.filter((x) => !['vaga_avulsa', 'pacote3'].includes(x.plan) && x.status === 'ativa' && Date.parse(x.starts_at) <= now && now < Date.parse(x.ends_at));
   const ordem = { profissional: 1, basico: 2, autonomo_destaque: 3 };
   ativos.sort((x, y) => ordem[x.plan] - ordem[y.plan]);
   if (!ativos.length) return null;
@@ -72,6 +72,14 @@ export function activePlan() {
   return { ...ativos[0], ends_at: new Date(fim).toISOString() };
 }
 
+// Vagas do pacote ainda disponíveis: { left: quantas, ends: até quando (a validade mais próxima) }
+export function packageCredits() {
+  const now = Date.now();
+  const ok = state.subs.filter((x) => x.plan === 'pacote3' && x.status === 'ativa' && now < Date.parse(x.ends_at) && x.credits_left > 0);
+  return { left: ok.reduce((t, x) => t + x.credits_left, 0), ends: ok.length ? new Date(Math.min(...ok.map((x) => Date.parse(x.ends_at)))).toISOString() : null };
+}
+
+// Pedido de plano ou pacote aguardando o Pix (a vaga avulsa tem o seu, por vaga)
 export const pendingSub = () => state.subs.find((x) => x.status === 'pendente' && x.plan !== 'vaga_avulsa') || null;
 // Pedido de vaga avulsa/renovação aguardando o Pix para uma vaga
 export const pendingJobOrder = (jobId) => state.subs.find((x) => x.status === 'pendente' && x.plan === 'vaga_avulsa' && x.job_id === jobId) || null;
