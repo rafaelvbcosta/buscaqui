@@ -59,6 +59,8 @@ Nada em andamento. **LGPD concluída no site** em 03/11/2026 (testada pelo Rafae
       `+teste2`) em 07/11/2026. Sobrou só `rafaelvbcosta+admin@gmail.com` e as contas de pessoas reais.
 - [x] **Exemplos apagados** (`supabase/remover-exemplos.sql`, que agora também marca `exemplos_removidos` e impede
       o `setup.sql` de recriá-los) — PR #22.
+- [ ] Empresas fundadoras: ideia aprovada em 07/11/2026, mas o Rafael pediu para **não implementar ainda** (detalhes
+      no `CLAUDE.md`, seção 9, item 6). Lembrar.
 - [ ] Marketing: preencher sobrenome, WhatsApp e e-mail no último slide da apresentação; confirmar a oferta de
       "empresa fundadora" e as metas da estratégia (ver seção 7).
 - [ ] Lembrar: Supabase gratuito **pausa após 7 dias sem uso** ("Restore project" no painel).

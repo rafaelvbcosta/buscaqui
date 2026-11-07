@@ -201,6 +201,10 @@ usuário. Ficam de propósito: `trial_registry` e `feedbacks` (sem `user_id`). A
    grátis); depois **TWA** na Play Store (Bubblewrap/PWABuilder), conta Google ~US$ 25 (taxa única), exige página de
    **política de privacidade** (também útil pela LGPD) e teste fechado para conta pessoal nova (conferir regra
    atual). iPhone (US$ 99/ano) depois. App nativo do zero: não recomendado.
+6. **Empresas fundadoras** (aprovada a ideia em 07/11/2026, **ainda não implementar**): primeiras 20 empresas que
+   entrarem até ~30 dias após o lançamento ganham 30 dias de teste + 30 dias do plano Profissional de cortesia
+   (botão "Dar plano" do Admin, sem programar), post semanal "Empresa parceira" nas redes, ajuda presencial para
+   publicar a 1ª vaga e logo na apresentação; em troca, publicam ao menos 1 vaga e autorizam logo + depoimento.
 
 Também conversadas e **fora por enquanto**: chat, notificações, avaliações, login com Google, vídeo de apresentação,
 IA, cursos. Currículo em PDF **continua grátis** (decisão: rodapé de propaganda em vez de cobrar R$ 6,90).
