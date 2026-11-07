@@ -1,8 +1,8 @@
-import { sb } from '../supabase.js?v=202611071755';
+import { sb } from '../supabase.js?v=202611071815';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
   moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
-} from '../ui.js?v=202611071755';
+} from '../ui.js?v=202611071815';
 
 // ============================================================
 // ÁREA DO ADMINISTRADOR
@@ -11,7 +11,8 @@ import {
 const PERFIL = { candidato: 'Candidato', profissional: 'Autônomo', empresa: 'Empresa' };
 const planName = (p) => PLANOS[p]?.nome || p;
 const now = () => Date.now();
-const isActive = (s) => s.status === 'ativa' && Date.parse(s.starts_at) <= now() && now() < Date.parse(s.ends_at);
+// plano ativo (vaga avulsa não é plano: só coloca uma vaga no ar)
+const isActive = (s) => s.plan !== 'vaga_avulsa' && s.status === 'ativa' && Date.parse(s.starts_at) <= now() && now() < Date.parse(s.ends_at);
 
 // ---------- Visão geral ----------
 export async function overview(el, _p, { alive }) {
@@ -220,7 +221,7 @@ export async function users(el, _p, ctx) {
 // ---------- Pagamentos ----------
 export async function payments(el, _p, ctx) {
   const { data, error } = await sb.from('subscriptions')
-    .select('*, profiles(full_name, email, phone, role)').order('created_at', { ascending: false }).limit(200);
+    .select('*, profiles(full_name, email, phone, role), jobs(title)').order('created_at', { ascending: false }).limit(200);
   if (!ctx.alive()) return;
   if (error) { el.innerHTML = `<div class="card">${esc(errMsg(error))}</div>`; return; }
   const pend = data.filter((x) => x.status === 'pendente');
@@ -235,7 +236,7 @@ export async function payments(el, _p, ctx) {
       return `<article class="card pay-row">
         <div class="grow"><b>${esc(u.full_name || u.email || 'Usuário')}</b> <span class="tag">${esc(PERFIL[u.role] || '')}</span>
           <p class="muted small">${esc(u.email || '')}${u.phone ? ' · ' + esc(u.phone) : ''}</p>
-          <p>Código <b class="pix-code">${esc(pixCode(s))}</b> · Plano <b>${esc(planName(s.plan))}</b> · <b>${moneyCents(s.price)}</b> · pedido ${timeAgo(s.created_at)}</p></div>
+          <p>Código <b class="pix-code">${esc(pixCode(s))}</b> · ${s.plan === 'vaga_avulsa' ? `<b>Vaga avulsa</b>: ${esc(s.jobs?.title || 'vaga excluída')}` : `Plano <b>${esc(planName(s.plan))}</b>`} · <b>${moneyCents(s.price)}</b> · pedido ${timeAgo(s.created_at)}</p></div>
         <div class="row wrap">
           ${wa ? `<a class="btn btn-ghost btn-sm" href="${wa}" target="_blank" rel="noopener">${ICON.chat} WhatsApp</a>` : ''}
           <button class="btn btn-ghost btn-sm danger" data-refuse="${s.id}">Recusar</button>
@@ -246,18 +247,19 @@ export async function payments(el, _p, ctx) {
     <div class="card">${hist.length ? `<div class="table-wrap"><table class="table">
       <thead><tr><th>Código</th><th>Usuário</th><th>Plano</th><th>Valor</th><th>Situação</th><th>Validade</th></tr></thead>
       <tbody>${hist.map((s) => `<tr>
-        <td>${esc(pixCode(s))}</td><td>${esc(s.profiles?.full_name || s.profiles?.email || '')}</td><td>${esc(planName(s.plan))}</td>
+        <td>${esc(pixCode(s))}</td><td>${esc(s.profiles?.full_name || s.profiles?.email || '')}</td><td>${esc(planName(s.plan))}${s.plan === 'vaga_avulsa' && s.jobs?.title ? `: ${esc(s.jobs.title)}` : ''}</td>
         <td>${s.note ? esc(s.note) : moneyCents(s.price)}</td>
         <td><span class="badge ${STATUS[s.status]?.[0] || 'b-gray'}">${STATUS[s.status]?.[1] || esc(s.status)}</span></td>
         <td>${s.status === 'ativa' ? `${dateBR(s.starts_at)} a ${dateBR(s.ends_at)}` : '—'}</td></tr>`).join('')}</tbody>
     </table></div>` : '<p class="muted">Nada por aqui ainda.</p>'}</div>`;
   el.querySelectorAll('[data-ok]').forEach((b) => (b.onclick = async () => {
     const s = data.find((x) => x.id === b.dataset.ok);
-    if (!(await confirmBox('Confirmar pagamento', `Você confirma que recebeu o Pix de ${moneyCents(s.price)}? O plano ${planName(s.plan)} será ativado por 30 dias.`, 'Confirmar'))) return;
+    const oQue = s.plan === 'vaga_avulsa' ? `A vaga "${s.jobs?.title || ''}" ficará mais 30 dias no ar.` : `O plano ${planName(s.plan)} será ativado por 30 dias.`;
+    if (!(await confirmBox('Confirmar pagamento', `Você confirma que recebeu o Pix de ${moneyCents(s.price)}? ${oQue}`, 'Confirmar'))) return;
     setBusy(b, true);
     const { error: e } = await sb.rpc('confirm_subscription', { sid: s.id });
     if (e) { setBusy(b, false); return toast(errMsg(e), 'err'); }
-    toast('Pagamento confirmado e plano ativado! ✅');
+    toast(s.plan === 'vaga_avulsa' ? 'Pagamento confirmado: a vaga está no ar! ✅' : 'Pagamento confirmado e plano ativado! ✅');
     payments(el, _p, ctx);
   }));
   el.querySelectorAll('[data-refuse]').forEach((b) => (b.onclick = async () => {
@@ -278,7 +280,7 @@ export async function moderation(el, _p, ctx) {
   ]);
   if (!ctx.alive()) return;
   const tabs = {
-    vagas: { nome: 'Vagas', tabela: 'jobs', itens: (jobs.data || []).map((j) => ({ id: j.id, titulo: j.title, sub: `${j.companies?.name || ''} · ${j.status === 'aberta' ? 'Aberta' : 'Encerrada'}`, data: j.created_at, link: `#/vaga/${j.id}` })) },
+    vagas: { nome: 'Vagas', tabela: 'jobs', itens: (jobs.data || []).map((j) => ({ id: j.id, titulo: j.title, sub: `${j.companies?.name || ''} · ${({ aberta: 'Aberta', encerrada: 'Encerrada', aguardando: 'Aguardando pagamento' }[j.status] || j.status)}`, data: j.created_at, link: `#/vaga/${j.id}` })) },
     servicos: { nome: 'Serviços', tabela: 'professionals', itens: (pros.data || []).map((p) => ({ id: p.id, titulo: p.name, sub: `${p.company_id ? 'Empresa' : 'Autônomo'} · ${[p.about, ...(p.services || []).map((x) => [x.categoria, x.descricao].filter(Boolean).join(': '))].filter(Boolean).join(' · ')}`, data: p.created_at, link: p.company_id ? `#/empresa/${p.company_id}` : `#/profissional/${p.id}` })) },
     pedidos: { nome: 'Pedidos de serviço', tabela: 'service_requests', itens: (reqs.data || []).map((r) => ({ id: r.id, titulo: r.title, sub: `${r.status === 'aberto' ? 'Aberto' : 'Encerrado'} · ${r.description || ''}`, data: r.created_at })) },
   };
@@ -334,7 +336,7 @@ export async function settings(el, _p, ctx) {
         durante a promoção começa o teste grátis de 30 dias só depois dela. Deixe em branco para não ter promoção (nada aparece no site).</p>
       ${v.promo_ate ? '<button type="button" class="btn btn-ghost btn-sm" id="promo-clear">Encerrar promoção (apagar a data)</button>' : ''}
       <h2>Preços dos planos</h2>
-      <ul class="plan-items">${Object.values(PLANOS).map((p) => `<li>${ICON.check}${esc(p.nome)}: <b>${moneyCents(p.preco)}/mês</b> (${p.para === 'empresa' ? 'empresas' : 'autônomos'})</li>`).join('')}</ul>
+      <ul class="plan-items">${Object.values(PLANOS).map((p) => `<li>${ICON.check}${esc(p.nome)}: <b>${moneyCents(p.preco)}${p.avulsa ? ' por vaga (30 dias no ar, ou +30 dias ao renovar)' : '/mês'}</b> (${p.para === 'profissional' ? 'autônomos' : 'empresas'})</li>`).join('')}</ul>
       <p class="muted small">Para mudar os preços, peça ao Claude: eles ficam no código e no banco.</p>
       <button class="btn btn-primary btn-block btn-lg" type="submit">Salvar</button>
     </form>`;

@@ -100,7 +100,8 @@ Moderação, Configurações). Menu lateral (computador) tem ainda "Enviar suges
 admin leem — **nunca** guardar CPF em `profiles`, que outras pessoas podem ler). Buckets: `avatars` e `logos` (públicos),
 `curriculos` (privado). Gatilho `handle_new_user` cria o profile no cadastro (role vem do metadata; nunca admin).
 Algumas funções são redefinidas mais abaixo no arquivo (`protect_profile_flags`, `company_can_publish`,
-`professionals_check_plan`, `jobs_check_plan`, `companies_guard`, `handle_new_user`) e a política `jobs_select`:
+`professionals_check_plan`, `jobs_check_plan`, `jobs_protect`, `companies_guard`, `handle_new_user`, `plan_price`,
+`subscriptions_guard`, `active_plan`, `featured_users`, `confirm_subscription`) e a política `jobs_select`:
 **vale a última definição**. A coluna `profiles.cpf` ainda existe mas fica sempre
 vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs` e coloca em `state.profile.cpf`.
 
@@ -120,8 +121,16 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
     selo Destaque.
   - Profissional **R$ 49,90/mês** (empresa): vagas e serviços ilimitados, **topo** da lista de serviços.
   - Autônomo Destaque **R$ 14,90/mês** (autônomo): topo da lista + selo Destaque.
+  - **Vaga avulsa R$ 9,90** (empresa, sem mensalidade, desde a etapa 2): UMA vaga no ar por 30 dias; **renovar** a
+    mesma vaga custa R$ 9,90 e **soma** mais 30 dias. É um pedido em `subscriptions` com `plan = 'vaga_avulsa'` e
+    `job_id` (código `VA-XXXX`, mesmo Pix e Admin › Pagamentos). **Não é plano**: `active_plan`, `featured_users` e
+    `activePlan()` ignoram. Vaga nova sem plano é gravada com `status = 'aguardando'` (ninguém vê; a empresa não
+    consegue colocar no ar sozinha — `PAGAMENTO_PENDENTE`); ao confirmar, `confirm_subscription` põe `paid_until`
+    e status `aberta`. Um pedido pendente por vaga (`subscriptions_job_pend_uniq`). Telas: formulário de vaga
+    ("Continuar para o pagamento"), Minhas vagas ("Ver Pix", "Cancelar pedido", "Renovar"/"Colocar no ar por R$ 9,90"),
+    cartão "Vaga avulsa" em Planos. No Básico, ao passar de 5 vagas no mês, o site oferece a avulsa.
   - Pagamento por **Pix manual**: usuário pede → aparece chave Pix + **código do pedido** (ex. `BA-7F3K`, prefixo
-    BA/PR/AD + 4 primeiros caracteres do id) → admin confere no banco e clica **Confirmar pagamento** → plano ativo
+    BA/PR/AD/VA + 4 primeiros caracteres do id) → admin confere no banco e clica **Confirmar pagamento** → plano ativo
     por **30 dias** (renovação **soma** os dias). Admin também pode **Dar plano** (cortesia).
   - Destaques: Profissional e Autônomo Destaque aparecem no topo, **revezando a ordem** a cada visita; Básico só
     ganha o selo.
@@ -137,8 +146,8 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
   nada aparece no site). Enquanto vale (`promo_active()`), **qualquer empresa publica vagas grátis** e cada vaga fica
   **30 dias no ar** (`paid_until = publicação + 30 dias`). Empresa **cadastrada durante a promoção** começa o teste
   de 30 dias só quando ela termina (`trial_registry.started_at = promo_ends()`). Avisos: painel, Planos e formulário
-  de vaga. Próximas etapas: vaga avulsa R$ 9,90/30 dias + renovação R$ 9,90 (etapa 2) e pacote de 3 vagas por
-  R$ 24,90 em 90 dias (etapa 3), também usando `paid_until`.
+  de vaga. Vaga avulsa e renovação = etapa 2 (feita). Próxima: pacote de 3 vagas por R$ 24,90 em 90 dias (etapa 3),
+  também usando `paid_until`.
 - **Serviços de empresa:** um cartão por empresa, vários serviços (categoria + descrição), limite 3 sem o
   Profissional (`LIMITE_SERVICOS`, conferido no banco). Nome/logo/telefone/endereço vêm do cadastro da empresa.
 - **Vaga:** salário em **um campo** (gravado igual em `salary_min` e `salary_max`; vazio = "Salário a combinar");
@@ -157,7 +166,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
   `create or replace`, `drop policy if exists`, `drop trigger if exists`, limpeza antes de índices únicos). Regras de
   negócio importantes são **garantidas no banco** (gatilhos/RLS), não só na tela.
 - Erros do banco com prefixo (`PLANO_NECESSARIO:`, `LIMITE_VAGAS:`, `LIMITE_SERVICOS:`, `LIMITE_SUGESTOES:`,
-  `CNPJ_INVALIDO:`, `CPF_INVALIDO:`, `CPF_NECESSARIO:`) são traduzidos em `errMsg()` (`js/ui.js`).
+  `CNPJ_INVALIDO:`, `CPF_INVALIDO:`, `CPF_NECESSARIO:`, `PAGAMENTO_PENDENTE:`) são traduzidos em `errMsg()` (`js/ui.js`).
 - **Versão dos arquivos:** todo import local e o `index.html` levam `?v=AAAAMMDDHHMM`. **Antes de cada publicação
   rode `python3 tools/versao.py`** (troca todos ao mesmo tempo). Todos precisam da MESMA versão, senão o navegador
   carrega `store.js` duas vezes (estado duplicado). Arquivo JS novo: importe com `?v=` e rode o script.
@@ -167,7 +176,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 ## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
 Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 38 telas (celular e computador, todos os
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 42 telas (celular e computador, todos os
   perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
   Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
 - **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e

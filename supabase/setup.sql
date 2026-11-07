@@ -1141,6 +1141,165 @@ create policy "jobs_select" on public.jobs for select
   using ((status = 'aberta' and (public.company_active(company_id) or paid_until > now()))
          or public.is_company_owner(company_id) or public.has_applied(id));
 
+-- ---------- Vaga avulsa e renovação (R$ 9,90 por 30 dias no ar) ----------
+-- O pedido é uma linha em subscriptions com plan = 'vaga_avulsa' e job_id = a vaga (mesmo Pix, código e
+-- Admin › Pagamentos dos planos). A vaga nova espera o Pix com status 'aguardando' (ninguém vê). Ao confirmar,
+-- a vaga entra no ar por 30 dias (ou soma mais 30, na renovação). Vaga avulsa NÃO é plano: não libera nada além dela.
+alter table public.subscriptions add column if not exists job_id uuid references public.jobs(id) on delete set null;
+alter table public.subscriptions drop constraint if exists subscriptions_plan_check;
+alter table public.subscriptions add constraint subscriptions_plan_check
+  check (plan in ('basico','profissional','autonomo_destaque','vaga_avulsa'));
+create unique index if not exists subscriptions_job_pend_uniq on public.subscriptions (job_id)
+  where status = 'pendente' and job_id is not null;
+alter table public.jobs drop constraint if exists jobs_status_check;
+alter table public.jobs add constraint jobs_status_check check (status in ('aberta','encerrada','aguardando'));
+
+create or replace function public.plan_price(p text)
+returns numeric language sql immutable as $$
+  select case p when 'basico' then 29.90 when 'profissional' then 49.90
+                when 'autonomo_destaque' then 14.90 when 'vaga_avulsa' then 9.90 end;
+$$;
+
+-- Pedidos (versão final desta função)
+create or replace function public.subscriptions_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_role text;
+begin
+  if tg_op = 'INSERT' then
+    new.price := public.plan_price(new.plan);
+  end if;
+  if auth.uid() is null or public.is_admin() then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    select role into v_role from profiles where id = new.user_id;
+    if (v_role = 'empresa' and new.plan not in ('basico','profissional','vaga_avulsa'))
+       or (v_role = 'profissional' and new.plan <> 'autonomo_destaque')
+       or v_role is null or v_role not in ('empresa','profissional') then
+      raise exception 'Este plano não está disponível para o seu perfil.';
+    end if;
+    if new.plan = 'vaga_avulsa' then
+      if not exists (select 1 from jobs j join companies c on c.id = j.company_id
+                     where j.id = new.job_id and c.owner_id = new.user_id) then
+        raise exception 'Escolha uma vaga da sua empresa.';
+      end if;
+    else
+      new.job_id := null;
+    end if;
+    new.status := 'pendente'; new.starts_at := null; new.ends_at := null;
+    new.confirmed_at := null; new.note := null;
+    return new;
+  end if;
+  if old.status = 'pendente' and new.status = 'cancelada' then
+    new := old; new.status := 'cancelada';
+    return new;
+  end if;
+  raise exception 'Somente o administrador pode alterar assinaturas.';
+end;
+$$;
+
+-- Plano ativo e destaques (versão final): vaga avulsa não conta como plano
+create or replace function public.active_plan(uid uuid)
+returns text language sql stable security definer set search_path = public as $$
+  select plan from subscriptions
+  where user_id = uid and status = 'ativa' and plan <> 'vaga_avulsa' and now() >= starts_at and now() < ends_at
+  order by case plan when 'profissional' then 1 when 'basico' then 2 else 3 end
+  limit 1;
+$$;
+create or replace function public.featured_users()
+returns table (user_id uuid, plan text) language sql stable security definer set search_path = public as $$
+  select distinct on (s.user_id) s.user_id, s.plan from subscriptions s
+  where s.status = 'ativa' and s.plan <> 'vaga_avulsa' and now() >= s.starts_at and now() < s.ends_at
+  order by s.user_id, case s.plan when 'profissional' then 1 when 'basico' then 2 else 3 end;
+$$;
+
+-- Admin confirma o Pix (versão final): plano = 30 dias somados; vaga avulsa = vaga no ar por mais 30 dias
+create or replace function public.confirm_subscription(sid uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_user uuid; v_plan text; v_job uuid; v_start timestamptz; v_fim timestamptz;
+begin
+  if not public.is_admin() then raise exception 'Apenas o administrador.'; end if;
+  select user_id, plan, job_id into v_user, v_plan, v_job from subscriptions where id = sid and status = 'pendente';
+  if v_user is null then raise exception 'Pedido não encontrado ou já analisado.'; end if;
+  if v_plan = 'vaga_avulsa' then
+    if v_job is null then raise exception 'A vaga deste pedido foi excluída. Recuse o pedido e combine com a empresa.'; end if;
+    select greatest(coalesce(paid_until, now()), now()) + interval '30 days' into v_fim from jobs where id = v_job;
+    update jobs set paid_until = v_fim,
+      status = case when status in ('aguardando','encerrada') then 'aberta' else status end
+    where id = v_job;
+    update subscriptions set status = 'ativa', starts_at = now(), ends_at = v_fim, confirmed_at = now() where id = sid;
+    return;
+  end if;
+  select greatest(now(), coalesce(max(ends_at), now())) into v_start
+    from subscriptions where user_id = v_user and status = 'ativa' and plan <> 'vaga_avulsa';
+  update subscriptions set status = 'ativa', starts_at = v_start,
+    ends_at = v_start + interval '30 days', confirmed_at = now()
+  where id = sid;
+end;
+$$;
+
+-- Pode publicar? (versão final) — no Básico, não contam vagas grátis/avulsas nem as que esperam pagamento
+create or replace function public.company_can_publish(cid uuid)
+returns text language plpgsql stable security definer set search_path = public as $$
+declare v_owner uuid; v_plan text; v_count int;
+begin
+  select owner_id into v_owner from companies where id = cid;
+  if v_owner is null then return 'ok'; end if;              -- empresas de exemplo
+  if now() < public.company_trial_ends(cid) then return 'ok'; end if;
+  v_plan := public.active_plan(v_owner);
+  if v_plan = 'profissional' then return 'ok'; end if;
+  if v_plan = 'basico' then
+    select count(*) into v_count from jobs
+    where company_id = cid and paid_until is null and status <> 'aguardando'
+      and created_at >= (date_trunc('month', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo');
+    if v_count < 5 then return 'ok'; end if;
+    return 'limite';
+  end if;
+  return 'sem_plano';
+end;
+$$;
+
+-- Publicar vaga (versão final): 'aguardando' = espera o Pix da vaga avulsa (sempre pode, ninguém vê)
+create or replace function public.jobs_check_plan()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v text;
+begin
+  if auth.uid() is null or public.is_admin() then return new; end if;
+  new.paid_until := null;
+  if new.status = 'aguardando' then return new; end if;
+  if public.promo_active() then
+    new.paid_until := now() + interval '30 days';
+    return new;
+  end if;
+  v := public.company_can_publish(new.company_id);
+  if v = 'limite' then
+    raise exception 'LIMITE_VAGAS: o plano Básico permite até 5 vagas por mês.';
+  elsif v = 'sem_plano' then
+    raise exception 'PLANO_NECESSARIO: o teste grátis de 30 dias terminou. Escolha um plano para publicar vagas.';
+  end if;
+  return new;
+end;
+$$;
+
+-- Editar vaga (versão final): prazo só pelo banco; vaga que espera o Pix só entra no ar
+-- se a empresa puder publicar (teste/plano/promoção) — senão, quando o admin confirmar o pagamento
+create or replace function public.jobs_protect()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    new.paid_until := old.paid_until;
+    if old.status = 'aguardando' and new.status <> 'aguardando' then
+      if public.promo_active() then
+        new.paid_until := now() + interval '30 days';
+      elsif public.company_can_publish(new.company_id) <> 'ok' then
+        raise exception 'PAGAMENTO_PENDENTE: esta vaga entra no ar quando o pagamento for confirmado.';
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
 -- PARA VIRAR ADMIN (rodar uma vez só, trocando o e-mail pelo da conta admin):
 --   update public.profiles set is_admin = true where email = 'SEU_EMAIL_AQUI';
 

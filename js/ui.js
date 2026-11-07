@@ -35,7 +35,14 @@ export const PLANOS = {
     nome: 'Autônomo Destaque', preco: 14.90, para: 'profissional',
     itens: ['Seu perfil no topo da lista da sua categoria', 'Selo "Destaque" no seu perfil'],
   },
+  // Não é plano mensal: paga UMA vaga por 30 dias no ar (publicar ou renovar). Pedido com job_id.
+  vaga_avulsa: {
+    nome: 'Vaga avulsa', preco: 9.90, para: 'avulsa', avulsa: true,
+    itens: ['Uma vaga no ar por 30 dias', 'Sem mensalidade: pague só quando precisar', 'Renove por mais 30 dias pelo mesmo valor'],
+  },
 };
+// Planos mensais (o que conta como "plano ativo")
+export const PLANOS_MENSAIS = Object.keys(PLANOS).filter((k) => !PLANOS[k].avulsa);
 export const DIAS_TESTE_EMPRESA = 30;
 export const LIMITE_SERVICOS = 3; // teste grátis e Básico (Profissional = ilimitado)
 export const CONTATO_EMAIL = 'buscaqui.arcos@gmail.com'; // contato de privacidade e suporte
@@ -181,8 +188,34 @@ export async function checkCNPJ(cnpj) {
 export const isArcos = (ck) => ck?.municipio === 'ARCOS' && ck?.uf === 'MG';
 
 // Código curto do pedido de plano, para a pessoa escrever na mensagem do Pix
+// Quadro do Pix de um pedido (planos e vaga avulsa). Depois de pôr no HTML, chame wirePixCopy(el, pix).
+export function pixBoxHtml(pix, preco, sub, depois = 'Depois do pagamento, a equipe do BuscAqui confirma e o plano é ativado por 30 dias (normalmente em até 1 dia útil).') {
+  if (!pix.pix_chave) return '<p class="muted small">O pagamento por Pix ainda não foi configurado. Tente novamente mais tarde.</p>';
+  return `<div class="pix-box">
+      <p class="muted small">1. Faça um Pix de <b>${moneyCents(preco)}</b> para a chave abaixo${pix.pix_nome ? ` (${esc(pix.pix_nome)})` : ''}:</p>
+      <div class="pix-key"><code>${esc(pix.pix_chave)}</code>
+        <button type="button" class="btn btn-ghost btn-sm" data-copy-pix>${ICON.copy} Copiar</button></div>
+      <p class="muted small">2. Na mensagem do Pix, escreva o código do seu pedido: <b class="pix-code">${esc(pixCode(sub))}</b></p>
+      <p class="muted small">${esc(depois)}</p>
+    </div>`;
+}
+export function wirePixCopy(el, pix) {
+  el.querySelectorAll('[data-copy-pix]').forEach((b) => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(pix.pix_chave); toast('Chave Pix copiada!'); }
+    catch { toast('Não foi possível copiar. Selecione a chave e copie manualmente.', 'err'); }
+  }));
+}
+
+// Id novo (para criar a vaga e o pedido de uma vez, sem precisar ler de volta)
+export function newId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16)); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 export function pixCode(sub) {
-  const pre = { basico: 'BA', profissional: 'PR', autonomo_destaque: 'AD' }[sub.plan] || 'BQ';
+  const pre = { basico: 'BA', profissional: 'PR', autonomo_destaque: 'AD', vaga_avulsa: 'VA' }[sub.plan] || 'BQ';
   return `${pre}-${String(sub.id).replace(/-/g, '').slice(0, 4).toUpperCase()}`;
 }
 
@@ -265,12 +298,13 @@ export function errMsg(error) {
     [/Email not confirmed/i, 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).'],
     [/rate limit|too many/i, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'],
     [/Unable to validate email|invalid format|valid email/i, 'E-mail inválido.'],
-    [/(?:PLANO_NECESSARIO|CNPJ_INVALIDO|CPF_INVALIDO|CPF_NECESSARIO):\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
+    [/(?:PLANO_NECESSARIO|CNPJ_INVALIDO|CPF_INVALIDO|CPF_NECESSARIO|PAGAMENTO_PENDENTE):\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
     [/companies_cnpj_uniq/i, 'Este CNPJ já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
     [/profiles_cpf_uniq|user_docs_cpf_uniq/i, 'Este CPF já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
     [/LIMITE_SERVICOS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
     [/LIMITE_SUGESTOES:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
     [/LIMITE_VAGAS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1) + ' Para publicar mais, mude para o plano Profissional.'],
+    [/subscriptions_job_pend_uniq/i, 'Já existe um pedido aguardando pagamento para esta vaga.'],
     [/duplicate key/i, 'Este registro já existe.'],
     [/row-level security/i, 'Você não tem permissão para fazer isso.'],
     [/Failed to fetch|NetworkError/i, 'Sem conexão com o servidor. Verifique sua internet.'],
