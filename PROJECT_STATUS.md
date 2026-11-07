@@ -78,6 +78,13 @@ teste de 30 dias **depois da promoção**. Isso é feito **no dia do lançamento
       `+teste2`) em 07/11/2026. Sobrou só `rafaelvbcosta+admin@gmail.com` e as contas de pessoas reais.
 - [x] **Exemplos apagados** (`supabase/remover-exemplos.sql`, que agora também marca `exemplos_removidos` e impede
       o `setup.sql` de recriá-los) — PR #22.
+- [ ] **Teste completo no site real antes da publicação** (pedido do Rafael em 07/11/2026), com contas novas
+      `rafaelvbcosta+testeN@gmail.com`, apagadas no fim com "Excluir minha conta":
+      cadastro com confirmação de e-mail e "Esqueci minha senha"; candidato (currículo, PDF, candidatar-se);
+      empresa nova (CNPJ, publicar vaga no teste grátis, ver candidato); **vaga avulsa** (Pix com código VA-,
+      confirmar em Admin › Pagamentos, vaga no ar, Renovar); **pacote 3 vagas** (comprar, confirmar, publicar e renovar
+      com o pacote); **promoção** (salvar uma data, publicar grátis, apagar a data); autônomo (perfil com CPF, aparecer
+      em "Encontrar profissional"); celular e computador.
 - [ ] **No dia do lançamento:** (1) Admin › Configurações › preencher a data da promoção e Salvar; (2) pedir ao Claude
       para rodar o ajuste do teste das empresas antigas (SQL na seção 3) e conferir.
 - [ ] Atualizar a **apresentação para empresas** com promoção, vaga avulsa (R$ 9,90) e pacote (R$ 24,90).
