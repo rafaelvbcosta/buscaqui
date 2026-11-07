@@ -1,8 +1,8 @@
-import { sb } from '../supabase.js?v=202611071815';
+import { sb } from '../supabase.js?v=202611071833';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
   moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
-} from '../ui.js?v=202611071815';
+} from '../ui.js?v=202611071833';
 
 // ============================================================
 // ÁREA DO ADMINISTRADOR
@@ -12,7 +12,7 @@ const PERFIL = { candidato: 'Candidato', profissional: 'Autônomo', empresa: 'Em
 const planName = (p) => PLANOS[p]?.nome || p;
 const now = () => Date.now();
 // plano ativo (vaga avulsa não é plano: só coloca uma vaga no ar)
-const isActive = (s) => s.plan !== 'vaga_avulsa' && s.status === 'ativa' && Date.parse(s.starts_at) <= now() && now() < Date.parse(s.ends_at);
+const isActive = (s) => !['vaga_avulsa', 'pacote3'].includes(s.plan) && s.status === 'ativa' && Date.parse(s.starts_at) <= now() && now() < Date.parse(s.ends_at);
 
 // ---------- Visão geral ----------
 export async function overview(el, _p, { alive }) {
@@ -236,7 +236,7 @@ export async function payments(el, _p, ctx) {
       return `<article class="card pay-row">
         <div class="grow"><b>${esc(u.full_name || u.email || 'Usuário')}</b> <span class="tag">${esc(PERFIL[u.role] || '')}</span>
           <p class="muted small">${esc(u.email || '')}${u.phone ? ' · ' + esc(u.phone) : ''}</p>
-          <p>Código <b class="pix-code">${esc(pixCode(s))}</b> · ${s.plan === 'vaga_avulsa' ? `<b>Vaga avulsa</b>: ${esc(s.jobs?.title || 'vaga excluída')}` : `Plano <b>${esc(planName(s.plan))}</b>`} · <b>${moneyCents(s.price)}</b> · pedido ${timeAgo(s.created_at)}</p></div>
+          <p>Código <b class="pix-code">${esc(pixCode(s))}</b> · ${s.plan === 'vaga_avulsa' ? `<b>Vaga avulsa</b>: ${esc(s.jobs?.title || 'vaga excluída')}` : `${s.plan === 'pacote3' ? '' : 'Plano '}<b>${esc(planName(s.plan))}</b>`} · <b>${moneyCents(s.price)}</b> · pedido ${timeAgo(s.created_at)}</p></div>
         <div class="row wrap">
           ${wa ? `<a class="btn btn-ghost btn-sm" href="${wa}" target="_blank" rel="noopener">${ICON.chat} WhatsApp</a>` : ''}
           <button class="btn btn-ghost btn-sm danger" data-refuse="${s.id}">Recusar</button>
@@ -250,16 +250,16 @@ export async function payments(el, _p, ctx) {
         <td>${esc(pixCode(s))}</td><td>${esc(s.profiles?.full_name || s.profiles?.email || '')}</td><td>${esc(planName(s.plan))}${s.plan === 'vaga_avulsa' && s.jobs?.title ? `: ${esc(s.jobs.title)}` : ''}</td>
         <td>${s.note ? esc(s.note) : moneyCents(s.price)}</td>
         <td><span class="badge ${STATUS[s.status]?.[0] || 'b-gray'}">${STATUS[s.status]?.[1] || esc(s.status)}</span></td>
-        <td>${s.status === 'ativa' ? `${dateBR(s.starts_at)} a ${dateBR(s.ends_at)}` : '—'}</td></tr>`).join('')}</tbody>
+        <td>${s.status === 'ativa' ? `${dateBR(s.starts_at)} a ${dateBR(s.ends_at)}${s.plan === 'pacote3' ? ` · ${s.credits_left} vaga(s) sobrando` : ''}` : '—'}</td></tr>`).join('')}</tbody>
     </table></div>` : '<p class="muted">Nada por aqui ainda.</p>'}</div>`;
   el.querySelectorAll('[data-ok]').forEach((b) => (b.onclick = async () => {
     const s = data.find((x) => x.id === b.dataset.ok);
-    const oQue = s.plan === 'vaga_avulsa' ? `A vaga "${s.jobs?.title || ''}" ficará mais 30 dias no ar.` : `O plano ${planName(s.plan)} será ativado por 30 dias.`;
+    const oQue = s.plan === 'vaga_avulsa' ? `A vaga "${s.jobs?.title || ''}" ficará mais 30 dias no ar.` : s.plan === 'pacote3' ? 'A empresa ganha 3 vagas para usar em até 90 dias.' : `O plano ${planName(s.plan)} será ativado por 30 dias.`;
     if (!(await confirmBox('Confirmar pagamento', `Você confirma que recebeu o Pix de ${moneyCents(s.price)}? ${oQue}`, 'Confirmar'))) return;
     setBusy(b, true);
     const { error: e } = await sb.rpc('confirm_subscription', { sid: s.id });
     if (e) { setBusy(b, false); return toast(errMsg(e), 'err'); }
-    toast(s.plan === 'vaga_avulsa' ? 'Pagamento confirmado: a vaga está no ar! ✅' : 'Pagamento confirmado e plano ativado! ✅');
+    toast(s.plan === 'vaga_avulsa' ? 'Pagamento confirmado: a vaga está no ar! ✅' : s.plan === 'pacote3' ? 'Pagamento confirmado: pacote liberado! ✅' : 'Pagamento confirmado e plano ativado! ✅');
     payments(el, _p, ctx);
   }));
   el.querySelectorAll('[data-refuse]').forEach((b) => (b.onclick = async () => {
@@ -336,7 +336,7 @@ export async function settings(el, _p, ctx) {
         durante a promoção começa o teste grátis de 30 dias só depois dela. Deixe em branco para não ter promoção (nada aparece no site).</p>
       ${v.promo_ate ? '<button type="button" class="btn btn-ghost btn-sm" id="promo-clear">Encerrar promoção (apagar a data)</button>' : ''}
       <h2>Preços dos planos</h2>
-      <ul class="plan-items">${Object.values(PLANOS).map((p) => `<li>${ICON.check}${esc(p.nome)}: <b>${moneyCents(p.preco)}${p.avulsa ? ' por vaga (30 dias no ar, ou +30 dias ao renovar)' : '/mês'}</b> (${p.para === 'profissional' ? 'autônomos' : 'empresas'})</li>`).join('')}</ul>
+      <ul class="plan-items">${Object.values(PLANOS).map((p) => `<li>${ICON.check}${esc(p.nome)}: <b>${moneyCents(p.preco)}${p.avulsa ? ' por vaga (30 dias no ar, ou +30 dias ao renovar)' : p.pacote ? ' por pacote (3 vagas para usar em 90 dias)' : '/mês'}</b> (${p.para === 'profissional' ? 'autônomos' : 'empresas'})</li>`).join('')}</ul>
       <p class="muted small">Para mudar os preços, peça ao Claude: eles ficam no código e no banco.</p>
       <button class="btn btn-primary btn-block btn-lg" type="submit">Salvar</button>
     </form>`;

@@ -1,13 +1,13 @@
-import { sb } from '../supabase.js?v=202611071815';
-import { state, loadUserData, activePlan, pendingSub, pendingJobOrder, trialDaysLeft, companyActive, jobLive, promoActive, promoLastDay, trialStarts } from '../store.js?v=202611071815';
+import { sb } from '../supabase.js?v=202611071833';
+import { state, loadUserData, activePlan, pendingSub, pendingJobOrder, packageCredits, trialDaysLeft, companyActive, jobLive, promoActive, promoLastDay, trialStarts } from '../store.js?v=202611071833';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
   CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos, LIMITE_SERVICOS,
-  moneyCents, pixBoxHtml, wirePixCopy, pixCode, newId,
-} from '../ui.js?v=202611071815';
-import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611071815';
-import { visibleServices } from './servicos.js?v=202611071815';
+  moneyCents, pixBoxHtml, wirePixCopy, pixCode, newId, PLANOS_MENSAIS,
+} from '../ui.js?v=202611071833';
+import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611071833';
+import { visibleServices } from './servicos.js?v=202611071833';
 
 async function myJobsWithCounts() {
   const { data: jobs, error } = await sb.from('jobs').select('*')
@@ -103,7 +103,10 @@ function planBanner() {
     <p class="muted small">Ele começa quando a promoção terminar: vagas ilimitadas e até ${LIMITE_SERVICOS} serviços divulgados.</p></div></a>`;
   if (dias > 0) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Teste grátis: falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}</b>
     <p class="muted small">Vagas ilimitadas e até ${LIMITE_SERVICOS} serviços divulgados. Depois, escolha um plano para continuar.</p></div><span class="btn btn-secondary btn-sm">Ver planos</span></a>`;
-  const venceu = state.subs.some((x) => x.status === 'ativa');
+  const cred = packageCredits();
+  if (cred.left) return `<a href="#/vaga-form" class="card plan-status ok">${ICON.briefcase}<div class="grow"><b>Pacote: ${cred.left} vaga${cred.left === 1 ? '' : 's'} para usar até ${dateBR(cred.ends)}</b>
+    <p class="muted small">Cada vaga fica 30 dias no ar. Use para publicar ou para renovar em Minhas vagas.</p></div><span class="btn btn-primary btn-sm">${ICON.plus} Publicar vaga</span></a>`;
+  const venceu = state.subs.some((x) => x.status === 'ativa' && PLANOS_MENSAIS.includes(x.plan));
   return `<a href="#/planos" class="card plan-status warn">${ICON.ban}<div class="grow"><b>${venceu ? 'Seu plano venceu' : 'Seu teste grátis terminou'}: vagas e divulgação pausadas</b>
     <p class="muted small">${promoActive() ? 'Durante a promoção, as vagas novas são grátis. As vagas antigas e a divulgação voltam quando o pagamento de um plano for confirmado.' : `Nada foi apagado. Escolha um plano, ou coloque cada vaga no ar por ${moneyCents(PLANOS.vaga_avulsa.preco)} em Minhas vagas.`}</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
 }
@@ -163,6 +166,9 @@ const PRECO_AVULSA = PLANOS.vaga_avulsa.preco;
 // Botões de pagamento de uma vaga em Minhas vagas
 function payActions(j) {
   const pend = pendingJobOrder(j.id);
+  const cred = packageCredits().left;
+  const precisa = j.status === 'aguardando' || (j.status === 'aberta' && !jobLive(j));
+  if (!pend && precisa && cred) return `<button class="btn btn-secondary btn-sm" data-credit="${j.id}">${ICON.briefcase} ${j.status === 'aguardando' ? 'Publicar' : j.paid_until ? 'Renovar' : 'Colocar no ar'} com o pacote (${cred} restante${cred === 1 ? '' : 's'})</button>`;
   if (pend) return `<button class="btn btn-secondary btn-sm" data-pix="${pend.id}">${ICON.card} Ver Pix</button>
     <button class="btn btn-ghost btn-sm" data-cancel-order="${pend.id}">Cancelar pedido</button>`;
   if (j.status === 'aguardando') return `<button class="btn btn-secondary btn-sm" data-order="${j.id}">${ICON.card} Pagar ${moneyCents(PRECO_AVULSA)}</button>`;
@@ -170,7 +176,23 @@ function payActions(j) {
   return '';
 }
 
+// Usa 1 vaga do pacote (o banco desconta e coloca a vaga 30 dias no ar)
+async function useCredit(jobId) {
+  const { error } = await sb.rpc('use_package_credit', { jid: jobId });
+  if (error) { toast(errMsg(error), 'err'); return false; }
+  await loadUserData();
+  return true;
+}
+
 function wirePayActions(el, jobs, refresh) {
+  el.querySelectorAll('[data-credit]').forEach((b) => (b.onclick = async () => {
+    if (!(await confirmBox('Usar o pacote', 'Usar 1 vaga do seu pacote? Esta vaga fica 30 dias no ar.', 'Usar 1 vaga'))) return;
+    setBusy(b, true, 'Publicando...');
+    const ok = await useCredit(b.dataset.credit);
+    setBusy(b, false);
+    if (!ok) return;
+    toast('Pronto! A vaga está no ar por 30 dias. ✅'); refresh();
+  }));
   el.querySelectorAll('[data-order]').forEach((b) => (b.onclick = async () => {
     const j = jobs.find((x) => x.id === b.dataset.order);
     setBusy(b, true, 'Gerando pedido...');
@@ -226,6 +248,7 @@ export async function jobForm(el, [id], { go, alive }) {
   }
   // sem teste/plano e sem promoção: a vaga nova é avulsa (paga por Pix)
   const pagar = !id && !promoActive() && !companyActive();
+  const cred = pagar ? packageCredits() : { left: 0 };
   el.innerHTML = `
     <a href="#/minhas-vagas" class="back-link">${ICON.back} Minhas vagas</a>
     <div class="card narrow">
@@ -243,10 +266,11 @@ export async function jobForm(el, [id], { go, alive }) {
         <label>Requisitos<textarea name="requirements" rows="3" placeholder="Escolaridade, experiência, CNH...">${esc(j.requirements)}</textarea></label>
         <label>Benefícios<textarea name="benefits" rows="3" placeholder="Vale-transporte, refeição, plano de saúde...">${esc(j.benefits)}</textarea></label>
         ${!id && promoActive() ? `<p class="promo-note">${ICON.star}<span><b>Grátis na promoção de lançamento:</b> esta vaga fica 30 dias no ar, sem custo.</span></p>` : ''}
-        ${pagar ? `<div class="avulsa-note">${ICON.card}<div><b>Publique esta vaga por ${moneyCents(PRECO_AVULSA)}</b>
+        ${pagar && cred.left ? `<p class="promo-note">${ICON.briefcase}<span><b>Você tem ${cred.left} vaga${cred.left === 1 ? '' : 's'} do pacote</b> (até ${dateBR(cred.ends)}). Esta vaga usa 1 e fica 30 dias no ar.</span></p>` : ''}
+        ${pagar && !cred.left ? `<div class="avulsa-note">${ICON.card}<div><b>Publique esta vaga por ${moneyCents(PRECO_AVULSA)}</b>
           <p class="small">Sua empresa está sem plano ativo. A vaga fica 30 dias no ar depois que o Pix for confirmado. Sem mensalidade.
-          Prefere um plano mensal? <a href="#/planos">Veja os planos</a>.</p></div></div>` : ''}
-        <button class="btn btn-primary btn-block btn-lg" type="submit">${id ? 'Salvar alterações' : pagar ? `Continuar para o pagamento (${moneyCents(PRECO_AVULSA)})` : 'Publicar vaga'}</button>
+          Vai contratar mais vezes? O <a href="#/planos">pacote de 3 vagas</a> ou um plano mensal saem mais em conta.</p></div></div>` : ''}
+        <button class="btn btn-primary btn-block btn-lg" type="submit">${id ? 'Salvar alterações' : pagar && cred.left ? 'Publicar usando o pacote' : pagar ? `Continuar para o pagamento (${moneyCents(PRECO_AVULSA)})` : 'Publicar vaga'}</button>
       </form>
     </div>`;
   const f = el.querySelector('#f');
@@ -270,6 +294,15 @@ export async function jobForm(el, [id], { go, alive }) {
       toast('Vaga guardada! Agora faça o Pix para ela entrar no ar.');
       go(s ? `/minhas-vagas?pix=${s.id}` : '/minhas-vagas');
     };
+    if (pagar && cred.left) {
+      const nova = { ...row, id: newId(), status: 'aguardando' };
+      const r = await sb.from('jobs').insert(nova);
+      if (r.error) { setBusy(btn, false); return toast(errMsg(r.error), 'err'); }
+      const ok = await useCredit(nova.id);
+      setBusy(btn, false);
+      if (ok) toast('Vaga publicada com o pacote! 🎉');
+      return go('/minhas-vagas');
+    }
     if (pagar) return avulsa();
     const { error } = id ? await sb.from('jobs').update(row).eq('id', id) : await sb.from('jobs').insert(row);
     if (error) {

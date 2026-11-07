@@ -1148,7 +1148,7 @@ create policy "jobs_select" on public.jobs for select
 alter table public.subscriptions add column if not exists job_id uuid references public.jobs(id) on delete set null;
 alter table public.subscriptions drop constraint if exists subscriptions_plan_check;
 alter table public.subscriptions add constraint subscriptions_plan_check
-  check (plan in ('basico','profissional','autonomo_destaque','vaga_avulsa'));
+  check (plan in ('basico','profissional','autonomo_destaque','vaga_avulsa','pacote3'));  -- igual à versão final (pacote, mais abaixo)
 create unique index if not exists subscriptions_job_pend_uniq on public.subscriptions (job_id)
   where status = 'pendente' and job_id is not null;
 alter table public.jobs drop constraint if exists jobs_status_check;
@@ -1299,6 +1299,166 @@ begin
   return new;
 end;
 $$;
+
+-- ---------- Pacote de 3 vagas (R$ 24,90, usar em até 90 dias) ----------
+-- Pedido em subscriptions com plan = 'pacote3'. Ao confirmar: 3 "vagas" (credits_left) válidas por 90 dias.
+-- Cada vaga usada (publicar uma vaga nova OU renovar uma vencida) = 30 dias no ar, pela função use_package_credit.
+-- Pacote NÃO é plano: não libera nada além das vagas dele.
+alter table public.subscriptions add column if not exists credits_left int not null default 0;
+alter table public.subscriptions drop constraint if exists subscriptions_plan_check;
+alter table public.subscriptions add constraint subscriptions_plan_check
+  check (plan in ('basico','profissional','autonomo_destaque','vaga_avulsa','pacote3'));
+
+create or replace function public.plan_price(p text)
+returns numeric language sql immutable as $$
+  select case p when 'basico' then 29.90 when 'profissional' then 49.90
+                when 'autonomo_destaque' then 14.90 when 'vaga_avulsa' then 9.90
+                when 'pacote3' then 24.90 end;
+$$;
+
+-- Pedidos (versão final desta função)
+create or replace function public.subscriptions_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_role text;
+begin
+  if tg_op = 'INSERT' then
+    new.price := public.plan_price(new.plan);
+  end if;
+  if auth.uid() is null or public.is_admin() then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    select role into v_role from profiles where id = new.user_id;
+    if (v_role = 'empresa' and new.plan not in ('basico','profissional','vaga_avulsa','pacote3'))
+       or (v_role = 'profissional' and new.plan <> 'autonomo_destaque')
+       or v_role is null or v_role not in ('empresa','profissional') then
+      raise exception 'Este plano não está disponível para o seu perfil.';
+    end if;
+    if new.plan = 'vaga_avulsa' then
+      if not exists (select 1 from jobs j join companies c on c.id = j.company_id
+                     where j.id = new.job_id and c.owner_id = new.user_id) then
+        raise exception 'Escolha uma vaga da sua empresa.';
+      end if;
+    else
+      new.job_id := null;
+    end if;
+    new.status := 'pendente'; new.starts_at := null; new.ends_at := null;
+    new.confirmed_at := null; new.note := null; new.credits_left := 0;
+    return new;
+  end if;
+  -- descontar 1 vaga do pacote: só pela função use_package_credit (marca abaixo, válida só nesta transação)
+  if current_setting('buscaqui.uso_pacote', true) = 'sim'
+     and new.credits_left = old.credits_left - 1
+     and (to_jsonb(new) - 'credits_left') = (to_jsonb(old) - 'credits_left') then
+    return new;
+  end if;
+  if old.status = 'pendente' and new.status = 'cancelada' then
+    new := old; new.status := 'cancelada';
+    return new;
+  end if;
+  raise exception 'Somente o administrador pode alterar assinaturas.';
+end;
+$$;
+
+-- Plano ativo e destaques (versão final): só planos mensais contam
+create or replace function public.active_plan(uid uuid)
+returns text language sql stable security definer set search_path = public as $$
+  select plan from subscriptions
+  where user_id = uid and status = 'ativa' and plan in ('basico','profissional','autonomo_destaque')
+    and now() >= starts_at and now() < ends_at
+  order by case plan when 'profissional' then 1 when 'basico' then 2 else 3 end
+  limit 1;
+$$;
+create or replace function public.featured_users()
+returns table (user_id uuid, plan text) language sql stable security definer set search_path = public as $$
+  select distinct on (s.user_id) s.user_id, s.plan from subscriptions s
+  where s.status = 'ativa' and s.plan in ('basico','profissional','autonomo_destaque')
+    and now() >= s.starts_at and now() < s.ends_at
+  order by s.user_id, case s.plan when 'profissional' then 1 when 'basico' then 2 else 3 end;
+$$;
+
+-- Admin confirma o Pix (versão final): plano mensal = 30 dias somados; vaga avulsa = +30 dias na vaga;
+-- pacote = 3 vagas para usar em 90 dias
+create or replace function public.confirm_subscription(sid uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_user uuid; v_plan text; v_job uuid; v_start timestamptz; v_fim timestamptz;
+begin
+  if not public.is_admin() then raise exception 'Apenas o administrador.'; end if;
+  select user_id, plan, job_id into v_user, v_plan, v_job from subscriptions where id = sid and status = 'pendente';
+  if v_user is null then raise exception 'Pedido não encontrado ou já analisado.'; end if;
+  if v_plan = 'vaga_avulsa' then
+    if v_job is null then raise exception 'A vaga deste pedido foi excluída. Recuse o pedido e combine com a empresa.'; end if;
+    select greatest(coalesce(paid_until, now()), now()) + interval '30 days' into v_fim from jobs where id = v_job;
+    update jobs set paid_until = v_fim,
+      status = case when status in ('aguardando','encerrada') then 'aberta' else status end
+    where id = v_job;
+    update subscriptions set status = 'ativa', starts_at = now(), ends_at = v_fim, confirmed_at = now() where id = sid;
+    return;
+  end if;
+  if v_plan = 'pacote3' then
+    update subscriptions set status = 'ativa', starts_at = now(), ends_at = now() + interval '90 days',
+      confirmed_at = now(), credits_left = 3
+    where id = sid;
+    return;
+  end if;
+  select greatest(now(), coalesce(max(ends_at), now())) into v_start
+    from subscriptions where user_id = v_user and status = 'ativa' and plan in ('basico','profissional','autonomo_destaque');
+  update subscriptions set status = 'ativa', starts_at = v_start,
+    ends_at = v_start + interval '30 days', confirmed_at = now()
+  where id = sid;
+end;
+$$;
+
+-- Editar vaga (versão final): SEM security definer de propósito. Assim, "current_user" é o usuário do site
+-- ('authenticated') quando a empresa edita direto, e o dono das funções quando o próprio banco libera a vaga
+-- (confirmar Pix, usar vaga do pacote). Só a edição direta é barrada.
+create or replace function public.jobs_protect()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user in ('authenticated', 'anon') and not public.is_admin() then
+    new.paid_until := old.paid_until;
+    if old.status = 'aguardando' and new.status <> 'aguardando' then
+      if public.promo_active() then
+        new.paid_until := now() + interval '30 days';
+      elsif public.company_can_publish(new.company_id) <> 'ok' then
+        raise exception 'PAGAMENTO_PENDENTE: esta vaga entra no ar quando o pagamento for confirmado.';
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- Usa 1 vaga do pacote numa vaga da própria empresa: publica (aguardando) ou renova (+30 dias no ar)
+create or replace function public.use_package_credit(jid uuid)
+returns timestamptz language plpgsql security definer set search_path = public as $$
+declare v_sub uuid; v_fim timestamptz;
+begin
+  if auth.uid() is null then raise exception 'Entre na sua conta.'; end if;
+  if not exists (select 1 from jobs j join companies c on c.id = j.company_id
+                 where j.id = jid and c.owner_id = auth.uid()) then
+    raise exception 'Escolha uma vaga da sua empresa.';
+  end if;
+  select id into v_sub from subscriptions
+  where user_id = auth.uid() and plan = 'pacote3' and status = 'ativa'
+    and now() < ends_at and credits_left > 0
+  order by ends_at limit 1
+  for update;
+  if v_sub is null then
+    raise exception 'SEM_CREDITO: você não tem vagas do pacote para usar. Compre um pacote ou pague esta vaga avulsa.';
+  end if;
+  perform set_config('buscaqui.uso_pacote', 'sim', true);
+  update subscriptions set credits_left = credits_left - 1 where id = v_sub;
+  perform set_config('buscaqui.uso_pacote', '', true);
+  select greatest(coalesce(paid_until, now()), now()) + interval '30 days' into v_fim from jobs where id = jid;
+  update jobs set paid_until = v_fim,
+    status = case when status in ('aguardando','encerrada') then 'aberta' else status end
+  where id = jid;
+  return v_fim;
+end;
+$$;
+revoke all on function public.use_package_credit(uuid) from public, anon;
+grant execute on function public.use_package_credit(uuid) to authenticated;
 
 -- PARA VIRAR ADMIN (rodar uma vez só, trocando o e-mail pelo da conta admin):
 --   update public.profiles set is_admin = true where email = 'SEU_EMAIL_AQUI';

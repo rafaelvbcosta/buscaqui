@@ -40,9 +40,14 @@ export const PLANOS = {
     nome: 'Vaga avulsa', preco: 9.90, para: 'avulsa', avulsa: true,
     itens: ['Uma vaga no ar por 30 dias', 'Sem mensalidade: pague só quando precisar', 'Renove por mais 30 dias pelo mesmo valor'],
   },
+  // Não é plano mensal: 3 vagas para usar em até 90 dias (cada uma = 30 dias no ar, para publicar ou renovar)
+  pacote3: {
+    nome: 'Pacote 3 vagas', preco: 24.90, para: 'pacote', pacote: true,
+    itens: ['3 vagas para usar em até 90 dias', 'Cada vaga fica 30 dias no ar (publicar ou renovar)', 'Um Pix só: sai R$ 8,30 por vaga'],
+  },
 };
 // Planos mensais (o que conta como "plano ativo")
-export const PLANOS_MENSAIS = Object.keys(PLANOS).filter((k) => !PLANOS[k].avulsa);
+export const PLANOS_MENSAIS = Object.keys(PLANOS).filter((k) => !PLANOS[k].avulsa && !PLANOS[k].pacote);
 export const DIAS_TESTE_EMPRESA = 30;
 export const LIMITE_SERVICOS = 3; // teste grátis e Básico (Profissional = ilimitado)
 export const CONTATO_EMAIL = 'buscaqui.arcos@gmail.com'; // contato de privacidade e suporte
@@ -215,7 +220,7 @@ export function newId() {
 }
 
 export function pixCode(sub) {
-  const pre = { basico: 'BA', profissional: 'PR', autonomo_destaque: 'AD', vaga_avulsa: 'VA' }[sub.plan] || 'BQ';
+  const pre = { basico: 'BA', profissional: 'PR', autonomo_destaque: 'AD', vaga_avulsa: 'VA', pacote3: 'P3' }[sub.plan] || 'BQ';
   return `${pre}-${String(sub.id).replace(/-/g, '').slice(0, 4).toUpperCase()}`;
 }
 
@@ -298,7 +303,7 @@ export function errMsg(error) {
     [/Email not confirmed/i, 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).'],
     [/rate limit|too many/i, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'],
     [/Unable to validate email|invalid format|valid email/i, 'E-mail inválido.'],
-    [/(?:PLANO_NECESSARIO|CNPJ_INVALIDO|CPF_INVALIDO|CPF_NECESSARIO|PAGAMENTO_PENDENTE):\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
+    [/(?:PLANO_NECESSARIO|CNPJ_INVALIDO|CPF_INVALIDO|CPF_NECESSARIO|PAGAMENTO_PENDENTE|SEM_CREDITO):\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],
     [/companies_cnpj_uniq/i, 'Este CNPJ já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
     [/profiles_cpf_uniq|user_docs_cpf_uniq/i, 'Este CPF já está cadastrado em outra conta. Se for seu, fale com o suporte do BuscAqui.'],
     [/LIMITE_SERVICOS:\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],

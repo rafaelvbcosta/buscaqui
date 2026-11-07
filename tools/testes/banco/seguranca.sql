@@ -197,5 +197,32 @@ select pg_temp.como('d9000000-0000-4000-8000-000000000001');
 select public.confirm_subscription('d9100000-0000-4000-8000-000000000002');
 select pg_temp.confere((select paid_until between now()+interval '59 days' and now()+interval '61 days' from jobs where id='b9000000-0000-4000-8000-000000000002'), 'renovar vaga: soma mais 30 dias');
 reset role;
+-- Pacote de 3 vagas (R$ 24,90, 90 dias). Empresa C3: teste vencido, sem plano.
+set role authenticated;
+select pg_temp.como('e9000000-0000-4000-8000-000000000003');
+insert into jobs(id,company_id,title,category,modality,description,status) values ('b9000000-0000-4000-8000-000000000004','ca900000-0000-4000-8000-000000000003','P1','x','Presencial','d','aguardando');
+select pg_temp.deve_falhar($$select public.use_package_credit('b9000000-0000-4000-8000-000000000004')$$, 'sem pacote: não usa vaga do pacote');
+insert into subscriptions(id,user_id,plan,credits_left,price) values ('d9200000-0000-4000-8000-000000000001',auth.uid(),'pacote3',99,1);
+select pg_temp.confere((select price=24.90 and credits_left=0 and status='pendente' from subscriptions where id='d9200000-0000-4000-8000-000000000001'), 'pacote custa R$ 24,90 e só ganha vagas depois do Pix');
+select pg_temp.deve_falhar($$select public.use_package_credit('b9000000-0000-4000-8000-000000000004')$$, 'pacote não confirmado: não usa');
+select pg_temp.como('d9000000-0000-4000-8000-000000000001');
+select public.confirm_subscription('d9200000-0000-4000-8000-000000000001');
+select pg_temp.confere((select credits_left=3 and ends_at between now()+interval '89 days' and now()+interval '91 days' from subscriptions where id='d9200000-0000-4000-8000-000000000001'), 'admin confirma: 3 vagas para usar em 90 dias');
+select pg_temp.confere(public.active_plan('e9000000-0000-4000-8000-000000000003') is null, 'pacote não vira plano');
+select pg_temp.como('e9000000-0000-4000-8000-000000000003');
+select public.use_package_credit('b9000000-0000-4000-8000-000000000004');
+select pg_temp.confere((select status='aberta' and paid_until between now()+interval '29 days' and now()+interval '31 days' from jobs where id='b9000000-0000-4000-8000-000000000004')
+  and (select credits_left=2 from subscriptions where id='d9200000-0000-4000-8000-000000000001'), 'usar o pacote: vaga no ar por 30 dias e sobram 2');
+select public.use_package_credit('b9000000-0000-4000-8000-000000000004');
+select pg_temp.confere((select paid_until between now()+interval '59 days' and now()+interval '61 days' from jobs where id='b9000000-0000-4000-8000-000000000004'), 'renovar com o pacote: mais 30 dias');
+select pg_temp.deve_falhar($$select public.use_package_credit('b9000000-0000-4000-8000-000000000003')$$, 'não usa o pacote em vaga de outra empresa');
+select public.use_package_credit('b9000000-0000-4000-8000-000000000004');
+select pg_temp.deve_falhar($$select public.use_package_credit('b9000000-0000-4000-8000-000000000004')$$, 'acabaram as 3 vagas: a 4ª é barrada');
+select pg_temp.deve_falhar($$update subscriptions set credits_left = 10 where id='d9200000-0000-4000-8000-000000000001'$$, 'empresa não aumenta as vagas do pacote');
+insert into jobs(id,company_id,title,category,modality,description,status) values ('b9000000-0000-4000-8000-000000000005','ca900000-0000-4000-8000-000000000003','P2','x','Presencial','d','aguardando');
+select pg_temp.deve_falhar($$update jobs set status='aberta' where id='b9000000-0000-4000-8000-000000000005'$$, 'sem vagas no pacote: empresa continua sem poder colocar a vaga no ar sozinha');
+update jobs set paid_until = now() + interval '5 years' where id='b9000000-0000-4000-8000-000000000004';
+select pg_temp.confere((select paid_until < now() + interval '100 days' from jobs where id='b9000000-0000-4000-8000-000000000004'), 'empresa continua sem poder mudar o prazo da vaga');
+reset role;
 \echo
 \echo 'Todos os testes de segurança passaram.'
