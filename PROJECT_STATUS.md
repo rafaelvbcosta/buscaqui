@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **07/11/2026**. Base: branch `main` (PR #22) + PR #23 (promoção de lançamento).
+> Atualizado em **07/11/2026**. Base: branch `main` (PR #23) + PR #24 (vaga avulsa e renovação).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -23,6 +23,7 @@
 | Autônomo | Perfil em 4 etapas com CPF, lista "Encontrar profissional", pedidos de serviço, "Oferecer serviço" pelo WhatsApp, botão "Editar meu perfil" no cartão | ✅ 🧪 |
 | Pedidos de serviço | Publicar, "Meus pedidos" no topo, "Já resolvi", excluir | ✅ 🧪 |
 | Planos e Pix | Teste 30 dias por CNPJ, Básico, Profissional, Autônomo Destaque, pedido com código, confirmação pelo admin, renovação soma dias, vagas pausadas ao vencer | ✅ 🧪 (fluxo Básico testado) |
+| Vaga avulsa e renovação | R$ 9,90 por vaga (30 dias no ar), "Continuar para o pagamento" no formulário, "Ver Pix"/"Renovar" em Minhas vagas, cartão em Planos, pedidos `VA-` em Pagamentos | ✅ (PR #24) |
 | Promoção de lançamento | Data em Admin › Configurações; vagas grátis 30 dias no ar; teste começa depois; avisos no painel/Planos/formulário; vaga "Vencida" | ✅ (PR #23) |
 | Destaques | Selo e topo da lista com revezamento | ✅ |
 | Admin | Visão geral, usuários (busca, duplicados por telefone, documento, verificar CNPJ, dar plano, bloquear), pagamentos, moderação, configurações (chave Pix cadastrada) | ✅ 🧪 |
@@ -33,10 +34,10 @@
 ## 3. Em desenvolvimento
 **Novos modelos de cobrança para empresas** (aprovado pelo Rafael em 07/11/2026, em etapas). Motivo: em cidade
 pequena, muitas empresas contratam pouco e o plano mensal assusta.
-1. ✅ **Promoção de lançamento** (PR #23, mexe no banco): data escolhida pelo admin; vagas grátis para todas as
+1. ✅ **Promoção de lançamento** (PR #23, mexe no banco; no ar, ainda sem data): data escolhida pelo admin; vagas grátis para todas as
    empresas, 30 dias no ar cada; teste de 30 dias começa depois da promoção para quem entrar nela.
-2. [ ] **Vaga avulsa R$ 9,90** (30 dias no ar) e **Renovar vaga R$ 9,90** (+30 dias), com Pix e código de pedido,
-   confirmação em Admin › Pagamentos.
+2. ✅ **Vaga avulsa R$ 9,90** (30 dias no ar) e **Renovar vaga R$ 9,90** (+30 dias), com Pix e código `VA-XXXX`,
+   confirmação em Admin › Pagamentos (PR #24, mexe no banco). Vaga nova sem plano fica "Aguardando pagamento".
 3. [ ] **Pacote de 3 vagas R$ 24,90** (usar em até 90 dias, 1 Pix só) + textos finais (Planos, Termos, apresentação).
 Planos mensais continuam: Básico R$ 29,90 (5 vagas/mês) e Profissional R$ 49,90. Escadinha: 1–2 vagas → avulsa;
 3+ → Básico; muitas ou serviços → Profissional.
@@ -156,6 +157,7 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #21 | 03/11 | Documentação: checklist "antes de publicar oficialmente" (lembrete pedido pelo Rafael) | Não |
 | #22 | 07/11 | Lançamento: `setup.sql` não recria os exemplos depois de `remover-exemplos.sql`; docs das configurações feitas no painel (Gmail, modelos de e-mail, Confirm email) e contas de teste apagadas | **Sim** (rodar `remover-exemplos.sql`) |
 | #23 | 07/11 | Promoção de lançamento (etapa 1 dos novos modelos): `jobs.paid_until`, `promo_ate`, teste depois da promoção, avisos; ideia das empresas fundadoras nos lembretes | **Sim** |
+| #24 | 07/11 | Vaga avulsa R$ 9,90 e renovação (etapa 2): `subscriptions.job_id`, plano `vaga_avulsa`, status de vaga `aguardando`, telas e Termos | **Sim** |
 
 ## 11. Próximas etapas sugeridas
 1. Configurações técnicas do lançamento **feitas** (07/11/2026). Faltam do checklist da seção 4: CNPJ nas páginas,

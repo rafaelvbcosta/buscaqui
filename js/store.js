@@ -1,4 +1,4 @@
-import { sb } from './supabase.js?v=202611071755';
+import { sb } from './supabase.js?v=202611071815';
 
 export const state = {
   session: null,
@@ -62,7 +62,8 @@ export const isAdmin = () => Boolean(state.profile?.is_admin);
 // Plano ativo agora (ou null)
 export function activePlan() {
   const now = Date.now();
-  const ativos = state.subs.filter((x) => x.status === 'ativa' && Date.parse(x.starts_at) <= now && now < Date.parse(x.ends_at));
+  // vaga avulsa não é plano (só coloca uma vaga no ar)
+  const ativos = state.subs.filter((x) => x.plan !== 'vaga_avulsa' && x.status === 'ativa' && Date.parse(x.starts_at) <= now && now < Date.parse(x.ends_at));
   const ordem = { profissional: 1, basico: 2, autonomo_destaque: 3 };
   ativos.sort((x, y) => ordem[x.plan] - ordem[y.plan]);
   if (!ativos.length) return null;
@@ -71,7 +72,9 @@ export function activePlan() {
   return { ...ativos[0], ends_at: new Date(fim).toISOString() };
 }
 
-export const pendingSub = () => state.subs.find((x) => x.status === 'pendente') || null;
+export const pendingSub = () => state.subs.find((x) => x.status === 'pendente' && x.plan !== 'vaga_avulsa') || null;
+// Pedido de vaga avulsa/renovação aguardando o Pix para uma vaga
+export const pendingJobOrder = (jobId) => state.subs.find((x) => x.status === 'pendente' && x.plan === 'vaga_avulsa' && x.job_id === jobId) || null;
 
 // Empresa em dia (teste grátis ou plano ativo). Fora disso, vagas e divulgação ficam pausadas.
 export const companyActive = () => trialDaysLeft() > 0 || Boolean(activePlan());

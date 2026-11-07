@@ -170,5 +170,32 @@ select pg_temp.confere(not exists (select 1 from jobs where id='b9000000-0000-40
 select pg_temp.como('e9000000-0000-4000-8000-000000000003');
 select pg_temp.confere(exists (select 1 from jobs where id='b9000000-0000-4000-8000-000000000001'), 'a empresa continua vendo a vaga vencida');
 reset role;
+-- Vaga avulsa (R$ 9,90) e renovação. A empresa C3 está com o teste vencido e sem promoção.
+set role authenticated;
+select pg_temp.como('e9000000-0000-4000-8000-000000000003');
+insert into jobs(id,company_id,title,category,modality,description,status) values ('b9000000-0000-4000-8000-000000000002','ca900000-0000-4000-8000-000000000003','Avulsa','x','Presencial','d','aguardando');
+select pg_temp.confere((select status='aguardando' and paid_until is null from jobs where id='b9000000-0000-4000-8000-000000000002'), 'vaga avulsa: fica aguardando o pagamento');
+select pg_temp.deve_falhar($$update jobs set status='aberta' where id='b9000000-0000-4000-8000-000000000002'$$, 'empresa não coloca no ar a vaga que espera o Pix');
+insert into subscriptions(id,user_id,plan,job_id,price) values ('d9100000-0000-4000-8000-000000000001',auth.uid(),'vaga_avulsa','b9000000-0000-4000-8000-000000000002',0.01);
+select pg_temp.confere((select price=9.90 and status='pendente' from subscriptions where id='d9100000-0000-4000-8000-000000000001'), 'pedido da vaga avulsa custa R$ 9,90 (preço do banco)');
+select pg_temp.deve_falhar($$insert into subscriptions(user_id,plan,job_id) values (auth.uid(),'vaga_avulsa','b9000000-0000-4000-8000-000000000002')$$, 'só um pedido pendente por vaga');
+select pg_temp.como('e9000000-0000-4000-8000-000000000004');
+insert into jobs(id,company_id,title,category,modality,description) values ('b9000000-0000-4000-8000-000000000003','ca900000-0000-4000-8000-000000000004','Da C4','x','Presencial','d');
+select pg_temp.como('e9000000-0000-4000-8000-000000000003');
+select pg_temp.deve_falhar($$insert into subscriptions(user_id,plan,job_id) values (auth.uid(),'vaga_avulsa','b9000000-0000-4000-8000-000000000003')$$, 'não paga vaga de outra empresa');
+select pg_temp.como('c9000000-0000-4000-8000-000000000001');
+select pg_temp.confere(not exists (select 1 from jobs where id='b9000000-0000-4000-8000-000000000002'), 'vaga aguardando pagamento não aparece para o público');
+select pg_temp.como('d9000000-0000-4000-8000-000000000001');
+select public.confirm_subscription('d9100000-0000-4000-8000-000000000001');
+select pg_temp.confere((select status='aberta' and paid_until between now()+interval '29 days' and now()+interval '31 days' from jobs where id='b9000000-0000-4000-8000-000000000002'), 'admin confirma o Pix: vaga avulsa no ar por 30 dias');
+select pg_temp.confere(public.active_plan('e9000000-0000-4000-8000-000000000003') is null, 'vaga avulsa não vira plano');
+select pg_temp.como('c9000000-0000-4000-8000-000000000001');
+select pg_temp.confere(exists (select 1 from jobs where id='b9000000-0000-4000-8000-000000000002'), 'público vê a vaga avulsa paga');
+select pg_temp.como('e9000000-0000-4000-8000-000000000003');
+insert into subscriptions(id,user_id,plan,job_id) values ('d9100000-0000-4000-8000-000000000002',auth.uid(),'vaga_avulsa','b9000000-0000-4000-8000-000000000002');
+select pg_temp.como('d9000000-0000-4000-8000-000000000001');
+select public.confirm_subscription('d9100000-0000-4000-8000-000000000002');
+select pg_temp.confere((select paid_until between now()+interval '59 days' and now()+interval '61 days' from jobs where id='b9000000-0000-4000-8000-000000000002'), 'renovar vaga: soma mais 30 dias');
+reset role;
 \echo
 \echo 'Todos os testes de segurança passaram.'

@@ -1,12 +1,13 @@
-import { sb } from '../supabase.js?v=202611071755';
-import { state, loadUserData, activePlan, pendingSub, trialDaysLeft, companyActive, jobLive, promoActive, promoLastDay, trialStarts } from '../store.js?v=202611071755';
+import { sb } from '../supabase.js?v=202611071815';
+import { state, loadUserData, activePlan, pendingSub, pendingJobOrder, trialDaysLeft, companyActive, jobLive, promoActive, promoLastDay, trialStarts } from '../store.js?v=202611071815';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
   CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos, LIMITE_SERVICOS,
-} from '../ui.js?v=202611071755';
-import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611071755';
-import { visibleServices } from './servicos.js?v=202611071755';
+  moneyCents, pixBoxHtml, wirePixCopy, pixCode, newId,
+} from '../ui.js?v=202611071815';
+import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611071815';
+import { visibleServices } from './servicos.js?v=202611071815';
 
 async function myJobsWithCounts() {
   const { data: jobs, error } = await sb.from('jobs').select('*')
@@ -68,10 +69,12 @@ export async function dashboard(el, _p, { alive }) {
 
 // Situação de cada vaga: Encerrada, Aberta, ou Pausada/Vencida (sem plano e fora do prazo grátis/pago)
 function jobBadge(j, link) {
+  if (j.status === 'aguardando') return '<span class="badge b-yellow">Aguardando pagamento</span>';
   if (j.status !== 'aberta') return '<span class="badge b-gray">Encerrada</span>';
   if (jobLive(j)) return '<span class="badge b-green">Aberta</span>';
   const txt = j.paid_until ? 'Vencida' : 'Pausada';
-  return link ? `<a href="#/planos" class="badge b-yellow">${txt}: escolha um plano</a>` : `<span class="badge b-yellow">${txt}</span>`;
+  // em Minhas vagas, ao lado aparece o botão de pagar/renovar (R$ 9,90) e o link para os planos
+  return link ? `<a href="#/planos" class="badge b-yellow" title="Ver planos">${txt}: fora do ar</a>` : `<span class="badge b-yellow">${txt}</span>`;
 }
 
 // Prazo da vaga grátis/paga, mostrado quando a empresa não está com teste/plano em dia
@@ -102,7 +105,7 @@ function planBanner() {
     <p class="muted small">Vagas ilimitadas e até ${LIMITE_SERVICOS} serviços divulgados. Depois, escolha um plano para continuar.</p></div><span class="btn btn-secondary btn-sm">Ver planos</span></a>`;
   const venceu = state.subs.some((x) => x.status === 'ativa');
   return `<a href="#/planos" class="card plan-status warn">${ICON.ban}<div class="grow"><b>${venceu ? 'Seu plano venceu' : 'Seu teste grátis terminou'}: vagas e divulgação pausadas</b>
-    <p class="muted small">${promoActive() ? 'Durante a promoção, as vagas novas são grátis. As vagas antigas e a divulgação voltam quando o pagamento de um plano for confirmado.' : 'Nada foi apagado. Suas vagas e candidatos estão guardados e voltam a aparecer assim que o pagamento for confirmado.'}</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
+    <p class="muted small">${promoActive() ? 'Durante a promoção, as vagas novas são grátis. As vagas antigas e a divulgação voltam quando o pagamento de um plano for confirmado.' : `Nada foi apagado. Escolha um plano, ou coloque cada vaga no ar por ${moneyCents(PLANOS.vaga_avulsa.preco)} em Minhas vagas.`}</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
 }
 
 // ============================================================
@@ -120,16 +123,26 @@ export async function myJobs(el, _p, ctx) {
           <div class="row"><h3><a href="#/vaga/${j.id}">${esc(j.title)}</a></h3>
             ${jobBadge(j, true)}</div>
           <p class="muted small">${esc(j.modality || '')} · ${esc(j.location || '')} · ${salaryRange(j.salary_min, j.salary_max)} · publicada em ${dateBR(j.created_at)}${prazoVaga(j)}</p>
+          ${pendingJobOrder(j.id) ? `<p class="small">${ICON.clock} Aguardando a confirmação do Pix · pedido <b class="pix-code">${esc(pixCode(pendingJobOrder(j.id)))}</b></p>` : ''}
           <p class="small">${ICON.eye} ${j.views} visualizações · ${ICON.users} ${j.total} candidatos ${j.novos ? `· <b class="hl">${j.novos} novo(s)</b>` : ''}</p>
         </div>
         <div class="myjob-actions">
-          <a class="btn btn-primary btn-sm" href="#/candidatos/${j.id}">${ICON.users} Candidatos</a>
+          ${payActions(j)}
+          ${j.status === 'aguardando' ? '' : `<a class="btn btn-primary btn-sm" href="#/candidatos/${j.id}">${ICON.users} Candidatos</a>`}
           <a class="btn btn-ghost btn-sm" href="#/vaga-form/${j.id}">${ICON.edit} Editar</a>
-          <button class="btn btn-ghost btn-sm" data-toggle="${j.id}" data-st="${j.status}">${j.status === 'aberta' ? 'Encerrar' : 'Reabrir'}</button>
+          ${j.status === 'aguardando' ? '' : `<button class="btn btn-ghost btn-sm" data-toggle="${j.id}" data-st="${j.status}">${j.status === 'aberta' ? 'Encerrar' : 'Reabrir'}</button>`}
           <button class="btn btn-ghost btn-sm danger" data-del="${j.id}" aria-label="Excluir">${ICON.trash}</button>
         </div>
       </div>`).join('')}</div>`
     : empty('briefcase', 'Nenhuma vaga ainda', 'Publique sua primeira vaga.', '<a class="btn btn-primary" href="#/vaga-form">Publicar vaga</a>')}`;
+  wirePayActions(el, jobs, () => myJobs(el, _p, ctx));
+  // veio do formulário de vaga com um pedido novo: mostra o Pix
+  const novo = new URLSearchParams(location.hash.split('?')[1] || '').get('pix');
+  if (novo) {
+    history.replaceState(null, '', '#/minhas-vagas');
+    const s = state.subs.find((x) => x.id === novo);
+    if (s) showJobPix(s, jobs.find((x) => x.id === s.job_id)?.title);
+  }
   el.querySelectorAll('[data-toggle]').forEach((b) => (b.onclick = async () => {
     const st = b.dataset.st === 'aberta' ? 'encerrada' : 'aberta';
     const { error } = await sb.from('jobs').update({ status: st }).eq('id', b.dataset.toggle);
@@ -144,6 +157,62 @@ export async function myJobs(el, _p, ctx) {
   }));
 }
 
+// ---------- Vaga avulsa / renovação (R$ 9,90 por 30 dias no ar, pago por Pix) ----------
+const PRECO_AVULSA = PLANOS.vaga_avulsa.preco;
+
+// Botões de pagamento de uma vaga em Minhas vagas
+function payActions(j) {
+  const pend = pendingJobOrder(j.id);
+  if (pend) return `<button class="btn btn-secondary btn-sm" data-pix="${pend.id}">${ICON.card} Ver Pix</button>
+    <button class="btn btn-ghost btn-sm" data-cancel-order="${pend.id}">Cancelar pedido</button>`;
+  if (j.status === 'aguardando') return `<button class="btn btn-secondary btn-sm" data-order="${j.id}">${ICON.card} Pagar ${moneyCents(PRECO_AVULSA)}</button>`;
+  if (j.status === 'aberta' && !jobLive(j)) return `<button class="btn btn-secondary btn-sm" data-order="${j.id}">${ICON.card} ${j.paid_until ? 'Renovar' : 'Colocar no ar'} por ${moneyCents(PRECO_AVULSA)}</button>`;
+  return '';
+}
+
+function wirePayActions(el, jobs, refresh) {
+  el.querySelectorAll('[data-order]').forEach((b) => (b.onclick = async () => {
+    const j = jobs.find((x) => x.id === b.dataset.order);
+    setBusy(b, true, 'Gerando pedido...');
+    const s = await orderJob(j.id);
+    setBusy(b, false);
+    if (!s) return;
+    refresh();
+    showJobPix(s, j.title);
+  }));
+  el.querySelectorAll('[data-pix]').forEach((b) => (b.onclick = () => {
+    const s = state.subs.find((x) => x.id === b.dataset.pix);
+    showJobPix(s, jobs.find((x) => x.id === s.job_id)?.title);
+  }));
+  el.querySelectorAll('[data-cancel-order]').forEach((b) => (b.onclick = async () => {
+    if (!(await confirmBox('Cancelar pedido', 'Se você já fez o Pix, não cancele: aguarde a confirmação. Deseja cancelar este pedido?', 'Cancelar pedido', true))) return;
+    const { error } = await sb.from('subscriptions').update({ status: 'cancelada' }).eq('id', b.dataset.cancelOrder);
+    if (error) return toast(errMsg(error), 'err');
+    await loadUserData();
+    toast('Pedido cancelado.', 'info'); refresh();
+  }));
+}
+
+// Cria o pedido de 30 dias no ar para uma vaga (o preço vem do banco)
+async function orderJob(jobId) {
+  const s = { id: newId(), user_id: state.user.id, plan: 'vaga_avulsa', job_id: jobId };
+  const { error } = await sb.from('subscriptions').insert(s);
+  if (error) { toast(errMsg(error), 'err'); return null; }
+  await loadUserData();
+  return state.subs.find((x) => x.id === s.id) || { ...s, price: PRECO_AVULSA, status: 'pendente', created_at: new Date().toISOString() };
+}
+
+async function showJobPix(s, title) {
+  const { data } = await sb.from('app_settings').select('key, value');
+  const pix = Object.fromEntries((data || []).map((x) => [x.key, x.value]));
+  const m = modal('Pagamento da vaga', `
+    <p>Vaga <b>${esc(title || '')}</b>: <b>${moneyCents(s.price || PRECO_AVULSA)}</b> por 30 dias no ar.</p>
+    ${pixBoxHtml(pix, s.price || PRECO_AVULSA, s, 'Depois do pagamento, a equipe do BuscAqui confirma e a vaga entra no ar por 30 dias (normalmente em até 1 dia útil). Você acompanha em Minhas vagas.')}
+    <div class="row-end"><button class="btn btn-primary" data-ok>Entendi</button></div>`);
+  wirePixCopy(m.el, pix);
+  m.el.querySelector('[data-ok]').onclick = m.close;
+}
+
 // ============================================================
 // PUBLICAR / EDITAR VAGA
 // ============================================================
@@ -155,6 +224,8 @@ export async function jobForm(el, [id], { go, alive }) {
     if (!data) { el.innerHTML = empty('briefcase', 'Vaga não encontrada'); return; }
     j = data;
   }
+  // sem teste/plano e sem promoção: a vaga nova é avulsa (paga por Pix)
+  const pagar = !id && !promoActive() && !companyActive();
   el.innerHTML = `
     <a href="#/minhas-vagas" class="back-link">${ICON.back} Minhas vagas</a>
     <div class="card narrow">
@@ -172,7 +243,10 @@ export async function jobForm(el, [id], { go, alive }) {
         <label>Requisitos<textarea name="requirements" rows="3" placeholder="Escolaridade, experiência, CNH...">${esc(j.requirements)}</textarea></label>
         <label>Benefícios<textarea name="benefits" rows="3" placeholder="Vale-transporte, refeição, plano de saúde...">${esc(j.benefits)}</textarea></label>
         ${!id && promoActive() ? `<p class="promo-note">${ICON.star}<span><b>Grátis na promoção de lançamento:</b> esta vaga fica 30 dias no ar, sem custo.</span></p>` : ''}
-        <button class="btn btn-primary btn-block btn-lg" type="submit">${id ? 'Salvar alterações' : 'Publicar vaga'}</button>
+        ${pagar ? `<div class="avulsa-note">${ICON.card}<div><b>Publique esta vaga por ${moneyCents(PRECO_AVULSA)}</b>
+          <p class="small">Sua empresa está sem plano ativo. A vaga fica 30 dias no ar depois que o Pix for confirmado. Sem mensalidade.
+          Prefere um plano mensal? <a href="#/planos">Veja os planos</a>.</p></div></div>` : ''}
+        <button class="btn btn-primary btn-block btn-lg" type="submit">${id ? 'Salvar alterações' : pagar ? `Continuar para o pagamento (${moneyCents(PRECO_AVULSA)})` : 'Publicar vaga'}</button>
       </form>
     </div>`;
   const f = el.querySelector('#f');
@@ -185,14 +259,32 @@ export async function jobForm(el, [id], { go, alive }) {
     const { salary, ...rest } = d;
     const valor = salary ? Number(salary) : null;
     const row = { ...rest, company_id: state.company.id, salary_min: valor, salary_max: valor };
-    const btn = f.querySelector('button'); setBusy(btn, true, 'Salvando...');
+    const btn = f.querySelector('button[type=submit]'); setBusy(btn, true, 'Salvando...');
+    // vaga avulsa: guarda a vaga "aguardando pagamento" e cria o pedido do Pix
+    const avulsa = async () => {
+      const nova = { ...row, id: newId(), status: 'aguardando' };
+      const r = await sb.from('jobs').insert(nova);
+      if (r.error) { setBusy(btn, false); return toast(errMsg(r.error), 'err'); }
+      const s = await orderJob(nova.id);
+      setBusy(btn, false);
+      toast('Vaga guardada! Agora faça o Pix para ela entrar no ar.');
+      go(s ? `/minhas-vagas?pix=${s.id}` : '/minhas-vagas');
+    };
+    if (pagar) return avulsa();
     const { error } = id ? await sb.from('jobs').update(row).eq('id', id) : await sb.from('jobs').insert(row);
-    setBusy(btn, false);
     if (error) {
-      toast(errMsg(error), 'err');
-      if (/PLANO_NECESSARIO|LIMITE_VAGAS/.test(error.message || '')) go('/planos');
-      return;
+      setBusy(btn, false);
+      if (!id && /PLANO_NECESSARIO|LIMITE_VAGAS/.test(error.message || '')) {
+        const lim = /LIMITE_VAGAS/.test(error.message || '');
+        const ok = await confirmBox(lim ? 'Limite do plano Básico' : 'Sua empresa está sem plano',
+          `${lim ? 'Você já publicou as 5 vagas do mês do plano Básico.' : 'O teste grátis terminou.'} Quer publicar esta vaga avulsa por ${moneyCents(PRECO_AVULSA)} (30 dias no ar, pagamento por Pix)?`,
+          'Sim, continuar');
+        if (ok) { setBusy(btn, true, 'Salvando...'); return avulsa(); }
+        return;
+      }
+      return toast(errMsg(error), 'err');
     }
+    setBusy(btn, false);
     toast(id ? 'Vaga atualizada! ✅' : 'Vaga publicada! 🎉');
     go('/minhas-vagas');
   };
