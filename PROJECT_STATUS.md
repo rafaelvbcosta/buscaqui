@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **07/11/2026**. Base: branch `main` (PR #25) + PR #26 (plano do dia do lançamento).
+> Atualizado em **07/11/2026**. Base: branch `main` (PR #26) + PR #27 (textos da página inicial).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -16,7 +16,7 @@
 | Área | O que funciona | Status |
 |---|---|---|
 | Cadastro e login | E-mail/senha, escolha de perfil, nova senha por e-mail, sair | ✅ 🧪 |
-| Página inicial | "Oportunidades de vagas e serviços em Arcos.", rodapé "Feito para Arcos - MG" | ✅ 🧪 |
+| Página inicial | "Oportunidades de vagas e serviços em Arcos."; texto deixa claro o que é grátis (trabalhador, currículo, perfil do autônomo) e "Comece com 30 dias grátis" para empresas (sem dizer que tudo é gratuito); rodapé "Feito para Arcos - MG" e links legais | ✅ 🧪 |
 | Candidato | Vagas com busca, categoria, salário e favoritas; detalhe; candidatura; Minhas candidaturas (status, entrevista); Currículo fácil; prévia; PDF grátis com rodapé em cada página A4; envio de PDF próprio | ✅ 🧪 |
 | Empresa | Cadastro com CNPJ (BrasilAPI), logo encaixada no quadro, painel, vagas (Bairro, salário único), candidatos (aprovar/recusar/entrevista/WhatsApp), página pública | ✅ 🧪 |
 | Empresa — serviços | `#/divulgar`: vários serviços (até 3 sem Profissional), etiqueta "Empresa", botão "Editar divulgação" no cartão e na página | ✅ 🧪 |
@@ -175,6 +175,7 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #24 | 07/11 | Vaga avulsa R$ 9,90 e renovação (etapa 2): `subscriptions.job_id`, plano `vaga_avulsa`, status de vaga `aguardando`, telas e Termos | **Sim** |
 | #25 | 07/11 | Pacote de 3 vagas R$ 24,90 (etapa 3): `pacote3`, `credits_left`, `use_package_credit`; `jobs_protect` sem security definer; restrição de planos igual em todo o setup | **Sim** |
 | #26 | 07/11 | Documentação: plano do dia do lançamento (data da promoção + teste das empresas antigas depois da promoção) | Não |
+| #27 | 08/11 | Página inicial: tira o "gratuito" geral (só é grátis para candidatos/autônomos; empresas têm 30 dias grátis) e o "modalidade" (filtro removido no #14); item "teste completo no site real" no checklist | Não |
 
 ## 11. Próximas etapas sugeridas
 1. Configurações técnicas do lançamento **feitas** (07/11/2026). Faltam do checklist da seção 4: CNPJ nas páginas,

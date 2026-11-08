@@ -160,6 +160,7 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .feature > svg { width: 44px; height: 44px; padding: 10px; border-radius: 12px; background: var(--green-50); color: var(--green-600); }
 .feature:nth-child(2) > svg, .feature:nth-child(4) > svg { background: var(--yellow-50); color: #b88400; }
 .feature p { margin: 0; color: var(--muted); font-size: .92rem; }
+.feature p b, .lead b { color: var(--green-600); }
 .public-foot { text-align: center; color: var(--muted); font-size: .85rem; padding: 1rem; }
 .public-foot a, .sidenav-legal a { color: var(--muted); }
 .foot-links { display: block; margin-top: .35rem; }
