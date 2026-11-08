@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611071833';
-import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft, trialStarts, packageCredits } from '../store.js?v=202611071833';
-import { promoBanner } from './empresa.js?v=202611071833';
-import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode, pixBoxHtml, wirePixCopy } from '../ui.js?v=202611071833';
+import { sb } from '../supabase.js?v=202611082347';
+import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft, trialStarts, packageCredits } from '../store.js?v=202611082347';
+import { promoBanner } from './empresa.js?v=202611082347';
+import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode, pixBoxHtml, wirePixCopy } from '../ui.js?v=202611082347';
 
 // ============================================================
 // PLANOS (empresa e profissional autônomo) — pagamento por Pix manual

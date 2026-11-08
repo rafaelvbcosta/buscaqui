@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **07/11/2026**. Base: branch `main` (PR #25) + PR #26 (plano do dia do lançamento).
+> Atualizado em **07/11/2026**. Base: branch `main` (PR #26) + PR #27 (textos da página inicial).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -16,7 +16,7 @@
 | Área | O que funciona | Status |
 |---|---|---|
 | Cadastro e login | E-mail/senha, escolha de perfil, nova senha por e-mail, sair | ✅ 🧪 |
-| Página inicial | "Oportunidades de vagas e serviços em Arcos.", rodapé "Feito para Arcos - MG" | ✅ 🧪 |
+| Página inicial | "Oportunidades de vagas e serviços em Arcos."; texto deixa claro o que é grátis (trabalhador, currículo, perfil do autônomo) e "Comece com 30 dias grátis" para empresas (sem dizer que tudo é gratuito); rodapé "Feito para Arcos - MG" e links legais | ✅ 🧪 |
 | Candidato | Vagas com busca, categoria, salário e favoritas; detalhe; candidatura; Minhas candidaturas (status, entrevista); Currículo fácil; prévia; PDF grátis com rodapé em cada página A4; envio de PDF próprio | ✅ 🧪 |
 | Empresa | Cadastro com CNPJ (BrasilAPI), logo encaixada no quadro, painel, vagas (Bairro, salário único), candidatos (aprovar/recusar/entrevista/WhatsApp), página pública | ✅ 🧪 |
 | Empresa — serviços | `#/divulgar`: vários serviços (até 3 sem Profissional), etiqueta "Empresa", botão "Editar divulgação" no cartão e na página | ✅ 🧪 |
@@ -78,6 +78,13 @@ teste de 30 dias **depois da promoção**. Isso é feito **no dia do lançamento
       `+teste2`) em 07/11/2026. Sobrou só `rafaelvbcosta+admin@gmail.com` e as contas de pessoas reais.
 - [x] **Exemplos apagados** (`supabase/remover-exemplos.sql`, que agora também marca `exemplos_removidos` e impede
       o `setup.sql` de recriá-los) — PR #22.
+- [ ] **Teste completo no site real antes da publicação** (pedido do Rafael em 07/11/2026), com contas novas
+      `rafaelvbcosta+testeN@gmail.com`, apagadas no fim com "Excluir minha conta":
+      cadastro com confirmação de e-mail e "Esqueci minha senha"; candidato (currículo, PDF, candidatar-se);
+      empresa nova (CNPJ, publicar vaga no teste grátis, ver candidato); **vaga avulsa** (Pix com código VA-,
+      confirmar em Admin › Pagamentos, vaga no ar, Renovar); **pacote 3 vagas** (comprar, confirmar, publicar e renovar
+      com o pacote); **promoção** (salvar uma data, publicar grátis, apagar a data); autônomo (perfil com CPF, aparecer
+      em "Encontrar profissional"); celular e computador.
 - [ ] **No dia do lançamento:** (1) Admin › Configurações › preencher a data da promoção e Salvar; (2) pedir ao Claude
       para rodar o ajuste do teste das empresas antigas (SQL na seção 3) e conferir.
 - [ ] Atualizar a **apresentação para empresas** com promoção, vaga avulsa (R$ 9,90) e pacote (R$ 24,90).
@@ -168,6 +175,7 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #24 | 07/11 | Vaga avulsa R$ 9,90 e renovação (etapa 2): `subscriptions.job_id`, plano `vaga_avulsa`, status de vaga `aguardando`, telas e Termos | **Sim** |
 | #25 | 07/11 | Pacote de 3 vagas R$ 24,90 (etapa 3): `pacote3`, `credits_left`, `use_package_credit`; `jobs_protect` sem security definer; restrição de planos igual em todo o setup | **Sim** |
 | #26 | 07/11 | Documentação: plano do dia do lançamento (data da promoção + teste das empresas antigas depois da promoção) | Não |
+| #27 | 08/11 | Página inicial: tira o "gratuito" geral (só é grátis para candidatos/autônomos; empresas têm 30 dias grátis) e o "modalidade" (filtro removido no #14); item "teste completo no site real" no checklist | Não |
 
 ## 11. Próximas etapas sugeridas
 1. Configurações técnicas do lançamento **feitas** (07/11/2026). Faltam do checklist da seção 4: CNPJ nas páginas,
