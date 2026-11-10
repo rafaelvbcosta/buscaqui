@@ -1,7 +1,7 @@
-import { sb } from '../supabase.js?v=202611082347';
-import { state, homeFor } from '../store.js?v=202611082347';
-import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone, TERMOS_VERSAO } from '../ui.js?v=202611082347';
-import { afterLogin } from '../app.js?v=202611082347';
+import { sb } from '../supabase.js?v=202611101646';
+import { state, homeFor } from '../store.js?v=202611101646';
+import { ICON, esc, toast, errMsg, setBusy, formData, maskPhone, TERMOS_VERSAO } from '../ui.js?v=202611101646';
+import { afterLogin } from '../app.js?v=202611101646';
 
 // ---------------- Tela inicial ----------------
 export function landing(el) {
@@ -60,7 +60,7 @@ export function login(el, _p, { go }) {
     if (!email) return toast('Digite seu e-mail no campo acima e clique de novo.', 'info');
     const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
     if (error) return toast(errMsg(error), 'err');
-    toast('Enviamos um link para criar uma nova senha. Veja seu e-mail.');
+    toast('Enviamos um link para criar uma nova senha. Veja seu e-mail (olhe também no Spam e em Promoções).');
   };
 }
 
@@ -132,6 +132,8 @@ export function signup(el, _p, { go }) {
         el.innerHTML = `<div class="auth-wrap"><div class="card auth-card center">
           ${ICON.mail}<h1>Confirme seu e-mail</h1>
           <p>Enviamos um link para <b>${esc(d.email)}</b>. Clique nele para ativar sua conta e depois volte aqui para entrar.</p>
+          <p class="spam-tip">${ICON.mail}<span><b>Não chegou?</b> Espere alguns minutos e olhe também nas pastas <b>Spam</b> (ou Lixo eletrônico) e
+            <b>Promoções</b>. Se estiver lá, marque como <b>"Não é spam"</b> para os próximos e-mails do BuscAqui chegarem na caixa de entrada.</span></p>
           <a class="btn btn-primary" href="#/entrar">Ir para Entrar</a></div></div>`;
         return;
       }

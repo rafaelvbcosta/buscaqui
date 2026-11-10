@@ -1,9 +1,9 @@
-import { sb } from '../supabase.js?v=202611082347';
-import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611082347';
+import { sb } from '../supabase.js?v=202611101646';
+import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611101646';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, confirmBox, errMsg, setBusy, formData,
   maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA, maskCPF, validCPF, LIMITE_SERVICOS,
-} from '../ui.js?v=202611082347';
+} from '../ui.js?v=202611101646';
 
 const cats = (pr) => [...new Set((pr.services || []).map((s) => s.categoria).filter(Boolean))];
 

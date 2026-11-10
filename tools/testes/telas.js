@@ -16,7 +16,7 @@ const FALSO = fs.readFileSync(path.join(__dirname, 'supabase-falso.js'), 'utf8')
 const SAIDA = process.argv[2] || '/tmp/buscaqui-prints';
 const FILTRO = process.argv.slice(3);
 
-// [nome, endereço (hash), cenário, largura, altura, (opcional) seletor para clicar antes do print]
+// [nome, endereço (hash), cenário, largura, altura, (opcional) seletor para clicar OU função async (pg) => {...} antes do print]
 const C = { role: 'candidato' }, P = { role: 'profissional' }, E = { role: 'empresa' }, A = { role: 'candidato', admin: true };
 const TELAS = [
   ['inicio', '/', { ...C, deslogado: true }, 390, 844],
@@ -62,6 +62,12 @@ const TELAS = [
   ['admin-config', '/admin/config', A, 1280, 800],
   ['admin-sugestoes', '/admin/sugestoes', A, 1280, 900],
   ['cadastro', '/cadastro', { ...C, deslogado: true }, 390, 844, '[data-role=candidato]'],
+  ['cadastro-confirmar', '/cadastro', { ...C, deslogado: true }, 390, 844, async (pg) => {
+    await pg.click('[data-role=candidato]');
+    await pg.fill('[name=full_name]', 'Pessoa Teste'); await pg.fill('[name=phone]', '37900000001');
+    await pg.fill('input[name=email]', 'pessoa@exemplo.com'); await pg.fill('[name=password]', 'senha123');
+    await pg.fill('[name=password2]', 'senha123'); await pg.check('[name=terms]'); await pg.click('button[type=submit]');
+  }],
   ['privacidade', '/privacidade', { ...C, deslogado: true }, 390, 844],
   ['termos', '/termos', P, 1280, 900],
 ];
@@ -97,7 +103,8 @@ const TELAS = [
     });
     await pg.goto('http://app.local/#' + hash);
     await pg.waitForTimeout(900);
-    if (clicar) { await pg.click(clicar); await pg.waitForTimeout(400); }
+    if (typeof clicar === 'function') { await clicar(pg); await pg.waitForTimeout(600); }
+    else if (clicar) { await pg.click(clicar); await pg.waitForTimeout(400); }
     await pg.screenshot({ path: path.join(SAIDA, `${nome}.png`), fullPage: true });
     console.log(`${erros.length ? 'ERRO' : 'ok  '}  ${nome}${erros.length ? '  ' + erros.join(' | ') : ''}`);
     if (erros.length) falhas++;

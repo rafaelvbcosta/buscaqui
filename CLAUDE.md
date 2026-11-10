@@ -77,6 +77,7 @@ js/views/admin.js        Admin: visão geral, usuários, pagamentos, moderação
 js/views/sugestoes.js    Enviar sugestão (#/sugestao) e lista do admin (#/admin/sugestoes)
 supabase/setup.sql       banco inteiro (tabelas, gatilhos, RLS, buckets, exemplos). REEXECUTÁVEL
 supabase/remover-exemplos.sql  apaga empresas/vagas/profissionais de exemplo (owner_id/user_id nulos)
+supabase/emails/         modelos dos e-mails de login (colar no painel do Supabase)
 tools/versao.py          troca o ?v=AAAAMMDDHHMM de TODOS os imports (cache do navegador)
 ```
 
@@ -187,7 +188,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 ## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
 Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 45 telas (celular e computador, todos os
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 46 telas (celular e computador, todos os
   perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
   Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
 - **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e
@@ -208,7 +209,10 @@ Os exemplos do `setup.sql` (Padaria Pão Dourado etc., `owner_id`/`user_id` nulo
 
 **E-mails (Auth):** saem pelo **Gmail `buscaqui.arcos@gmail.com`** (SMTP próprio no Supabase, senha de app do Google;
 ~500/dia). O e-mail embutido do Supabase só entrega para a equipe do projeto — nunca volte para ele. **Confirm email
-está ligado.** Modelos "Confirm signup" e "Reset password" em português (Authentication → Emails → Templates).
+está ligado.** Modelos "Confirm signup" e "Reset password" em português (Authentication → Emails → Templates); a
+cópia oficial fica em `supabase/emails/` (mudou o texto → atualize o arquivo e peça ao Rafael para colar no painel).
+Os e-mails podem cair no Spam (remetente Gmail + link do Supabase + domínio novo): as telas avisam para olhar o Spam.
+Solução completa pendente no checklist (domínio próprio no e-mail).
 
 ## 8.1 LGPD
 Contato de privacidade: **buscaqui.arcos@gmail.com**. Etapas e situação na seção 3 do `PROJECT_STATUS.md`.
@@ -238,5 +242,21 @@ usuário. Ficam de propósito: `trial_registry` e `feedbacks` (sem `user_id`). A
    (botão "Dar plano" do Admin, sem programar), post semanal "Empresa parceira" nas redes, ajuda presencial para
    publicar a 1ª vaga e logo na apresentação; em troca, publicam ao menos 1 vaga e autorizam logo + depoimento.
 
-Também conversadas e **fora por enquanto**: chat, notificações, avaliações, login com Google, vídeo de apresentação,
+7. **Notificações de candidaturas** (aprovada em 10/11/2026, **implementar depois**; decisões do Rafael):
+   - **Aviso no site** para a empresa: número de candidatos novos no menu (Minhas vagas) e no painel; zera quando ela
+     abre a lista de candidatos da vaga.
+   - **E-mail para a empresa**: no máximo **1 por empresa a cada hora**, agrupado ("2 candidatos novos na vaga X"),
+     **sem dados do candidato** (só nome da vaga, quantidade e botão para o site).
+   - **E-mail para o candidato** quando a empresa muda o status da candidatura (ex.: chamado para entrevista),
+     também agrupado e sem detalhes sensíveis. Decidir com o Rafael o texto para "recusado".
+   - Opção **"Receber e-mails de avisos"** em Minha conta (ligada por padrão; dá para desligar).
+   - Envio pelo Gmail `buscaqui.arcos@gmail.com` (grátis, ~500/dia, junto com os e-mails de login). Como fazer:
+     `pg_cron` a cada poucos minutos + `pg_net` chamando uma **Edge Function** que envia por SMTP
+     (`smtp.gmail.com:465`); a **senha de app** do Gmail fica como segredo da Edge Function (o Rafael cola no painel
+     do Supabase; **nunca** pela conversa nem no repositório). Colunas de controle (ex.: quando cada candidatura/status
+     já foi avisado) e preferência no perfil; tudo testado no banco local (o ambiente do Claude não envia e-mail real).
+   - Atualizar a **Política de privacidade** (envio de e-mails pelo Google/Gmail e como desligar) e `TERMOS_VERSAO`.
+   - Fora por enquanto: notificação no celular (depende do PWA, ideia 5) e WhatsApp automático (API paga).
+
+Também conversadas e **fora por enquanto**: chat, notificações no celular/WhatsApp (ver ideia 7), avaliações, login com Google, vídeo de apresentação,
 IA, cursos. Currículo em PDF **continua grátis** (decisão: rodapé de propaganda em vez de cobrar R$ 6,90).

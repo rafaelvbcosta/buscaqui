@@ -1,5 +1,5 @@
-import { state } from '../store.js?v=202611082347';
-import { ICON, CONTATO_EMAIL, TERMOS_VERSAO } from '../ui.js?v=202611082347';
+import { state } from '../store.js?v=202611101646';
+import { ICON, CONTATO_EMAIL, TERMOS_VERSAO } from '../ui.js?v=202611101646';
 
 // ============================================================
 // POLÍTICA DE PRIVACIDADE E TERMOS DE USO (abrem logado ou não)
