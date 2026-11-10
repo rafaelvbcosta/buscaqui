@@ -238,5 +238,21 @@ usuário. Ficam de propósito: `trial_registry` e `feedbacks` (sem `user_id`). A
    (botão "Dar plano" do Admin, sem programar), post semanal "Empresa parceira" nas redes, ajuda presencial para
    publicar a 1ª vaga e logo na apresentação; em troca, publicam ao menos 1 vaga e autorizam logo + depoimento.
 
-Também conversadas e **fora por enquanto**: chat, notificações, avaliações, login com Google, vídeo de apresentação,
+7. **Notificações de candidaturas** (aprovada em 10/11/2026, **implementar depois**; decisões do Rafael):
+   - **Aviso no site** para a empresa: número de candidatos novos no menu (Minhas vagas) e no painel; zera quando ela
+     abre a lista de candidatos da vaga.
+   - **E-mail para a empresa**: no máximo **1 por empresa a cada hora**, agrupado ("2 candidatos novos na vaga X"),
+     **sem dados do candidato** (só nome da vaga, quantidade e botão para o site).
+   - **E-mail para o candidato** quando a empresa muda o status da candidatura (ex.: chamado para entrevista),
+     também agrupado e sem detalhes sensíveis. Decidir com o Rafael o texto para "recusado".
+   - Opção **"Receber e-mails de avisos"** em Minha conta (ligada por padrão; dá para desligar).
+   - Envio pelo Gmail `buscaqui.arcos@gmail.com` (grátis, ~500/dia, junto com os e-mails de login). Como fazer:
+     `pg_cron` a cada poucos minutos + `pg_net` chamando uma **Edge Function** que envia por SMTP
+     (`smtp.gmail.com:465`); a **senha de app** do Gmail fica como segredo da Edge Function (o Rafael cola no painel
+     do Supabase; **nunca** pela conversa nem no repositório). Colunas de controle (ex.: quando cada candidatura/status
+     já foi avisado) e preferência no perfil; tudo testado no banco local (o ambiente do Claude não envia e-mail real).
+   - Atualizar a **Política de privacidade** (envio de e-mails pelo Google/Gmail e como desligar) e `TERMOS_VERSAO`.
+   - Fora por enquanto: notificação no celular (depende do PWA, ideia 5) e WhatsApp automático (API paga).
+
+Também conversadas e **fora por enquanto**: chat, notificações no celular/WhatsApp (ver ideia 7), avaliações, login com Google, vídeo de apresentação,
 IA, cursos. Currículo em PDF **continua grátis** (decisão: rodapé de propaganda em vez de cobrar R$ 6,90).
