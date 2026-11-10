@@ -1,0 +1,16 @@
+<!-- BuscAqui — modelo do e-mail "Confirm signup" (Supabase › Authentication › Emails › Templates).
+     Assunto: Confirme seu cadastro no BuscAqui
+     Cole TUDO abaixo desta linha no campo "Message body" (este comentário pode ir junto, o e-mail não mostra). -->
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#142019;line-height:1.5">
+  <p style="font-size:18px;color:#003515;margin:0 0 12px"><b>{{ if .Data.full_name }}Olá, {{ .Data.full_name }}!{{ else }}Olá!{{ end }}</b></p>
+  <p>Você criou uma conta no <b>BuscAqui</b>, o site de vagas e serviços de Arcos - MG. Para ativar a conta, confirme o seu e-mail no botão abaixo:</p>
+  <p style="text-align:center;margin:24px 0">
+    <a href="{{ .ConfirmationURL }}" style="background:#0EAC40;color:#ffffff;padding:13px 26px;border-radius:10px;text-decoration:none;font-weight:bold;display:inline-block">Confirmar meu e-mail</a>
+  </p>
+  <p style="font-size:14px;color:#5e6b63">Se o botão não funcionar, copie e cole este endereço no navegador:<br>
+    <a href="{{ .ConfirmationURL }}" style="color:#0a8f35;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+  <p style="font-size:14px;color:#5e6b63">Você recebeu este e-mail porque este endereço foi usado no cadastro do BuscAqui. Se não foi você, é só ignorar: nenhuma conta será ativada.</p>
+  <p style="font-size:13px;color:#5e6b63;border-top:1px solid #e3e8e4;padding-top:12px;margin-top:20px">
+    BuscAqui · Encontre. Conecte. Trabalhe. · Arcos - MG<br>
+    www.buscaquiarcos.com.br · Dúvidas: buscaqui.arcos@gmail.com</p>
+</div>

@@ -300,7 +300,7 @@ export function errMsg(error) {
     [/Invalid login credentials/i, 'E-mail ou senha incorretos.'],
     [/already registered|already been registered/i, 'Este e-mail já está cadastrado. Tente entrar.'],
     [/Password should be at least/i, 'A senha precisa ter pelo menos 6 caracteres.'],
-    [/Email not confirmed/i, 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).'],
+    [/Email not confirmed/i, 'Confirme seu e-mail antes de entrar: clique no link que enviamos (olhe também no Spam e em Promoções).'],
     [/rate limit|too many/i, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'],
     [/Unable to validate email|invalid format|valid email/i, 'E-mail inválido.'],
     [/(?:PLANO_NECESSARIO|CNPJ_INVALIDO|CPF_INVALIDO|CPF_NECESSARIO|PAGAMENTO_PENDENTE|SEM_CREDITO):\s*(.*)/i, (x) => x[1].charAt(0).toUpperCase() + x[1].slice(1)],

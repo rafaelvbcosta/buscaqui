@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **07/11/2026**. Base: branch `main` (PR #27) + PR #28 (notificações anotadas para depois).
+> Atualizado em **07/11/2026**. Base: branch `main` (PR #27) + PR #28 (aviso de Spam e textos dos e-mails).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -88,6 +88,11 @@ teste de 30 dias **depois da promoção**. Isso é feito **no dia do lançamento
 - [ ] **No dia do lançamento:** (1) Admin › Configurações › preencher a data da promoção e Salvar; (2) pedir ao Claude
       para rodar o ajuste do teste das empresas antigas (SQL na seção 3) e conferir.
 - [ ] Atualizar a **apresentação para empresas** com promoção, vaga avulsa (R$ 9,90) e pacote (R$ 24,90).
+- [ ] **E-mails com o domínio do site** (recomendado antes do lançamento, decidido deixar para depois em 10/11/2026):
+      os e-mails de confirmação estão caindo no **Spam** (remetente Gmail, link do Supabase, domínio novo). Solução:
+      enviar por **Resend** (grátis, 3.000/mês) de `noreply@buscaquiarcos.com.br`, com **SPF, DKIM e DMARC** no
+      Registro.br, e o link do botão apontando para o próprio site. Também simplifica as notificações. Por enquanto:
+      textos novos dos e-mails (`supabase/emails/`) e aviso "olhe no Spam" nas telas (PR #28).
 - [ ] **Notificações de candidaturas** (aprovado em 10/11/2026, para fazer depois): aviso no site + e-mail para a
       empresa (máx. 1 por hora, agrupado) + e-mail para o candidato quando o status muda; opção de desligar.
       Detalhes e decisões no `CLAUDE.md`, seção 9, item 7. Recomendado fazer **antes do lançamento**.
@@ -179,7 +184,7 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #25 | 07/11 | Pacote de 3 vagas R$ 24,90 (etapa 3): `pacote3`, `credits_left`, `use_package_credit`; `jobs_protect` sem security definer; restrição de planos igual em todo o setup | **Sim** |
 | #26 | 07/11 | Documentação: plano do dia do lançamento (data da promoção + teste das empresas antigas depois da promoção) | Não |
 | #27 | 08/11 | Página inicial: tira o "gratuito" geral (só é grátis para candidatos/autônomos; empresas têm 30 dias grátis) e o "modalidade" (filtro removido no #14); item "teste completo no site real" no checklist | Não |
-| #28 | 10/11 | Documentação: notificações de candidaturas aprovadas (aviso no site, e-mail para empresa e candidato) anotadas para fazer depois | Não |
+| #28 | 10/11 | Aviso "olhe também no Spam" na confirmação de cadastro, no Esqueci minha senha e no erro de e-mail não confirmado; textos novos dos e-mails em `supabase/emails/`; notificações de candidaturas e e-mail com domínio próprio anotados para depois | Não |
 
 ## 11. Próximas etapas sugeridas
 1. Configurações técnicas do lançamento **feitas** (07/11/2026). Faltam do checklist da seção 4: CNPJ nas páginas,

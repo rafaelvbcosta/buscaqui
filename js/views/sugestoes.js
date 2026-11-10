@@ -1,5 +1,5 @@
-import { sb } from '../supabase.js?v=202611082347';
-import { ICON, esc, nl2br, toast, errMsg, setBusy, empty, dateBR, timeAgo, waLink } from '../ui.js?v=202611082347';
+import { sb } from '../supabase.js?v=202611101646';
+import { ICON, esc, nl2br, toast, errMsg, setBusy, empty, dateBR, timeAgo, waLink } from '../ui.js?v=202611101646';
 
 // ============================================================
 // SUGESTÕES E FEEDBACKS

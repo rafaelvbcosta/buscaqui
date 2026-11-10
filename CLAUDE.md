@@ -77,6 +77,7 @@ js/views/admin.js        Admin: visão geral, usuários, pagamentos, moderação
 js/views/sugestoes.js    Enviar sugestão (#/sugestao) e lista do admin (#/admin/sugestoes)
 supabase/setup.sql       banco inteiro (tabelas, gatilhos, RLS, buckets, exemplos). REEXECUTÁVEL
 supabase/remover-exemplos.sql  apaga empresas/vagas/profissionais de exemplo (owner_id/user_id nulos)
+supabase/emails/         modelos dos e-mails de login (colar no painel do Supabase)
 tools/versao.py          troca o ?v=AAAAMMDDHHMM de TODOS os imports (cache do navegador)
 ```
 
@@ -187,7 +188,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 ## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
 Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 45 telas (celular e computador, todos os
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 46 telas (celular e computador, todos os
   perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
   Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
 - **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e
@@ -208,7 +209,10 @@ Os exemplos do `setup.sql` (Padaria Pão Dourado etc., `owner_id`/`user_id` nulo
 
 **E-mails (Auth):** saem pelo **Gmail `buscaqui.arcos@gmail.com`** (SMTP próprio no Supabase, senha de app do Google;
 ~500/dia). O e-mail embutido do Supabase só entrega para a equipe do projeto — nunca volte para ele. **Confirm email
-está ligado.** Modelos "Confirm signup" e "Reset password" em português (Authentication → Emails → Templates).
+está ligado.** Modelos "Confirm signup" e "Reset password" em português (Authentication → Emails → Templates); a
+cópia oficial fica em `supabase/emails/` (mudou o texto → atualize o arquivo e peça ao Rafael para colar no painel).
+Os e-mails podem cair no Spam (remetente Gmail + link do Supabase + domínio novo): as telas avisam para olhar o Spam.
+Solução completa pendente no checklist (domínio próprio no e-mail).
 
 ## 8.1 LGPD
 Contato de privacidade: **buscaqui.arcos@gmail.com**. Etapas e situação na seção 3 do `PROJECT_STATUS.md`.
