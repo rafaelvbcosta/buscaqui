@@ -237,6 +237,9 @@ usuário. Ficam de propósito: `trial_registry` e `feedbacks` (sem `user_id`). A
    grátis); depois **TWA** na Play Store (Bubblewrap/PWABuilder), conta Google ~US$ 25 (taxa única), exige página de
    **política de privacidade** (também útil pela LGPD) e teste fechado para conta pessoal nova (conferir regra
    atual). iPhone (US$ 99/ano) depois. App nativo do zero: não recomendado.
+   **13/11/2026:** o Rafael pediu para **avaliar a publicação na Play Store** para facilitar o acesso como "app",
+   mesmo sendo a mesma plataforma web (é exatamente o TWA: o site empacotado como aplicativo, sem reescrever nada;
+   atualizações do site chegam sozinhas no app). Lembrar nos lembretes semanais.
 6. **Empresas fundadoras** (aprovada a ideia em 07/11/2026, **ainda não implementar**): primeiras 20 empresas que
    entrarem até ~30 dias após o lançamento ganham 30 dias de teste + 30 dias do plano Profissional de cortesia
    (botão "Dar plano" do Admin, sem programar), post semanal "Empresa parceira" nas redes, ajuda presencial para

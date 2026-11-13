@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **07/11/2026**. Base: branch `main` (PR #27) + PR #28 (aviso de Spam e textos dos e-mails).
+> Atualizado em **07/11/2026**. Base: branch `main` (PR #28) + PR #29 (Play Store nos lembretes).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -185,6 +185,7 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #26 | 07/11 | Documentação: plano do dia do lançamento (data da promoção + teste das empresas antigas depois da promoção) | Não |
 | #27 | 08/11 | Página inicial: tira o "gratuito" geral (só é grátis para candidatos/autônomos; empresas têm 30 dias grátis) e o "modalidade" (filtro removido no #14); item "teste completo no site real" no checklist | Não |
 | #28 | 10/11 | Aviso "olhe também no Spam" na confirmação de cadastro, no Esqueci minha senha e no erro de e-mail não confirmado; textos novos dos e-mails em `supabase/emails/`; notificações de candidaturas e e-mail com domínio próprio anotados para depois | Não |
+| #29 | 13/11 | Documentação: avaliar publicar o site como app na Play Store (TWA) entra nos lembretes | Não |
 
 ## 11. Próximas etapas sugeridas
 1. Configurações técnicas do lançamento **feitas** (07/11/2026). Faltam do checklist da seção 4: CNPJ nas páginas,
