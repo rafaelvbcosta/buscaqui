@@ -168,7 +168,14 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
   em cada página A4 ("Página X de Y" quando há mais de uma).
 - **Sugestões:** usuário só envia (tipo + 5 a 1000 caracteres), **máx. 5 por dia**; não vê o histórico. Admin lê,
   anota e marca nova/lida/resolvida.
-- **Cidade:** o site é para Arcos, mas o cadastro **não bloqueia** outras cidades.
+- **Cidade:** o site é para Arcos, mas o cadastro **não bloqueia** outras cidades. O perfil do autônomo **não pede
+  cidade** (grava "Arcos - MG") e o pedido de serviço pede só o **Bairro**.
+- **Valor do autônomo:** dois campos na tela (valor com "R$" fixo e observação, ex.: "por diária"), gravados num texto
+  só em `professionals.price` no formato `R$ 150,00 · por diária` (`formatPrice`/`parsePrice` em `servicos.js`).
+- **Autônomo sem perfil profissional:** `homeFor()` manda para `#/meu-servico` (completar o perfil logo depois do
+  cadastro/confirmação do e-mail).
+- **Vagas:** a empresa vê "ativa até dd/mm" em cada vaga aberta (o maior entre `paid_until` e o fim do plano/teste).
+  No Básico, Planos e o painel mostram "Vagas do plano neste mês: X de 5" (`basicoUsadas`).
 - **Idade:** só **maiores de 18 anos** (declarado no aceite do cadastro; não há conferência de data de nascimento).
 
 ## 6. Padrões de código (obrigatórios)
@@ -188,7 +195,7 @@ vazia (o gatilho `protect_profile_flags` apaga); o site lê o CPF de `user_docs`
 ## 7. Testes (pasta `tools/testes/`, detalhes no `README.md` dela)
 Nenhum teste usa o Supabase de verdade nem a internet. Rode na raiz do repositório:
 - **Sintaxe JS:** `for f in js/*.js js/views/*.js; do node --check "$f"; done`
-- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 46 telas (celular e computador, todos os
+- **Telas:** `node tools/testes/telas.js /tmp/prints` — Playwright abre 52 telas (celular e computador, todos os
   perfis e o admin) com o `supabase-falso.js` (dados fictícios), salva prints e falha se houver erro de JavaScript.
   Olhe os prints principais antes de mostrar a prévia ao Rafael. Tela nova → acrescente em `TELAS`.
 - **Banco:** `bash tools/testes/banco/testar-banco.sh` — Postgres 16 temporário com `stubs.sql` (imita `auth` e

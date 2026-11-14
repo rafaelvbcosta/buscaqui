@@ -292,6 +292,12 @@ label.check input { width: 20px; min-height: 20px; height: 20px; margin: .15rem 
 .big-action.alt svg { color: var(--yellow); }
 .big-action b { display: block; font-size: 1.1rem; }
 .big-action small { opacity: .85; font-weight: 500; }
+.big-action.promo { background: var(--yellow); color: var(--forest); grid-column: 1 / -1; }
+.big-action.promo svg { background: rgba(0,53,21,.1); color: var(--forest); }
+.money { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; background: #fff; margin: .35rem 0 1rem; overflow: hidden; }
+.money span { padding: 0 .4rem 0 .9rem; font-weight: 700; color: var(--forest); }
+.money input { border: 0; margin: 0; padding-left: .2rem; box-shadow: none; flex: 1; min-width: 0; }
+.money:focus-within { outline: 2px solid var(--green); outline-offset: 1px; }
 .cta-band { display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 1.5rem 0 1rem; border-left: 5px solid var(--yellow); }
 .cta-band h3, .cta-band p { margin: 0; }
 .my-reqs { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin: 1rem 0 0; color: inherit; border-left: 5px solid var(--green); }

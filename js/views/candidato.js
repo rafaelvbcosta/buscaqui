@@ -1,10 +1,10 @@
-import { sb } from '../supabase.js?v=202611101646';
-import { state, loadUserData } from '../store.js?v=202611101646';
+import { sb } from '../supabase.js?v=202611142102';
+import { state, loadUserData } from '../store.js?v=202611142102';
 import {
   ICON, esc, nl2br, salaryRange, timeAgo, dateBR, avatar, options, loading, empty, toast, modal,
   confirmBox, errMsg, setBusy, formData, badgeStatus, uploadFile, maskPhone, waLink,
-  CATEGORIAS_VAGA,
-} from '../ui.js?v=202611101646';
+  CATEGORIAS_VAGA, STATUS_CANDIDATURA,
+} from '../ui.js?v=202611142102';
 
 // ============================================================
 // Cartão de vaga (usado em várias telas)
@@ -31,10 +31,18 @@ export function jobCard(j) {
       <div class="job-bottom">
         <strong class="salary">${salaryRange(j.salary_min, j.salary_max)}</strong>
         ${applied
-          ? `<span class="badge b-green">${ICON.check} Candidatado</span>`
+          ? appliedBadge(j.id)
           : `<button class="btn btn-primary btn-sm" data-apply="${j.id}">Candidatar-se agora</button>`}
       </div>
     </article>`;
+}
+
+// Situação da candidatura: "Candidatado" enquanto a empresa não responde; depois, o status que ela marcou
+function appliedBadge(jobId, big = false) {
+  const st = state.appStatus?.[jobId] || 'enviada';
+  if (st === 'enviada') return `<span class="badge b-green${big ? ' big-badge' : ''}">${ICON.check} ${big ? 'Você já se candidatou' : 'Candidatado'}</span>`;
+  const s = STATUS_CANDIDATURA[st] || { label: st, cls: 'b-gray' };
+  return `<span class="badge ${s.cls}${big ? ' big-badge' : ''}">${esc(s.label)}</span>`;
 }
 
 // Liga os botões de favoritar e candidatar dentro de um container
@@ -61,7 +69,7 @@ async function apply(jobId, onDone) {
   const send = async () => {
     const { error } = await sb.from('applications').insert({ job_id: jobId, candidate_id: state.user.id });
     if (error) return toast(errMsg(error), 'err');
-    state.applied.add(jobId);
+    state.applied.add(jobId); state.appStatus[jobId] = 'enviada';
     toast('Candidatura enviada! Boa sorte 🍀');
     onDone?.();
   };
@@ -169,7 +177,7 @@ export async function jobDetail(el, [id], { alive }) {
         </div>
         <aside class="card side-cta">
           ${isCompany ? '<p class="muted">Você está vendo esta vaga como empresa.</p>'
-            : applied ? `<p class="badge b-green big-badge">${ICON.check} Você já se candidatou</p><a href="#/candidaturas" class="btn btn-ghost btn-block">Ver minhas candidaturas</a>`
+            : applied ? `<p class="big-badge-row">${appliedBadge(j.id, true)}</p><a href="#/candidaturas" class="btn btn-ghost btn-block">Ver minhas candidaturas</a>`
             : j.status === 'aberta' ? `<button class="btn btn-primary btn-block btn-lg" data-apply="${j.id}">Candidatar-se agora</button>` : ''}
           <div class="company-mini">
             ${avatar(c.logo_url, c.name, 40, true)}
@@ -213,7 +221,7 @@ export async function applications(el, _p, { alive }) {
     if (!(await confirmBox('Cancelar candidatura', 'Tem certeza? A empresa não verá mais seu currículo nesta vaga.', 'Cancelar candidatura', true))) return;
     const { error } = await sb.from('applications').delete().eq('id', b.dataset.cancel);
     if (error) return toast(errMsg(error), 'err');
-    state.applied.delete(b.dataset.job);
+    state.applied.delete(b.dataset.job); delete state.appStatus[b.dataset.job];
     toast('Candidatura cancelada.', 'info');
     applications(el, _p, { alive });
   }));
@@ -411,6 +419,18 @@ async function imageData(src) {
   } catch { return null; }
 }
 
+// Recorta a foto no centro, em quadrado, para o PDF: o gerador de PDF não entende "object-fit: cover"
+// e esticava a foto. Se não conseguir (internet, permissão), devolve null e a foto fica como está.
+async function squarePhoto(src, size = 360) {
+  try {
+    const img = await new Promise((ok, fail) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = fail; i.src = src; });
+    const lado = Math.min(img.naturalWidth, img.naturalHeight);
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    c.getContext('2d').drawImage(img, (img.naturalWidth - lado) / 2, (img.naturalHeight - lado) / 2, lado, lado, 0, 0, size, size);
+    return c.toDataURL('image/jpeg', 0.92);
+  } catch { return null; }
+}
+
 // Rodapé desenhado no pé de CADA página A4 do PDF (com numeração quando há mais de uma)
 function drawPdfFooter(pdf, icon) {
   const n = pdf.internal.getNumberOfPages();
@@ -461,6 +481,8 @@ export async function resumePreview(el) {
       const [, icon] = await Promise.all([loadHtml2pdf(), imageData('assets/icone.png')]);
       const name = (p.full_name || 'curriculo').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\W+/g, '-').toLowerCase();
       const paper = el.querySelector('#paper .cv');
+      const foto = paper.querySelector('.cv-head img');
+      if (foto && !foto.src.startsWith('data:')) { const q = await squarePhoto(foto.src); if (q) foto.src = q; }
       paper.classList.add('pdf-mode'); // o rodapé da tela some; no PDF ele é desenhado no pé de cada página
       try {
         await window.html2pdf().set({

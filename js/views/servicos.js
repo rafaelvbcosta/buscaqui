@@ -1,9 +1,9 @@
-import { sb } from '../supabase.js?v=202611101646';
-import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611101646';
+import { sb } from '../supabase.js?v=202611142102';
+import { state, loadUserData, activePlan, pendingSub } from '../store.js?v=202611142102';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, confirmBox, errMsg, setBusy, formData,
   maskPhone, waLink, timeAgo, uploadFile, CATEGORIAS_SERVICO, CATEGORIAS_EMPRESA, maskCPF, validCPF, LIMITE_SERVICOS,
-} from '../ui.js?v=202611101646';
+} from '../ui.js?v=202611142102';
 
 const cats = (pr) => [...new Set((pr.services || []).map((s) => s.categoria).filter(Boolean))];
 
@@ -81,6 +81,7 @@ export async function hub(el, _p, { alive }) {
     <div class="big-actions">
       <a href="#/profissionais" class="big-action">${ICON.search}<span><b>Encontrar profissional</b><small>Eletricista, diarista, oficina, pet shop e mais</small></span></a>
       <a href="#/pedido-novo" class="big-action alt">${ICON.plus}<span><b>Publicar pedido de serviço</b><small>Descreva o que precisa e receba contatos</small></span></a>
+      ${state.profile?.role === 'empresa' ? `<a href="#/divulgar" class="big-action promo">${ICON.building}<span><b>${mine ? 'Editar os serviços da minha empresa' : 'Divulgar os serviços da minha empresa'}</b><small>${mine ? 'Sua empresa já aparece em "Encontrar profissional"' : 'Apareça para quem procura uma oficina, um pet shop, uma assistência...'}</small></span></a>` : ''}
     </div>
     ${reqs.length ? `
     <a href="#/pedidos" class="card my-reqs">
@@ -91,11 +92,7 @@ export async function hub(el, _p, { alive }) {
     </a>` : ''}
     <div class="row-between section-title"><h2>Profissionais cadastrados</h2><a href="#/profissionais">Ver todos</a></div>
     <div class="grid">${(data || []).map((x) => proCard(x)).join('') || empty('users', 'Nenhum profissional ainda')}</div>
-    ${state.profile?.role === 'empresa' ? `<div class="card cta-band">
-      <div><h3>${mine ? 'Os serviços da empresa estão sendo divulgados' : 'Sua empresa também presta serviços?'}</h3>
-      <p class="muted">${mine ? 'Mantenha a descrição atualizada para receber mais contatos.' : 'Divulgue e apareça para quem procura em Arcos.'}</p></div>
-      <a href="#/divulgar" class="btn btn-secondary">${mine ? 'Editar divulgação' : 'Divulgar serviços'}</a>
-    </div>` : `<div class="card cta-band">
+    ${state.profile?.role === 'empresa' ? '' : `<div class="card cta-band">
       <div><h3>${mine ? 'Seu perfil de serviços está ativo' : 'Você também presta serviços?'}</h3>
       <p class="muted">${mine ? 'Mantenha seus dados atualizados para receber mais contatos.' : 'Cadastre-se como profissional e seja encontrado por quem precisa.'}</p></div>
       <a href="#/meu-servico" class="btn btn-secondary">${mine ? 'Editar meu perfil' : 'Oferecer meus serviços'}</a>
@@ -251,7 +248,7 @@ export function newRequest(el, _p, { go }) {
         <label>Tipo de serviço<select name="category" required>${catOptions('Escolha uma categoria')}</select></label>
         <label>Detalhes<textarea name="description" rows="4" placeholder="Descreva o serviço, quando precisa, etc."></textarea></label>
         <div class="two">
-          <label>Cidade / Bairro<input name="city" value="${esc(p.city)}" placeholder="Ex.: Centro, Belo Horizonte"></label>
+          <label>Bairro<input name="city" value="${esc(p.city)}" placeholder="Ex.: Centro"></label>
           <label>WhatsApp para contato<input name="phone" type="tel" value="${esc(p.phone)}" required></label>
         </div>
         <button class="btn btn-primary btn-block btn-lg" type="submit">Publicar pedido</button>
@@ -275,6 +272,25 @@ export function newRequest(el, _p, { go }) {
 // ============================================================
 // MEU PERFIL PROFISSIONAL (cadastro em 4 etapas)
 // ============================================================
+// Valor do autônomo: guardado num texto só ("R$ 150,00 · por diária"), montado a partir de dois campos
+const OBS_VALOR = ['por diária', 'por hora', 'por serviço', 'a partir deste valor', 'a combinar', 'orçamento grátis'];
+const SEP = ' · ';
+function centsBR(digitos) {
+  const n = Number(String(digitos).replace(/\D/g, '')) / 100;
+  return n ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+}
+export function formatPrice(valor, obs) {
+  const v = String(valor || '').trim(), o = String(obs || '').trim();
+  if (v) return `R$ ${v}${o ? SEP + o : ''}`;
+  return o ? o.charAt(0).toUpperCase() + o.slice(1) : '';
+}
+export function parsePrice(texto) {
+  const t = String(texto || '').trim();
+  const m = t.match(/^R\$\s*([\d.]+,\d{2})(?:\s*·\s*(.*))?$/);
+  if (m) return { valor: m[1], obs: m[2] || '' };
+  return { valor: '', obs: t };   // valores antigos (texto livre) vão para a observação
+}
+
 export function myService(el, _p, { go }) {
   if (state.profile?.role === 'empresa') { go('/divulgar'); return; }
   const p = state.profile || {};
@@ -282,7 +298,7 @@ export function myService(el, _p, { go }) {
   const d = {
     name: cur.name || p.full_name || '',
     phone: cur.phone || p.phone || '',
-    city: cur.city || p.city || '',
+    city: cur.city || p.city || 'Arcos - MG',
     avatar_url: cur.avatar_url || p.avatar_url || '',
     services: cur.services?.length ? cur.services.map((s) => ({ ...s })) : [{ categoria: '', descricao: '' }],
     about: cur.about || '',
@@ -296,10 +312,10 @@ export function myService(el, _p, { go }) {
 
   const readStep = () => {
     const f = el.querySelector('#f');
-    if (step === 1) { d.name = f.elements.name.value.trim(); d.phone = f.phone.value.trim(); d.city = f.city.value.trim(); if (f.cpf && !f.cpf.readOnly) d.cpf = f.cpf.value.trim(); }
+    if (step === 1) { d.name = f.elements.name.value.trim(); d.phone = f.phone.value.trim(); if (f.cpf && !f.cpf.readOnly) d.cpf = f.cpf.value.trim(); }
     if (step === 2) d.services = [...el.querySelectorAll('.svc')].map((r) => ({ categoria: r.querySelector('select').value, descricao: r.querySelector('input').value.trim() }));
     if (step === 3) d.about = f.about.value.trim();
-    if (step === 4) d.price = f.price.value.trim();
+    if (step === 4) d.price = formatPrice(f.valor.value, f.obs.value);
   };
 
   const validate = () => {
@@ -317,7 +333,6 @@ export function myService(el, _p, { go }) {
         <label class="btn btn-ghost btn-sm file-btn">${ICON.upload} Foto (opcional)<input type="file" id="photo" accept="image/*" hidden></label></div>
       <label>Nome que aparece para os clientes<input name="name" value="${esc(d.name)}" required placeholder="Ex.: João Eletricista"></label>
       <label>Telefone / WhatsApp<input name="phone" type="tel" value="${esc(d.phone)}" required></label>
-      <label>Cidade onde atende<input name="city" value="${esc(d.city)}" placeholder="Ex.: Belo Horizonte - MG"></label>
       <label>CPF ${p.cpf ? '' : '<small class="muted">(obrigatório, não aparece para os clientes)</small>'}<input name="cpf" inputmode="numeric" placeholder="000.000.000-00"
         value="${esc(p.cpf || d.cpf || '')}" ${p.cpf ? 'readonly' : 'required'}>
         ${p.cpf ? '<small class="muted">Para corrigir o CPF, fale com o suporte do BuscAqui.</small>' : '<small class="muted">Usado só para garantir um cadastro por pessoa.</small>'}</label>`;
@@ -335,14 +350,18 @@ export function myService(el, _p, { go }) {
       <label>Apresentação profissional<textarea name="about" rows="6" placeholder="Ex.: Trabalho há 10 anos como eletricista, atendo residências e comércios, sou pontual e dou garantia do serviço.">${esc(d.about)}</textarea></label>`;
     return `
       <h2>4. Valor do serviço <small class="muted">(opcional)</small></h2>
-      <label>Quanto você cobra?<input name="price" value="${esc(d.price)}" placeholder="Ex.: A partir de R$ 80,00 ou R$ 150,00 a diária"></label>
-      <p class="muted small">Se preferir, deixe em branco. Vai aparecer "Valor a combinar".</p>`;
+      <label for="valor">Quanto você cobra?</label>
+      <div class="money"><span aria-hidden="true">R$</span><input id="valor" name="valor" inputmode="numeric" placeholder="0,00" value="${esc(parsePrice(d.price).valor)}" aria-label="Valor em reais"></div>
+      <label>Observação sobre o valor<input name="obs" list="obs-sug" maxlength="60" value="${esc(parsePrice(d.price).obs)}" placeholder="Ex.: por diária, por hora, a combinar"></label>
+      <datalist id="obs-sug">${OBS_VALOR.map((o) => `<option value="${esc(o)}">`).join('')}</datalist>
+      <p class="muted small">Os dois são opcionais. Sem valor, aparece a observação; sem nada, aparece "Valor a combinar".</p>
+      <p class="muted small">Como vai aparecer: <b id="price-prev">${esc(d.price || 'Valor a combinar')}</b></p>`;
   };
 
   const draw = () => {
     el.innerHTML = `
-      <div class="page-head"><h1>${cur.id ? 'Meu perfil profissional' : 'Cadastre seus serviços'}</h1>
-      <p class="muted">Seu perfil aparece em "Encontrar profissional" para todos os usuários.</p></div>
+      <div class="page-head"><h1>${cur.id ? 'Meu perfil profissional' : 'Complete seu perfil profissional'}</h1>
+      <p class="muted">${cur.id ? 'Seu perfil aparece em "Encontrar profissional" para todos os usuários.' : 'Falta pouco! Preencha os 4 passos para aparecer em "Encontrar profissional" e receber contatos de clientes de Arcos.'}</p></div>
       <div class="card narrow">${stepper()}
         <form id="f">${body()}
           <div class="row-between step-nav">
@@ -364,6 +383,11 @@ export function myService(el, _p, { go }) {
           el.querySelector('#ph').innerHTML = avatar(d.avatar_url, d.name, 72);
         } catch (err) { toast(errMsg(err), 'err'); }
       };
+    }
+    if (step === 4) {
+      const prev = () => { el.querySelector('#price-prev').textContent = formatPrice(f.valor.value, f.obs.value) || 'Valor a combinar'; };
+      f.valor.addEventListener('input', () => { f.valor.value = centsBR(f.valor.value); prev(); });
+      f.obs.addEventListener('input', prev);
     }
     if (step === 2) {
       el.querySelector('#add').onclick = () => { readStep(); d.services.push({ categoria: '', descricao: '' }); draw(); };

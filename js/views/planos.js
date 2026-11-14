@@ -1,13 +1,16 @@
-import { sb } from '../supabase.js?v=202611101646';
-import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft, trialStarts, packageCredits } from '../store.js?v=202611101646';
-import { promoBanner } from './empresa.js?v=202611101646';
-import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode, pixBoxHtml, wirePixCopy } from '../ui.js?v=202611101646';
+import { sb } from '../supabase.js?v=202611142102';
+import { state, loadUserData, role, activePlan, pendingSub, trialDaysLeft, trialStarts, packageCredits } from '../store.js?v=202611142102';
+import { promoBanner, basicoUsadas, LIMITE_BASICO } from './empresa.js?v=202611142102';
+import { ICON, esc, toast, errMsg, setBusy, confirmBox, dateBR, moneyCents, PLANOS, pixCode, pixBoxHtml, wirePixCopy } from '../ui.js?v=202611142102';
 
 // ============================================================
 // PLANOS (empresa e profissional autônomo) — pagamento por Pix manual
 // ============================================================
 export async function plans(el, _p, ctx) {
-  const { data: cfg } = await sb.from('app_settings').select('key, value');
+  const [{ data: cfg }, vagas] = await Promise.all([
+    sb.from('app_settings').select('key, value'),
+    state.company ? sb.from('jobs').select('created_at, paid_until, status').eq('company_id', state.company.id) : Promise.resolve({ data: [] }),
+  ]);
   if (!ctx.alive()) return;
   const pix = Object.fromEntries((cfg || []).map((x) => [x.key, x.value]));
   const r = role();
@@ -19,7 +22,8 @@ export async function plans(el, _p, ctx) {
   let status;
   if (ativo) {
     status = `<div class="card plan-status ok">${ICON.check}<div><b>Plano ${esc(PLANOS[ativo.plan].nome)} ativo</b>
-      <p class="muted small">Válido até ${dateBR(ativo.ends_at)}. Para renovar, pague de novo antes dessa data: os dias são somados.</p></div></div>`;
+      <p class="muted small">Válido até ${dateBR(ativo.ends_at)}. Para renovar, pague de novo antes dessa data: os dias são somados.</p>
+      ${ativo.plan === 'basico' ? `<p class="muted small">Vagas do plano neste mês: <b>${basicoUsadas(vagas.data || [])} de ${LIMITE_BASICO}</b>. As vagas grátis da promoção, as avulsas e as do pacote não entram nessa conta.</p>` : ''}</div></div>`;
   } else if (r === 'empresa' && trialStarts() && trialStarts().getTime() > Date.now()) {
     status = `<div class="card plan-status trial">${ICON.clock}<div><b>Seu teste grátis de 30 dias começa em ${dateBR(trialStarts().toISOString())}</b>
       <p class="muted small">Ele começa quando a promoção de lançamento terminar. Até lá, as vagas novas são grátis.</p></div></div>`;
@@ -44,7 +48,7 @@ export async function plans(el, _p, ctx) {
     ${r === 'empresa' ? promoBanner() : ''}
     ${status}
     ${cred.left ? `<div class="card plan-status ok">${ICON.briefcase}<div><b>Pacote: ${cred.left} vaga${cred.left === 1 ? '' : 's'} para usar até ${dateBR(cred.ends)}</b>
-      <p class="muted small">Use em "Nova vaga" ou para renovar uma vaga vencida em Minhas vagas. Cada vaga fica 30 dias no ar.</p></div></div>` : ''}
+      <p class="muted small">Use em "Nova vaga" ou para renovar uma vaga vencida em Minhas vagas. Cada vaga fica ativa por 30 dias.</p></div></div>` : ''}
     ${pend ? `<div class="card pend">
       <h3>${ICON.clock} Pedido aguardando confirmação</h3>
       <p>Pedido <b>${esc(pixCode(pend))}</b> · ${pend.plan === 'pacote3' ? '' : 'Plano '}<b>${esc(PLANOS[pend.plan]?.nome || pend.plan)}</b> · ${moneyCents(pend.price)} · pedido em ${dateBR(pend.created_at)}</p>

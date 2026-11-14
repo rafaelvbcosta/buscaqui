@@ -1,4 +1,4 @@
-import { sb } from './supabase.js?v=202611101646';
+import { sb } from './supabase.js?v=202611142102';
 
 export const state = {
   session: null,
@@ -9,6 +9,7 @@ export const state = {
   resume: null,
   favorites: new Set(),
   applied: new Set(),
+  appStatus: {}, // job_id -> status da candidatura (enviada, entrevista, aprovada...)
   subs: [],
   promoAte: '', // último dia da promoção de lançamento (AAAA-MM-DD) ou ''
 };
@@ -16,7 +17,7 @@ export const state = {
 export function clearState() {
   Object.assign(state, {
     session: null, user: null, profile: null, company: null,
-    professional: null, resume: null, favorites: new Set(), applied: new Set(), subs: [], promoAte: '',
+    professional: null, resume: null, favorites: new Set(), applied: new Set(), appStatus: {}, subs: [], promoAte: '',
   });
 }
 
@@ -29,7 +30,7 @@ export async function loadUserData() {
     sb.from('professionals').select('*').eq('user_id', uid).maybeSingle(),
     sb.from('resumes').select('*').eq('user_id', uid).maybeSingle(),
     sb.from('favorites').select('job_id').eq('user_id', uid),
-    sb.from('applications').select('job_id').eq('candidate_id', uid),
+    sb.from('applications').select('job_id, status').eq('candidate_id', uid),
     sb.from('subscriptions').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
     sb.from('user_docs').select('cpf').eq('user_id', uid).maybeSingle(),
     sb.from('app_settings').select('key, value').eq('key', 'promo_ate').maybeSingle(),
@@ -42,6 +43,7 @@ export async function loadUserData() {
   state.resume = r.data || null;
   state.favorites = new Set((f.data || []).map((x) => x.job_id));
   state.applied = new Set((a.data || []).map((x) => x.job_id));
+  state.appStatus = Object.fromEntries((a.data || []).map((x) => [x.job_id, x.status]));
   state.subs = s.data || [];
   state.promoAte = /^\d{4}-\d{2}-\d{2}$/.test(promo.data?.value || '') ? promo.data.value : '';
   state.trialEnds = null;
@@ -116,6 +118,6 @@ export function trialStarts() {
 export function homeFor(r = role()) {
   if (isAdmin()) return '/admin';
   if (r === 'empresa') return '/painel';
-  if (r === 'profissional') return '/pedidos';
+  if (r === 'profissional') return state.professional ? '/pedidos' : '/meu-servico'; // sem perfil: completar primeiro
   return '/vagas';
 }

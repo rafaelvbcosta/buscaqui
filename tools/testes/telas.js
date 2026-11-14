@@ -30,6 +30,12 @@ const TELAS = [
   ['profissionais', '/profissionais', C, 1280, 900],
   ['pedidos', '/pedidos', P, 390, 844],
   ['meu-servico', '/meu-servico', P, 390, 844],
+  ['meu-servico-valor', '/meu-servico', P, 390, 844, async (pg) => {
+    for (let i = 0; i < 3; i++) { await pg.click('#f button[type=submit]'); await pg.waitForTimeout(250); }
+    await pg.fill('#valor', '15000'); await pg.fill('[name=obs]', 'por diária');
+  }],
+  ['pedido-novo', '/pedido-novo', C, 390, 844],
+  ['servicos-empresa', '/servicos', E, 1280, 800],
   ['planos-autonomo', '/planos', P, 390, 844],
   ['painel', '/painel', E, 1280, 900],
   ['painel-vencido', '/painel', { ...E, mode: 'vencido' }, 1280, 700],
@@ -52,6 +58,8 @@ const TELAS = [
   ['divulgar', '/divulgar', { ...E, mode: 'dono' }, 1280, 1000],
   ['empresa-pagina', '/empresa/c1', C, 1280, 800],
   ['planos-empresa', '/planos', { ...E, mode: 'pend' }, 1280, 900],
+  ['planos-basico', '/planos', { ...E, mode: 'plano' }, 1280, 800],
+  ['minhas-vagas-plano', '/minhas-vagas', { ...E, mode: 'plano' }, 1280, 600],
   ['perfil', '/perfil', C, 390, 844],
   ['excluir-conta', '/perfil', E, 390, 844, '#del-account'],
   ['sugestao', '/sugestao', C, 390, 844],

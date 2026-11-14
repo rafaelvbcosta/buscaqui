@@ -35,15 +35,15 @@ export const PLANOS = {
     nome: 'Autônomo Destaque', preco: 14.90, para: 'profissional',
     itens: ['Seu perfil no topo da lista da sua categoria', 'Selo "Destaque" no seu perfil'],
   },
-  // Não é plano mensal: paga UMA vaga por 30 dias no ar (publicar ou renovar). Pedido com job_id.
+  // Não é plano mensal: paga UMA vaga ativa por 30 dias (publicar ou renovar). Pedido com job_id.
   vaga_avulsa: {
     nome: 'Vaga avulsa', preco: 9.90, para: 'avulsa', avulsa: true,
-    itens: ['Uma vaga no ar por 30 dias', 'Sem mensalidade: pague só quando precisar', 'Renove por mais 30 dias pelo mesmo valor'],
+    itens: ['Uma vaga ativa por 30 dias', 'Sem mensalidade: pague só quando precisar', 'Renove por mais 30 dias pelo mesmo valor'],
   },
   // Não é plano mensal: 3 vagas para usar em até 90 dias (cada uma = 30 dias no ar, para publicar ou renovar)
   pacote3: {
     nome: 'Pacote 3 vagas', preco: 24.90, para: 'pacote', pacote: true,
-    itens: ['3 vagas para usar em até 90 dias', 'Cada vaga fica 30 dias no ar (publicar ou renovar)', 'Um Pix só: sai R$ 8,30 por vaga'],
+    itens: ['3 vagas para usar em até 90 dias', 'Cada vaga fica ativa por 30 dias (publicar ou renovar)', 'Um Pix só: sai R$ 8,30 por vaga'],
   },
 };
 // Planos mensais (o que conta como "plano ativo")
@@ -300,6 +300,11 @@ export function errMsg(error) {
     [/Invalid login credentials/i, 'E-mail ou senha incorretos.'],
     [/already registered|already been registered/i, 'Este e-mail já está cadastrado. Tente entrar.'],
     [/Password should be at least/i, 'A senha precisa ter pelo menos 6 caracteres.'],
+    [/should be different from the old password|same_password/i, 'A nova senha precisa ser diferente da senha atual.'],
+    [/Password is known to be weak|weak_password|Password should contain/i, 'Essa senha é fácil de adivinhar. Escolha outra, com letras e números.'],
+    [/(expired|invalid).*(link|token|otp)|otp_expired|Token has expired/i, 'Este link expirou ou já foi usado. Peça um novo.'],
+    [/User not found|user_not_found/i, 'Não encontramos uma conta com este e-mail.'],
+    [/signups? not allowed|signup_disabled/i, 'O cadastro está temporariamente desligado. Tente mais tarde.'],
     [/Email not confirmed/i, 'Confirme seu e-mail antes de entrar: clique no link que enviamos (olhe também no Spam e em Promoções).'],
     [/rate limit|too many/i, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'],
     [/Unable to validate email|invalid format|valid email/i, 'E-mail inválido.'],
