@@ -6,7 +6,7 @@ Nenhum teste usa o Supabase de verdade nem a internet.
 | Comando (na raiz do repositório) | O que confere | Precisa de |
 |---|---|---|
 | `for f in js/*.js js/views/*.js; do node --check "$f"; done` | Erros de sintaxe no JavaScript | Node |
-| `node tools/testes/telas.js /tmp/prints` | Abre 46 telas (celular e computador, todos os perfis e o admin), salva um print de cada em `/tmp/prints` e lista erros de JavaScript. Para só algumas: `node tools/testes/telas.js /tmp/prints vagas admin` | Node + Playwright com Chromium |
+| `node tools/testes/telas.js /tmp/prints` | Abre 52 telas (celular e computador, todos os perfis e o admin), salva um print de cada em `/tmp/prints` e lista erros de JavaScript. Para só algumas: `node tools/testes/telas.js /tmp/prints vagas admin` | Node + Playwright com Chromium |
 | `bash tools/testes/banco/testar-banco.sh` | Roda o `supabase/setup.sql` da `main` e depois o atual **duas vezes** (precisa ser reexecutável) num Postgres temporário, e mais de 30 testes de segurança (admin, CNPJ/CPF, planos, Pix, vagas pausadas, limites, sugestões) | Postgres 16 em `/usr/lib/postgresql/16/bin` (ou `PGBIN=...`) |
 
 ## Arquivos

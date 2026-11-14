@@ -1,8 +1,8 @@
-import { sb } from '../supabase.js?v=202611101646';
+import { sb } from '../supabase.js?v=202611142102';
 import {
   ICON, esc, avatar, toast, errMsg, setBusy, confirmBox, modal, empty, dateBR, timeAgo,
   moneyCents, waLink, PLANOS, digits, checkCNPJ, isArcos, pixCode, validCPF, validCNPJ, maskCPF, maskCNPJ,
-} from '../ui.js?v=202611101646';
+} from '../ui.js?v=202611142102';
 
 // ============================================================
 // ÁREA DO ADMINISTRADOR
@@ -254,12 +254,12 @@ export async function payments(el, _p, ctx) {
     </table></div>` : '<p class="muted">Nada por aqui ainda.</p>'}</div>`;
   el.querySelectorAll('[data-ok]').forEach((b) => (b.onclick = async () => {
     const s = data.find((x) => x.id === b.dataset.ok);
-    const oQue = s.plan === 'vaga_avulsa' ? `A vaga "${s.jobs?.title || ''}" ficará mais 30 dias no ar.` : s.plan === 'pacote3' ? 'A empresa ganha 3 vagas para usar em até 90 dias.' : `O plano ${planName(s.plan)} será ativado por 30 dias.`;
+    const oQue = s.plan === 'vaga_avulsa' ? `A vaga "${s.jobs?.title || ''}" ficará ativa por mais 30 dias.` : s.plan === 'pacote3' ? 'A empresa ganha 3 vagas para usar em até 90 dias.' : `O plano ${planName(s.plan)} será ativado por 30 dias.`;
     if (!(await confirmBox('Confirmar pagamento', `Você confirma que recebeu o Pix de ${moneyCents(s.price)}? ${oQue}`, 'Confirmar'))) return;
     setBusy(b, true);
     const { error: e } = await sb.rpc('confirm_subscription', { sid: s.id });
     if (e) { setBusy(b, false); return toast(errMsg(e), 'err'); }
-    toast(s.plan === 'vaga_avulsa' ? 'Pagamento confirmado: a vaga está no ar! ✅' : s.plan === 'pacote3' ? 'Pagamento confirmado: pacote liberado! ✅' : 'Pagamento confirmado e plano ativado! ✅');
+    toast(s.plan === 'vaga_avulsa' ? 'Pagamento confirmado: a vaga está ativa! ✅' : s.plan === 'pacote3' ? 'Pagamento confirmado: pacote liberado! ✅' : 'Pagamento confirmado e plano ativado! ✅');
     payments(el, _p, ctx);
   }));
   el.querySelectorAll('[data-refuse]').forEach((b) => (b.onclick = async () => {
@@ -332,11 +332,11 @@ export async function settings(el, _p, ctx) {
       <p class="muted small">Aparece na tela Planos, para o usuário conferir antes de pagar.</p>
       <h2>Promoção de lançamento</h2>
       <label>Vagas grátis para todas as empresas até (último dia)<input name="promo_ate" type="date" value="${esc(v.promo_ate || '')}"></label>
-      <p class="muted small">Enquanto vale, qualquer empresa publica vagas sem pagar; cada vaga fica 30 dias no ar. Quem cadastrar a empresa
+      <p class="muted small">Enquanto vale, qualquer empresa publica vagas sem pagar; cada vaga fica ativa por 30 dias. Quem cadastrar a empresa
         durante a promoção começa o teste grátis de 30 dias só depois dela. Deixe em branco para não ter promoção (nada aparece no site).</p>
       ${v.promo_ate ? '<button type="button" class="btn btn-ghost btn-sm" id="promo-clear">Encerrar promoção (apagar a data)</button>' : ''}
       <h2>Preços dos planos</h2>
-      <ul class="plan-items">${Object.values(PLANOS).map((p) => `<li>${ICON.check}${esc(p.nome)}: <b>${moneyCents(p.preco)}${p.avulsa ? ' por vaga (30 dias no ar, ou +30 dias ao renovar)' : p.pacote ? ' por pacote (3 vagas para usar em 90 dias)' : '/mês'}</b> (${p.para === 'profissional' ? 'autônomos' : 'empresas'})</li>`).join('')}</ul>
+      <ul class="plan-items">${Object.values(PLANOS).map((p) => `<li>${ICON.check}${esc(p.nome)}: <b>${moneyCents(p.preco)}${p.avulsa ? ' por vaga (ativa por 30 dias, ou +30 dias ao renovar)' : p.pacote ? ' por pacote (3 vagas para usar em 90 dias)' : '/mês'}</b> (${p.para === 'profissional' ? 'autônomos' : 'empresas'})</li>`).join('')}</ul>
       <p class="muted small">Para mudar os preços, peça ao Claude: eles ficam no código e no banco.</p>
       <button class="btn btn-primary btn-block btn-lg" type="submit">Salvar</button>
     </form>`;

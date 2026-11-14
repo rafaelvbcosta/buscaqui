@@ -1,13 +1,13 @@
-import { sb } from '../supabase.js?v=202611101646';
-import { state, loadUserData, activePlan, pendingSub, pendingJobOrder, packageCredits, trialDaysLeft, companyActive, jobLive, promoActive, promoLastDay, trialStarts } from '../store.js?v=202611101646';
+import { sb } from '../supabase.js?v=202611142102';
+import { state, loadUserData, activePlan, pendingSub, pendingJobOrder, packageCredits, trialDaysLeft, companyActive, jobLive, promoActive, promoLastDay, trialStarts } from '../store.js?v=202611142102';
 import {
   ICON, esc, nl2br, avatar, options, empty, toast, modal, confirmBox, errMsg, setBusy, formData,
   maskPhone, maskCNPJ, waLink, dateBR, salaryRange, badgeStatus, uploadFile, STATUS_CANDIDATURA,
   CATEGORIAS_VAGA, MODALIDADES, CATEGORIAS_EMPRESA, PLANOS, validCNPJ, checkCNPJ, isArcos, LIMITE_SERVICOS,
   moneyCents, pixBoxHtml, wirePixCopy, pixCode, newId, PLANOS_MENSAIS,
-} from '../ui.js?v=202611101646';
-import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611101646';
-import { visibleServices } from './servicos.js?v=202611101646';
+} from '../ui.js?v=202611142102';
+import { jobCard, wireJobButtons, resumeHtml } from './candidato.js?v=202611142102';
+import { visibleServices } from './servicos.js?v=202611142102';
 
 async function myJobsWithCounts() {
   const { data: jobs, error } = await sb.from('jobs').select('*')
@@ -39,7 +39,7 @@ export async function dashboard(el, _p, { alive }) {
       <div class="row">${avatar(c.logo_url, c.name, 52, true)}<div><h1>Olá, ${esc(c.name)}</h1><p class="muted">Resumo das suas vagas</p></div></div>
       <a href="#/vaga-form" class="btn btn-primary">${ICON.plus} Publicar vaga</a>
     </div>
-    ${promoBanner()}${planBanner()}
+    ${promoBanner()}${planBanner(jobs)}
     <div class="stats">
       <div class="stat">${ICON.briefcase}<b>${open.length}</b><span>Vagas abertas</span></div>
       <div class="stat">${ICON.eye}<b>${sum('views')}</b><span>Visualizações</span></div>
@@ -77,27 +77,46 @@ function jobBadge(j, link) {
   return link ? `<a href="#/planos" class="badge b-yellow" title="Ver planos">${txt}: fora do ar</a>` : `<span class="badge b-yellow">${txt}</span>`;
 }
 
-// Prazo da vaga grátis/paga, mostrado quando a empresa não está com teste/plano em dia
+// Até quando a vaga fica ativa: o maior entre o prazo da própria vaga (promoção, avulsa, pacote)
+// e o fim do plano ou do teste grátis (enquanto a empresa estiver em dia)
 function prazoVaga(j) {
-  if (!j.paid_until || companyActive() || j.status !== 'aberta') return '';
-  return Date.parse(j.paid_until) > Date.now() ? ` · <b>no ar até ${dateBR(j.paid_until)}</b>` : ` · venceu em ${dateBR(j.paid_until)}`;
+  if (j.status !== 'aberta') return '';
+  const agora = Date.now();
+  const fins = [];
+  if (j.paid_until && Date.parse(j.paid_until) > agora) fins.push(Date.parse(j.paid_until));
+  if (companyActive()) {
+    const plano = activePlan();
+    if (plano) fins.push(Date.parse(plano.ends_at));
+    else if (state.trialEnds && Date.parse(state.trialEnds) > agora) fins.push(Date.parse(state.trialEnds));
+  }
+  if (fins.length) return ` · <b>ativa até ${dateBR(new Date(Math.max(...fins)).toISOString())}</b>`;
+  return j.paid_until ? ` · venceu em ${dateBR(j.paid_until)}` : '';
 }
+
+// Plano Básico: vagas do plano usadas no mês (as grátis da promoção, avulsas e do pacote não contam)
+export function basicoUsadas(jobs) {
+  const ini = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  ini.setDate(1); ini.setHours(0, 0, 0, 0);
+  const inicioMes = Date.parse(ini.toISOString().slice(0, 10) + 'T00:00:00-03:00');
+  return jobs.filter((j) => !j.paid_until && j.status !== 'aguardando' && Date.parse(j.created_at) >= inicioMes).length;
+}
+export const LIMITE_BASICO = 5;
 
 // Promoção de lançamento (só aparece enquanto vale; a data é escolhida pelo admin)
 export function promoBanner(withButton = true) {
   if (!promoActive()) return '';
   return `<div class="card plan-status promo">${ICON.star}<div class="grow"><b>Promoção de lançamento: publique vagas grátis até ${promoLastDay()}</b>
-    <p class="muted small">Cada vaga publicada na promoção fica 30 dias no ar, sem custo.</p></div>
+    <p class="muted small">Cada vaga publicada na promoção fica ativa por 30 dias, sem custo.</p></div>
     ${withButton ? `<a href="#/vaga-form" class="btn btn-primary btn-sm">${ICON.plus} Publicar vaga</a>` : ''}</div>`;
 }
 
 // Aviso do plano no topo do painel
-function planBanner() {
+function planBanner(jobs = []) {
   const ativo = activePlan(), pend = pendingSub(), dias = trialDaysLeft();
   if (pend) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Pagamento do plano ${esc(PLANOS[pend.plan]?.nome || '')} aguardando confirmação</b>
     <p class="muted small">Assim que o Pix for confirmado, o plano é ativado.</p></div></a>`;
   if (ativo) return `<a href="#/planos" class="card plan-status ok">${ICON.star}<div class="grow"><b>Plano ${esc(PLANOS[ativo.plan].nome)}</b>
-    <p class="muted small">Válido até ${dateBR(ativo.ends_at)}.</p></div><span class="btn btn-ghost btn-sm">Ver plano</span></a>`;
+    <p class="muted small">Válido até ${dateBR(ativo.ends_at)}.${ativo.plan === 'basico' ? ` Vagas do plano neste mês: <b>${basicoUsadas(jobs)} de ${LIMITE_BASICO}</b> (as da promoção, avulsas e do pacote não contam).` : ''}</p></div><span class="btn btn-ghost btn-sm">Ver plano</span></a>`;
   const ini = trialStarts();
   if (ini && ini.getTime() > Date.now()) return `<a href="#/planos" class="card plan-status trial">${ICON.clock}<div class="grow"><b>Seu teste grátis de 30 dias começa em ${dateBR(ini.toISOString())}</b>
     <p class="muted small">Ele começa quando a promoção terminar: vagas ilimitadas e até ${LIMITE_SERVICOS} serviços divulgados.</p></div></a>`;
@@ -105,10 +124,10 @@ function planBanner() {
     <p class="muted small">Vagas ilimitadas e até ${LIMITE_SERVICOS} serviços divulgados. Depois, escolha um plano para continuar.</p></div><span class="btn btn-secondary btn-sm">Ver planos</span></a>`;
   const cred = packageCredits();
   if (cred.left) return `<a href="#/vaga-form" class="card plan-status ok">${ICON.briefcase}<div class="grow"><b>Pacote: ${cred.left} vaga${cred.left === 1 ? '' : 's'} para usar até ${dateBR(cred.ends)}</b>
-    <p class="muted small">Cada vaga fica 30 dias no ar. Use para publicar ou para renovar em Minhas vagas.</p></div><span class="btn btn-primary btn-sm">${ICON.plus} Publicar vaga</span></a>`;
+    <p class="muted small">Cada vaga fica ativa por 30 dias. Use para publicar ou para renovar em Minhas vagas.</p></div><span class="btn btn-primary btn-sm">${ICON.plus} Publicar vaga</span></a>`;
   const venceu = state.subs.some((x) => x.status === 'ativa' && PLANOS_MENSAIS.includes(x.plan));
   return `<a href="#/planos" class="card plan-status warn">${ICON.ban}<div class="grow"><b>${venceu ? 'Seu plano venceu' : 'Seu teste grátis terminou'}: vagas e divulgação pausadas</b>
-    <p class="muted small">${promoActive() ? 'Durante a promoção, as vagas novas são grátis. As vagas antigas e a divulgação voltam quando o pagamento de um plano for confirmado.' : `Nada foi apagado. Escolha um plano, ou coloque cada vaga no ar por ${moneyCents(PLANOS.vaga_avulsa.preco)} em Minhas vagas.`}</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
+    <p class="muted small">${promoActive() ? 'Durante a promoção, as vagas novas são grátis. As vagas antigas e a divulgação voltam quando o pagamento de um plano for confirmado.' : `Nada foi apagado. Escolha um plano, ou ative cada vaga por ${moneyCents(PLANOS.vaga_avulsa.preco)} em Minhas vagas.`}</p></div><span class="btn btn-primary btn-sm">${venceu ? 'Renovar plano' : 'Escolher plano'}</span></a>`;
 }
 
 // ============================================================
@@ -160,7 +179,7 @@ export async function myJobs(el, _p, ctx) {
   }));
 }
 
-// ---------- Vaga avulsa / renovação (R$ 9,90 por 30 dias no ar, pago por Pix) ----------
+// ---------- Vaga avulsa / renovação (R$ 9,90 ativa por 30 dias, pago por Pix) ----------
 const PRECO_AVULSA = PLANOS.vaga_avulsa.preco;
 
 // Botões de pagamento de uma vaga em Minhas vagas
@@ -168,11 +187,11 @@ function payActions(j) {
   const pend = pendingJobOrder(j.id);
   const cred = packageCredits().left;
   const precisa = j.status === 'aguardando' || (j.status === 'aberta' && !jobLive(j));
-  if (!pend && precisa && cred) return `<button class="btn btn-secondary btn-sm" data-credit="${j.id}">${ICON.briefcase} ${j.status === 'aguardando' ? 'Publicar' : j.paid_until ? 'Renovar' : 'Colocar no ar'} com o pacote (${cred} restante${cred === 1 ? '' : 's'})</button>`;
+  if (!pend && precisa && cred) return `<button class="btn btn-secondary btn-sm" data-credit="${j.id}">${ICON.briefcase} ${j.status === 'aguardando' ? 'Publicar' : j.paid_until ? 'Renovar' : 'Ativar'} com o pacote (${cred} restante${cred === 1 ? '' : 's'})</button>`;
   if (pend) return `<button class="btn btn-secondary btn-sm" data-pix="${pend.id}">${ICON.card} Ver Pix</button>
     <button class="btn btn-ghost btn-sm" data-cancel-order="${pend.id}">Cancelar pedido</button>`;
   if (j.status === 'aguardando') return `<button class="btn btn-secondary btn-sm" data-order="${j.id}">${ICON.card} Pagar ${moneyCents(PRECO_AVULSA)}</button>`;
-  if (j.status === 'aberta' && !jobLive(j)) return `<button class="btn btn-secondary btn-sm" data-order="${j.id}">${ICON.card} ${j.paid_until ? 'Renovar' : 'Colocar no ar'} por ${moneyCents(PRECO_AVULSA)}</button>`;
+  if (j.status === 'aberta' && !jobLive(j)) return `<button class="btn btn-secondary btn-sm" data-order="${j.id}">${ICON.card} ${j.paid_until ? 'Renovar' : 'Ativar'} por ${moneyCents(PRECO_AVULSA)}</button>`;
   return '';
 }
 
@@ -186,12 +205,12 @@ async function useCredit(jobId) {
 
 function wirePayActions(el, jobs, refresh) {
   el.querySelectorAll('[data-credit]').forEach((b) => (b.onclick = async () => {
-    if (!(await confirmBox('Usar o pacote', 'Usar 1 vaga do seu pacote? Esta vaga fica 30 dias no ar.', 'Usar 1 vaga'))) return;
+    if (!(await confirmBox('Usar o pacote', 'Usar 1 vaga do seu pacote? Esta vaga fica ativa por 30 dias.', 'Usar 1 vaga'))) return;
     setBusy(b, true, 'Publicando...');
     const ok = await useCredit(b.dataset.credit);
     setBusy(b, false);
     if (!ok) return;
-    toast('Pronto! A vaga está no ar por 30 dias. ✅'); refresh();
+    toast('Pronto! A vaga está ativa por 30 dias. ✅'); refresh();
   }));
   el.querySelectorAll('[data-order]').forEach((b) => (b.onclick = async () => {
     const j = jobs.find((x) => x.id === b.dataset.order);
@@ -228,8 +247,8 @@ async function showJobPix(s, title) {
   const { data } = await sb.from('app_settings').select('key, value');
   const pix = Object.fromEntries((data || []).map((x) => [x.key, x.value]));
   const m = modal('Pagamento da vaga', `
-    <p>Vaga <b>${esc(title || '')}</b>: <b>${moneyCents(s.price || PRECO_AVULSA)}</b> por 30 dias no ar.</p>
-    ${pixBoxHtml(pix, s.price || PRECO_AVULSA, s, 'Depois do pagamento, a equipe do BuscAqui confirma e a vaga entra no ar por 30 dias (normalmente em até 1 dia útil). Você acompanha em Minhas vagas.')}
+    <p>Vaga <b>${esc(title || '')}</b>: <b>${moneyCents(s.price || PRECO_AVULSA)}</b> ativa por 30 dias.</p>
+    ${pixBoxHtml(pix, s.price || PRECO_AVULSA, s, 'Depois do pagamento, a equipe do BuscAqui confirma e a vaga é ativada por 30 dias (normalmente em até 1 dia útil). Você acompanha em Minhas vagas.')}
     <div class="row-end"><button class="btn btn-primary" data-ok>Entendi</button></div>`);
   wirePixCopy(m.el, pix);
   m.el.querySelector('[data-ok]').onclick = m.close;
@@ -265,10 +284,10 @@ export async function jobForm(el, [id], { go, alive }) {
         <label>Descrição da vaga<textarea name="description" rows="5" required placeholder="O que a pessoa vai fazer no dia a dia?">${esc(j.description)}</textarea></label>
         <label>Requisitos<textarea name="requirements" rows="3" placeholder="Escolaridade, experiência, CNH...">${esc(j.requirements)}</textarea></label>
         <label>Benefícios<textarea name="benefits" rows="3" placeholder="Vale-transporte, refeição, plano de saúde...">${esc(j.benefits)}</textarea></label>
-        ${!id && promoActive() ? `<p class="promo-note">${ICON.star}<span><b>Grátis na promoção de lançamento:</b> esta vaga fica 30 dias no ar, sem custo.</span></p>` : ''}
-        ${pagar && cred.left ? `<p class="promo-note">${ICON.briefcase}<span><b>Você tem ${cred.left} vaga${cred.left === 1 ? '' : 's'} do pacote</b> (até ${dateBR(cred.ends)}). Esta vaga usa 1 e fica 30 dias no ar.</span></p>` : ''}
+        ${!id && promoActive() ? `<p class="promo-note">${ICON.star}<span><b>Grátis na promoção de lançamento:</b> esta vaga fica ativa por 30 dias, sem custo.</span></p>` : ''}
+        ${pagar && cred.left ? `<p class="promo-note">${ICON.briefcase}<span><b>Você tem ${cred.left} vaga${cred.left === 1 ? '' : 's'} do pacote</b> (até ${dateBR(cred.ends)}). Esta vaga usa 1 e fica ativa por 30 dias.</span></p>` : ''}
         ${pagar && !cred.left ? `<div class="avulsa-note">${ICON.card}<div><b>Publique esta vaga por ${moneyCents(PRECO_AVULSA)}</b>
-          <p class="small">Sua empresa está sem plano ativo. A vaga fica 30 dias no ar depois que o Pix for confirmado. Sem mensalidade.
+          <p class="small">Sua empresa está sem plano ativo. A vaga fica ativa por 30 dias depois que o Pix for confirmado. Sem mensalidade.
           Vai contratar mais vezes? O <a href="#/planos">pacote de 3 vagas</a> ou um plano mensal saem mais em conta.</p></div></div>` : ''}
         <button class="btn btn-primary btn-block btn-lg" type="submit">${id ? 'Salvar alterações' : pagar && cred.left ? 'Publicar usando o pacote' : pagar ? `Continuar para o pagamento (${moneyCents(PRECO_AVULSA)})` : 'Publicar vaga'}</button>
       </form>
@@ -291,7 +310,7 @@ export async function jobForm(el, [id], { go, alive }) {
       if (r.error) { setBusy(btn, false); return toast(errMsg(r.error), 'err'); }
       const s = await orderJob(nova.id);
       setBusy(btn, false);
-      toast('Vaga guardada! Agora faça o Pix para ela entrar no ar.');
+      toast('Vaga guardada! Agora faça o Pix para ela ser ativada.');
       go(s ? `/minhas-vagas?pix=${s.id}` : '/minhas-vagas');
     };
     if (pagar && cred.left) {
@@ -310,7 +329,7 @@ export async function jobForm(el, [id], { go, alive }) {
       if (!id && /PLANO_NECESSARIO|LIMITE_VAGAS/.test(error.message || '')) {
         const lim = /LIMITE_VAGAS/.test(error.message || '');
         const ok = await confirmBox(lim ? 'Limite do plano Básico' : 'Sua empresa está sem plano',
-          `${lim ? 'Você já publicou as 5 vagas do mês do plano Básico.' : 'O teste grátis terminou.'} Quer publicar esta vaga avulsa por ${moneyCents(PRECO_AVULSA)} (30 dias no ar, pagamento por Pix)?`,
+          `${lim ? 'Você já publicou as 5 vagas do mês do plano Básico.' : 'O teste grátis terminou.'} Quer publicar esta vaga avulsa por ${moneyCents(PRECO_AVULSA)} (ativa por 30 dias, pagamento por Pix)?`,
           'Sim, continuar');
         if (ok) { setBusy(btn, true, 'Salvando...'); return avulsa(); }
         return;
@@ -450,7 +469,11 @@ export function companyForm(el, _p, { go, refreshShell }) {
       </div>
       <button class="btn btn-primary btn-block btn-lg" type="submit">${isNew ? 'Concluir cadastro' : 'Salvar'}</button>
       ${!isNew ? `<p class="center"><a href="#/empresa/${c.id}">Ver página pública da empresa</a></p>` : ''}
-    </form>`;
+    </form>
+    ${!isNew ? `<a href="#/divulgar" class="card cta-band narrow">
+      <div><h3>${ICON.tool} ${state.professional ? 'Serviços da empresa' : 'Sua empresa presta serviços?'}</h3>
+      <p class="muted">${state.professional ? 'Edite os serviços que aparecem em "Encontrar profissional".' : 'Divulgue os serviços da empresa para quem procura em Arcos.'}</p></div>
+      <span class="btn btn-secondary">${state.professional ? 'Editar serviços' : 'Divulgar serviços'}</span></a>` : ''}`;
   maskCNPJ(el.querySelector('[name=cnpj]'));
   maskPhone(el.querySelector('[name=phone]'));
   el.querySelector('#logo').onchange = async (e) => {
