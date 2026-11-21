@@ -1,0 +1,37 @@
+# Mantém o Supabase (plano grátis) ativo: ele pausa o projeto depois de 7 dias sem uso.
+# A cada 3 dias faz UMA leitura simples e pública no banco (a mesma que o site faz),
+# usando só a chave pública (publishable) que já está em js/config.js. Não grava nada.
+# Para rodar na hora: GitHub › Actions › "Manter o Supabase ativo" › Run workflow.
+name: Manter o Supabase ativo
+
+on:
+  schedule:
+    - cron: "17 11 */3 * *"   # a cada 3 dias, 11:17 UTC (08:17 em Brasília)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  despertar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ler a URL e a chave pública do site
+        run: |
+          URL=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' js/config.js | head -1)
+          KEY=$(grep -oE 'sb_publishable_[A-Za-z0-9_-]+' js/config.js | head -1)
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "Não achei a URL ou a chave em js/config.js"; exit 1; fi
+          echo "URL=$URL" >> "$GITHUB_ENV"
+          echo "KEY=$KEY" >> "$GITHUB_ENV"
+      - name: Consultar o banco (só leitura)
+        run: |
+          for tentativa in 1 2 3; do
+            code=$(curl -s -o resposta.json -w '%{http_code}' "$URL/rest/v1/companies?select=id&limit=1" -H "apikey: $KEY")
+            echo "Tentativa $tentativa: HTTP $code"
+            if [ "$code" = "200" ]; then echo "Supabase ativo."; exit 0; fi
+            sleep 60
+          done
+          echo "O Supabase não respondeu. Ele pode estar pausado: abra o painel e clique em Restore project."
+          exit 1

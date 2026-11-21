@@ -51,7 +51,8 @@ vence, as vagas da empresa ficam **pausadas** (nada é apagado) e voltam ao reno
 - **Apagar os dados de exemplo:** rode [`supabase/remover-exemplos.sql`](supabase/remover-exemplos.sql).
 - **E-mails do site:** saem pelo Gmail `buscaqui.arcos@gmail.com` (Supabase → Authentication → Emails → SMTP
   Settings, com senha de app do Google). *Confirm email* está ligado.
-- **Projeto pausado?** O Supabase grátis pausa após 7 dias sem uso: painel → **Restore project**.
+- **Projeto pausado?** O Supabase grátis pausa após 7 dias sem uso. O GitHub Actions "Manter o Supabase ativo" faz
+  uma leitura a cada 3 dias para evitar isso; se pausar mesmo assim: painel → **Restore project**.
 - **Testes:** veja [`tools/testes/README.md`](tools/testes/README.md).
 
 ## Arquivos
