@@ -1,6 +1,6 @@
 # BuscAqui — status do projeto
 
-> Atualizado em **07/11/2026**. Base: branch `main` (PR #29) + PR #30 (Supabase sempre ativo).
+> Atualizado em **07/11/2026**. Base: branch `main` (PR #30) + PR #31 (despertador 4x por dia).
 > Regras, arquitetura e como testar estão em **`CLAUDE.md`**.
 > Legenda: ✅ confirmado no código · 🧪 testado pelo Rafael no site real · ⚠️ não confirmado (ver seção 9).
 
@@ -101,8 +101,10 @@ teste de 30 dias **depois da promoção**. Isso é feito **no dia do lançamento
 - [ ] Marketing: preencher sobrenome, WhatsApp e e-mail no último slide da apresentação; confirmar a oferta de
       "empresa fundadora" e as metas da estratégia (ver seção 7).
 - [x] Supabase gratuito **pausa após 7 dias sem uso**: aconteceu em 21/11/2026 (o Rafael reativou com "Restore project",
-      nenhum dado perdido). Agora o GitHub Actions `.github/workflows/manter-supabase-ativo.yml` faz uma leitura a cada
-      3 dias para manter o projeto ativo (PR #30). Se um dia pausar de novo: painel → **Restore project**.
+      nenhum dado perdido) e **de novo em 25/11** (reativado pelo Claude em 26/11): uma leitura a cada 3 dias não
+      bastou — a documentação do Supabase pede "algumas consultas ao banco **todos os dias**". Agora o GitHub Actions
+      `.github/workflows/manter-supabase-ativo.yml` roda **4 vezes por dia** com 3 leituras cada (PR #31). Se pausar
+      de novo: painel → **Resume/Restore project** (até 90 dias depois da pausa, sem perder dados).
 
 ## 5. Bugs e pontos de atenção conhecidos
 | # | Descrição | Onde | Gravidade |
@@ -189,6 +191,7 @@ Criados em 02-03/11/2026 como artifacts no claude.ai (privados; o Rafael compart
 | #28 | 10/11 | Aviso "olhe também no Spam" na confirmação de cadastro, no Esqueci minha senha e no erro de e-mail não confirmado; textos novos dos e-mails em `supabase/emails/`; notificações de candidaturas e e-mail com domínio próprio anotados para depois | Não |
 | #29 | 14/11 | Correções da bateria de testes do Rafael (partes 1–8): foto do PDF sem distorção; status real da candidatura no cartão e no detalhe da vaga (antes: sempre "Candidatado"); mensagens do login em português (senha igual à anterior etc.); pedido de serviço só com Bairro; autônomo sem campo Cidade, valor com R$ fixo + observação e, sem perfil, vai direto completar o perfil; atalho "Divulgar os serviços da minha empresa" em Serviços e em Empresa; "ativa até" em todas as vagas (no lugar de "no ar até"); contador de vagas do Básico (X de 5); Play Store nos lembretes | Não |
 | #30 | 21/11 | "Despertador" do Supabase: GitHub Actions faz uma leitura pública no banco a cada 3 dias para o plano grátis não pausar (pausou em 21/11 por 7 dias sem uso) | Não |
+| #31 | 26/11 | Despertador do Supabase passa de 1 leitura a cada 3 dias para 4 vezes por dia (3 leituras cada): o projeto pausou de novo em 25/11 | Não |
 
 ## 11. Próximas etapas sugeridas
 1. Configurações técnicas do lançamento **feitas** (07/11/2026). Faltam do checklist da seção 4: CNPJ nas páginas,

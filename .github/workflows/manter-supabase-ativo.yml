@@ -1,12 +1,13 @@
-# Mantém o Supabase (plano grátis) ativo: ele pausa o projeto depois de 7 dias sem uso.
-# A cada 3 dias faz UMA leitura simples e pública no banco (a mesma que o site faz),
-# usando só a chave pública (publishable) que já está em js/config.js. Não grava nada.
+# Mantém o Supabase (plano grátis) ativo. O Supabase pausa projetos com pouca atividade no banco na última
+# semana: pela documentação, são precisas "algumas consultas ao banco TODOS OS DIAS". Por isso este
+# despertador roda 4 vezes por dia e faz 3 leituras simples e públicas (as mesmas que o site faz), usando só a
+# chave pública (publishable) que já está em js/config.js. Não grava nada.
 # Para rodar na hora: GitHub › Actions › "Manter o Supabase ativo" › Run workflow.
 name: Manter o Supabase ativo
 
 on:
   schedule:
-    - cron: "17 11 */3 * *"   # a cada 3 dias, 11:17 UTC (08:17 em Brasília)
+    - cron: "17 2,8,14,20 * * *"   # 4 vezes por dia (23:17, 05:17, 11:17 e 17:17 em Brasília)
   workflow_dispatch:
 
 permissions:
@@ -15,7 +16,7 @@ permissions:
 jobs:
   despertar:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - name: Ler a URL e a chave pública do site
@@ -27,11 +28,18 @@ jobs:
           echo "KEY=$KEY" >> "$GITHUB_ENV"
       - name: Consultar o banco (só leitura)
         run: |
-          for tentativa in 1 2 3; do
-            code=$(curl -s -o resposta.json -w '%{http_code}' "$URL/rest/v1/companies?select=id&limit=1" -H "apikey: $KEY")
-            echo "Tentativa $tentativa: HTTP $code"
-            if [ "$code" = "200" ]; then echo "Supabase ativo."; exit 0; fi
-            sleep 60
-          done
-          echo "O Supabase não respondeu. Ele pode estar pausado: abra o painel e clique em Restore project."
+          consulta() {  # $1 = caminho; repete até 3 vezes se o banco não responder
+            for tentativa in 1 2 3; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$URL/rest/v1/$1" -H "apikey: $KEY" -H "Content-Type: application/json" ${2:+-X POST -d "$2"})
+              echo "$1 -> HTTP $code (tentativa $tentativa)"
+              if [ "$code" = "200" ]; then return 0; fi
+              sleep 60
+            done
+            return 1
+          }
+          consulta "companies?select=id&limit=5" \
+            && consulta "professionals?select=id&limit=5" \
+            && consulta "rpc/promo_active" '{}' \
+            && { echo "Supabase ativo."; exit 0; }
+          echo "O Supabase não respondeu. Ele pode estar pausado: abra o painel e clique em Resume/Restore project."
           exit 1
