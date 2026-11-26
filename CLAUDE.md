@@ -39,8 +39,9 @@ público** (fase de testes; ver pendências em `PROJECT_STATUS.md`).
   (`buscaquiarcos.com.br`, ~R$ 40/ano). Arquivo **`CNAME`** na raiz guarda o domínio — **não apagar**. `.nojekyll`
   também deve ficar.
 - Backend: **Supabase** plano gratuito, projeto `buscaqui` (região São Paulo, ref `tjfzpobrqqoecktotlzy`):
-  Auth e-mail/senha, Postgres com RLS, Storage. O plano grátis **pausa após 7 dias sem uso**: o workflow
-  `manter-supabase-ativo.yml` (GitHub Actions, grátis) evita isso. O GitHub desliga workflows agendados depois de
+  Auth e-mail/senha, Postgres com RLS, Storage. O plano grátis **pausa projetos com pouca atividade no banco na
+  última semana** (precisa de algumas consultas **todos os dias**): o workflow `manter-supabase-ativo.yml` (GitHub
+  Actions, grátis em repositório público) roda 4x por dia com 3 leituras públicas. Pausou em 21/11 e 25/11. O GitHub desliga workflows agendados depois de
   60 dias sem commits no repositório (avisa por e-mail; reativar em Actions › Enable workflow).
 - CDN: `@supabase/supabase-js@2.49.4` (jsdelivr, `+esm`) e `html2pdf.js@0.10.1` (cdnjs, carregado só ao baixar PDF).
 - API externa: **BrasilAPI** (`https://brasilapi.com.br/api/cnpj/v1/<cnpj>`) para conferir CNPJ (existe, situação,
@@ -81,7 +82,7 @@ supabase/setup.sql       banco inteiro (tabelas, gatilhos, RLS, buckets, exemplo
 supabase/remover-exemplos.sql  apaga empresas/vagas/profissionais de exemplo (owner_id/user_id nulos)
 supabase/emails/         modelos dos e-mails de login (colar no painel do Supabase)
 tools/versao.py          troca o ?v=AAAAMMDDHHMM de TODOS os imports (cache do navegador)
-.github/workflows/manter-supabase-ativo.yml  a cada 3 dias lê o banco (chave pública) para o Supabase grátis não pausar
+.github/workflows/manter-supabase-ativo.yml  4x por dia lê o banco (chave pública) para o Supabase grátis não pausar
 ```
 
 **Rotas** (`js/app.js`): públicas `#/`, `#/entrar`, `#/cadastro`; logado ou não (`LEGAL`): `#/privacidade`,
